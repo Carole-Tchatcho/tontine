@@ -1568,7 +1568,7 @@ const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON;
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
-  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true}}); return sb; }
+  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}); return sb; }
 
 const ST_DB2UI={termine:'done',en_cours:'now',a_venir:'soon'};
 function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
@@ -1629,6 +1629,7 @@ const db={
       if(d.firstBenIdx&&d.firstBenIdx>0&&d.firstBenIdx<places){const _b0=t.rounds[0].beneficiary;t.rounds[0].beneficiary=t.rounds[d.firstBenIdx].beneficiary;t.rounds[d.firstBenIdx].beneficiary=_b0;}
       state_tontines.push(t);return t.id; }
     const uid=await sbUid();
+    if(!uid){ alert('Session non reconnue — reconnecte-toi puis réessaie.'); state.view='auth'; render(); throw new Error('no-session'); }
     await sb.from('profiles').update({nom:d.oName.trim(),contact:d.oContact.trim()||null}).eq('id',uid);
     const{data:t,error}=await sb.from('tontines').insert({nom:d.name.trim(),montant:Number(d.amount)||0,devise:d.currency,
       frequence:d.frequency,places,code:genCode(),organisateur_id:uid,tour_courant:0}).select().single(); if(error)throw error;
@@ -2062,7 +2063,7 @@ function viewHome(){
 }
 
 /* ---------- création : squelette seulement ---------- */
-function startCreate(){draft={name:'',amount:'',currency:'CHF',frequency:'mensuelle',places:6,oName:state.user,oContact:'',oCountry:state.homeCountry,oMk:false,renforced:false};go('create');}
+function startCreate(){draft={name:'',amount:'',currency:'CHF',frequency:'mensuelle',places:6,oName:'',oContact:'',oCountry:state.homeCountry,oMk:false,renforced:false};go('create');}
 function viewCreate(){
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
