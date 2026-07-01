@@ -1568,7 +1568,7 @@ const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON;
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
-  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON); return sb; }
+  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true}}); return sb; }
 
 const ST_DB2UI={termine:'done',en_cours:'now',a_venir:'soon'};
 function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
@@ -4174,8 +4174,7 @@ function activateMandate(){
   go('entraide');
 }
 
-function footer(){return `<div class="footer">Prototype v7.31 · Étage 1 · relevé de séance (PDF/CSV) + import Excel/Word · UBORA ne détient aucun fonds<br>
-  Démo locale — vos essais sont gardés sur cet appareil · <a class="flink" onclick="resetLocal()">réinitialiser la démo</a></div>`;}
+function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance</div>`;}
 
 function viewAuth(){
   app().innerHTML=`
@@ -4195,7 +4194,7 @@ function viewAuth(){
       </div>
     </div></div>${footer()}`;
 }
-async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim()});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
+async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=data.user.id;await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
