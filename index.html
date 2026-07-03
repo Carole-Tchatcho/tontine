@@ -1593,6 +1593,7 @@ function assembleSB(t,memberships,rounds,contribs,uid){
     members,rounds:uiR};
 }
 async function sbUid(){const{data}=await sb.auth.getUser();return data.user?.id;}
+function authDispName(u){ if(!u)return ''; const e=(u.email||'').split('@')[0]; return e||u.id; }
 async function sbGetTontine(id,uid){
   const{data:t}=await sb.from('tontines').select('*').eq('id',id).single(); if(!t)return null;
   const[{data:mem},{data:rd}]=await Promise.all([
@@ -2723,6 +2724,11 @@ function openCaisse(id){state.activeCaisse=id;state.view='caisse';state.caisseTa
 /* ---------- création d'une caisse / association (self-service) ---------- */
 let cDraft=null;
 function startCaisse(){cDraft={group:'',name:'',type:'deces',currency:'CAD',federation:'',pres:state.user,tres:'',comm:'',cot:'',freq:'mensuelle'};go('caissecreate');}
+function editCaisse(id){ const c=getC(id); if(!c)return; cDraft={editId:id,group:c.group||'',name:c.name||'',type:c.type||'deces',currency:c.currency||'CAD',federation:c.federation||'',pres:'',tres:'',comm:'',cot:(c.cotisation&&c.cotisation.montant)||'',freq:(c.cotisation&&c.cotisation.frequence)||'mensuelle'}; go('caissecreate'); }
+function delCaisse(id){ if(!confirm('Supprimer cette caisse ? Cette action est définitive.'))return;
+  const done=()=>{ state_caisses=state_caisses.filter(c=>c.id!==id); go('entraide'); };
+  if(BACKEND==='supabase'){ db.deleteCaisse(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  else { done(); saveLocal(); } }
 function cRead(){ if(!cDraft)return; const g=(id,d)=>{const el=$('#'+id);return el?el.value:d;};
   cDraft.group=g('c-group',cDraft.group);cDraft.name=g('c-name',cDraft.name);cDraft.type=g('c-type',cDraft.type);
   cDraft.currency=g('c-cur',cDraft.currency);cDraft.federation=g('c-fed',cDraft.federation);
@@ -2732,6 +2738,13 @@ function cRead(){ if(!cDraft)return; const g=(id,d)=>{const el=$('#'+id);return 
 function cSave(){cRead();
   if(!cDraft.group.trim()){alert(tr('al_cc_group'));return;}
   const name=cDraft.name.trim()||tr('cc_name_default').replace('{g}',cDraft.group.trim());
+  if(cDraft.editId){
+    const c=getC(cDraft.editId);
+    if(c){ c.group=cDraft.group.trim(); c.name=name; c.type=cDraft.type; c.currency=cDraft.currency; c.federation=(cDraft.federation||'').trim()||null; c.cotisation={montant:Number(cDraft.cot)||0,frequence:cDraft.freq}; }
+    const eid=cDraft.editId; cDraft=null;
+    if(BACKEND==='supabase'){db.saveCaisse(getC(eid)).then(()=>openCaisse(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    saveLocal(); openCaisse(eid); return;
+  }
   const creator=cDraft.pres.trim()||state.user||tr('cc_you');
   state_caisses.unshift({
     id:'c'+Date.now(), group:cDraft.group.trim(), name, type:cDraft.type, currency:cDraft.currency,
@@ -2792,6 +2805,7 @@ function viewCaisse(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div><h1 class="page-title">${c.name}</h1>
       <div class="t-meta">${c.group} · ${typeCaisseLabel(c.type)} · ${c.foyers.length} ${tr('ca_foyers')} · ${money(c.fonds,c.currency)} ${tr('ca_in_fund')}</div></div>
+    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCaisse('${c.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delCaisse('${c.id}')">🗑 Supprimer</button></div>
     <div class="reassure">● ${tr('ca_reassure')}</div>
     <div>${trustSeal(tr('ca_seal'))}</div>
     <div class="caisse-role"><span class="lbl">${tr('ca_role_lbl')}</span>
@@ -3393,6 +3407,14 @@ function viewPartageCreate(){
 function pSave(){
   const title=(($('#p-title').value)||'').trim()||tr('pt_create_title');
   const face=$('#p-face').value, cur=$('#p-cur').value;
+  if(pDraft&&pDraft.editId){
+    const p=getP(pDraft.editId);
+    if(p){ p.title=title; p.face=face; p.cur=cur;
+      if(!(p.expenses&&p.expenses.length)){ const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean); p.members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur}))); } }
+    const eid=pDraft.editId; pDraft=null;
+    if(BACKEND==='supabase'){db.savePartage(getP(eid)).then(()=>openPartage(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    saveLocal(); openPartage(eid); return;
+  }
   const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean);
   const members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur})));
   const id='p'+Date.now();
@@ -3401,6 +3423,11 @@ function pSave(){
   if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
   openPartage(id);
 }
+function editPartage(id){ const p=getP(id); if(!p)return; pDraft={editId:id,title:p.title||'',face:p.face||'sortie',cur:p.cur||'EUR',membersText:(p.members||[]).slice(1).map(m=>m.name).join('\n')}; go('partagecreate'); }
+function delPartage(id){ if(!confirm('Supprimer ce partage ? Cette action est définitive.'))return;
+  const done=()=>{ state_partages=state_partages.filter(p=>p.id!==id); go('partages'); };
+  if(BACKEND==='supabase'){ db.deletePartage(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  else { done(); saveLocal(); } }
 function viewPartage(){
   const p=getP(state.activePartage); if(!p)return go('partages');
   const faceLbl=tr('pt_face_'+(p.face||'sortie'));
@@ -3413,6 +3440,7 @@ function viewPartage(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div><h1 class="page-title">${esc(p.title)}</h1>
       <div class="t-meta">${faceLbl} · ${tr('pt_members_n').replace('{n}',p.members.length)} · ${p.cur}</div></div>
+    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editPartage('${p.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delPartage('${p.id}')">🗑 Supprimer</button></div>
     <div class="reassure">● ${tr('pt_reassure')}</div>
     ${tabs}`;
   let body;
@@ -3926,6 +3954,7 @@ function diffOutbox(){
   return `<div class="panel"><div class="panel-h"><h3>${tr('df_outbox_h')}</h3></div>
     ${rows||`<div class="empty">${tr('df_outbox_empty')}</div>`}</div>`;
 }
+function delEvent(id){ if(!confirm('Supprimer cet événement ? Cette action est définitive.'))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
 function editEvent(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const isCreator=ev.creator===state.user;
@@ -4118,7 +4147,7 @@ function viewEvent(){
   const eds=(ev.editors||[]).map(e=>e.nom).filter(Boolean);
   const whoEdit=tr('ev_whoedit_pref')+(ev.creator||tr('ev_creator'))+(eds.length?(' + '+eds.join(', ')):'');
   const editBtn=manage
-    ? `<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">${icon('doc')}${tr('ev_modify')}</button>`
+    ? `<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">${icon('doc')}${tr('ev_modify')}</button> <button class="btn btn-ghost btn-sm" onclick="delEvent('${ev.id}')">🗑 Supprimer</button>`
     : `<span class="msub">${tr('ev_reserved')}</span>`;
 
   /* gestionnaire : panneau de modération si signalements ou retrait */
@@ -4232,16 +4261,16 @@ function viewAuth(){
 }
 async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
-async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=data.user.id;await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
+async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
 async function boot(){
   if(BACKEND!=='supabase'){loadLocal();render();return;}            /* mode démo : restaure les essais locaux */
   try{
     await initSB();
-    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user)state.user=s.user.id; });
+    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user)state.user=authDispName(s.user); });
     const{data}=await sb.auth.getUser();
     if(!data.user){state.view='auth';render();return;}
-    state.user=data.user.id;await db.loadList();state.view='home';render();
+    state.user=authDispName(data.user);await db.loadList();state.view='home';render();
   }catch(e){ BACKEND='memory'; render(); }                    /* repli démo si l'init échoue */
 }
 boot();
