@@ -1755,7 +1755,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1837,7 +1837,7 @@ function render(){
   {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
   const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,notif:1};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -3324,6 +3324,41 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
   go('case');}
 function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; caseDraft={editId:id,name:c.name||'',type:c.type||'pro',mission:c.mission||'',country:c.country||'',city:c.city||''}; go('casecreate'); }
 function delCase(id){ if(!confirm('Supprimer cette Case ? Cette action est définitive.'))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); } }
+function openCaseMembers(id){ state.activeCase=id; go('casemembers'); }
+function viewCaseMembers(){
+  const c=state_cases.find(x=>x.id===state.activeCase);
+  if(!c)return go('case');
+  c.members=c.members||[];
+  const rows=c.members.length?c.members.map((m,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${[m.role,m.contact].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseMemberDel(${i})">🗑</button></div></div>`).join(''):`<div class="empty">Aucun membre pour l'instant. Ajoutez le premier.</div>`;
+  app().innerHTML=`
+    <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
+    <div class="eyebrow">${tr('mc_tool_dir')}</div>
+    <h1 class="page-title">Annuaire \u00b7 ${esc(c.name)}</h1>
+    <p class="lead">Les membres de cette organisation.</p>
+    <div class="panel"><div style="padding:18px 20px">
+      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Nom</label><input id="cm-name" placeholder="Nom du membre"></div>
+        <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Contact</label><input id="cm-contact" placeholder="Email ou t\u00e9l\u00e9phone"></div>
+        <div class="field" style="flex:1;min-width:120px;margin-top:0"><label>R\u00f4le</label><input id="cm-role" placeholder="Ex. Tr\u00e9sorier"></div></div>
+      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseMemberAdd()">+ Ajouter le membre</button></div>
+    </div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Membres (${c.members.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    ${footer()}`;
+}
+function caseMemberAdd(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
+  const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const name=g('cm-name'); if(!name){alert('Indiquez au moins le nom.');return;}
+  c.members=c.members||[]; c.members.push({name,contact:g('cm-contact'),role:g('cm-role')});
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
+  render();
+}
+function caseMemberDel(i){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.members)return;
+  if(!confirm('Retirer ce membre ?'))return;
+  c.members.splice(i,1);
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
+  render();
+}
 function caseGlyph(s){s=s||64;return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex:0 0 auto">
   <defs><linearGradient id="cgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2150"/><stop offset="1" stop-color="#0b1030"/></linearGradient></defs>
   <ellipse cx="50" cy="93" rx="38" ry="4" fill="#0b1030" opacity=".22"/>
@@ -3372,7 +3407,8 @@ function viewCaseCreate(){
 function viewCaseDetail(){
   const c=state_cases.find(x=>x.id===state.activeCase);
   if(!c){return viewCase();}
-  const tools=['mc_tool_dir','mc_tool_cot','mc_tool_evt','mc_tool_pot'].map(k=>`<div class="mrow"><div class="stack"><div class="mname">${tr(k)}</div></div><div class="right"><span class="pill p-done">${tr('mc_soon')}</span></div></div>`).join('');
+  c.members=c.members||[];
+  const tools=[`<div class="mrow" onclick="openCaseMembers('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_dir')}</div><div class="msub">${c.members.length} membre(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`].concat(['mc_tool_cot','mc_tool_evt','mc_tool_pot'].map(k=>`<div class="mrow"><div class="stack"><div class="mname">${tr(k)}</div></div><div class="right"><span class="pill p-done">${tr('mc_soon')}</span></div></div>`)).join('');
   app().innerHTML=`
     <button class="backlink" onclick="go('case')">\u2039 ${tr('mc_title')}</button>
     <div style="display:flex;gap:16px;align-items:flex-start">${caseGlyph(56)}<div><div class="eyebrow">${tr('mct_'+(c.type||'autre'))}</div>
