@@ -1613,6 +1613,7 @@ const db={
   async loadPartages(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').select('data').order('created_at',{ascending:false}); if(error)throw error; state_partages=(data||[]).map(r=>r.data).filter(Boolean); },
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
   async deletePartage(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('partages').delete().eq('id',id); if(error)throw error; },
+  async deleteTontine(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('tontines').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -2218,15 +2219,20 @@ async function doJoin(){
 function statusPill(s){return s==='confirmed'?`<span class="pill p-paid">${tr('st_confirmed')}</span>`
   :s==='declared'?`<span class="pill p-decl">${tr('st_declared')}</span>`:`<span class="pill p-due">${tr('st_due')}</span>`;}
 
+function delTontine(id){ if(!confirm('Supprimer cette tontine et tout son historique ? Cette action est définitive.'))return;
+  const done=()=>{ state_tontines=(state_tontines||[]).filter(t=>t.id!==id); state.active=null; go('home'); };
+  if(BACKEND==='supabase'){ db.deleteTontine(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  else { done(); saveLocal(); } }
 function viewDash(){
   const t=getT(state.active);if(!t)return go('home');
+  const _me=t.members[t.me], _isOrg=!!(_me&&_me.role==='organisateur');
   const head=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span></div>
         <div>${trustSeal()}</div></div>
-      <button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>
+      <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
     </div>
     <div class="seg" style="margin-top:16px">
       <button class="${state.tab==='group'?'on':''}" onclick="state.tab='group';render()">${tr('db_seg_group')}</button>
@@ -2385,7 +2391,9 @@ function dashJournal(t){
 }
 
 function dashInvite(t){
-  const link=`https://ubora.app/t/${t.code}/rejoindre`;
+  const link=location.origin+location.pathname;
+  const _mailBody='Bonjour,\n\nJe t\'invite à rejoindre ma tontine « '+t.name+' » sur UBORA.\n\n1) Ouvre : '+link+'\n2) Clique « Rejoindre »\n3) Entre le code : '+t.code+'\n\nÀ bientôt !';
+  const mailtoHref='mailto:?subject='+encodeURIComponent('Rejoins ma tontine « '+t.name+' » sur UBORA')+'&body='+encodeURIComponent(_mailBody);
   const me=t.members[t.me], isOrg=!!(me&&me.role==='organisateur');
   const grow=isOrg?`<div class="panel"><div class="panel-h"><h3>${tr('di_grow_h')}</h3><span class="pill p-soon">${tr('di_places').replace('{p}',t.places)}</span></div>
     <div style="padding:18px 22px">
@@ -2400,6 +2408,7 @@ function dashInvite(t){
       <div class="field" style="margin-top:0"><label>${tr('di_link')}</label>
         <div class="linkbox"><input type="text" id="invlink" value="${link}" readonly>
           <button class="btn btn-gold" onclick="copyLink(event)">${tr('di_copy')}</button></div>
+        <div style="margin-top:10px"><a class="btn btn-ghost btn-sm" href="${mailtoHref}">✉ Inviter par email</a></div>
         <div class="hint" style="margin-top:8px">${tr('di_code_hint').replace('{c}',t.code).replace('{n}',t.places-filled(t))}</div>
       </div>
     </div></div>${grow}`;
@@ -3803,7 +3812,7 @@ function eSave(){eRead();
   if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
   saveLocal();go('events');
 }
-function canEditEvent(ev){ if(!ev)return false; if(ev.creator&&ev.creator===state.user)return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
+function canEditEvent(ev){ if(!ev)return false; if(ev.creator&&(ev.creator===state.user||ev.creator===state.uid))return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
 
 /* ---------- modération / signalement (anti-spam du fil public) ---------- */
 const REPORT_THRESHOLD=3;
@@ -4261,16 +4270,16 @@ function viewAuth(){
 }
 async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
-async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
+async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
 async function boot(){
   if(BACKEND!=='supabase'){loadLocal();render();return;}            /* mode démo : restaure les essais locaux */
   try{
     await initSB();
-    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user)state.user=authDispName(s.user); });
+    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){state.user=authDispName(s.user);state.uid=s.user.id;} });
     const{data}=await sb.auth.getUser();
     if(!data.user){state.view='auth';render();return;}
-    state.user=authDispName(data.user);await db.loadList();state.view='home';render();
+    state.user=authDispName(data.user);state.uid=data.user.id;await db.loadList();state.view='home';render();
   }catch(e){ BACKEND='memory'; render(); }                    /* repli démo si l'init échoue */
 }
 boot();
