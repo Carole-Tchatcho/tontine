@@ -1609,6 +1609,9 @@ const db={
   async loadCaisses(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').select('data').order('created_at',{ascending:false}); if(error)throw error; state_caisses=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveCaisse(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('caisses').upsert(row); if(error)throw error; },
   async deleteCaisse(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('caisses').delete().eq('id',id); if(error)throw error; },
+  async loadPartages(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').select('data').order('created_at',{ascending:false}); if(error)throw error; state_partages=(data||[]).map(r=>r.data).filter(Boolean); },
+  async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
+  async deletePartage(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('partages').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -1746,6 +1749,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'))await db.loadList();
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
+  if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1825,7 +1829,7 @@ function render(){
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
-  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,partages:1,partage:1,partagecreate:1,case:1,casecreate:1,casedetail:1,notif:1};
+  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,case:1,casecreate:1,casedetail:1,notif:1};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
@@ -3213,6 +3217,7 @@ function apexFigures(){ const dc=apexCur(); return Object.assign({dc},figuresIn(
 /* ===================== Lot D · PARTAGE — logique & vues ===================== */
 let pDraft=null, pExp=null;
 function getP(id){return state_partages.find(p=>p.id===id);}
+function pPersist(pid){ const p=getP(pid); if(!p)return; if(BACKEND==='supabase'){db.savePartage(p).catch(e=>console.warn('savePartage',e));} else saveLocal(); }
 function pMonthNow(){return '2026-06';}
 function pMonthLabel(m){const [y,mo]=m.split('-').map(Number);
   const fr=['','janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
@@ -3255,11 +3260,11 @@ function pSettleSuggest(p){ /* virements minimisés, en devise du groupe */
 }
 function pSettleMarkSent(pid,from,to,amount){const p=getP(pid);if(!p)return;p.settlements=p.settlements||[];
   let s=p.settlements.find(x=>x.from===from&&x.to===to&&x.status!=='confirmed');
-  if(s){s.status='sent';s.amount=amount;s.cur=p.cur;}else p.settlements.push({from,to,amount,cur:p.cur,status:'sent'});render();}
+  if(s){s.status='sent';s.amount=amount;s.cur=p.cur;}else p.settlements.push({from,to,amount,cur:p.cur,status:'sent'});pPersist(pid);render();}
 function pSettleConfirm(pid,from,to){const p=getP(pid);if(!p)return;
-  const s=(p.settlements||[]).find(x=>x.from===from&&x.to===to&&x.status==='sent');if(s)s.status='confirmed';render();}
+  const s=(p.settlements||[]).find(x=>x.from===from&&x.to===to&&x.status==='sent');if(s)s.status='confirmed';pPersist(pid);render();}
 function pSettleCancel(pid,from,to){const p=getP(pid);if(!p)return;
-  p.settlements=(p.settlements||[]).filter(x=>!(x.from===from&&x.to===to&&x.status==='sent'));render();}
+  p.settlements=(p.settlements||[]).filter(x=>!(x.from===from&&x.to===to&&x.status==='sent'));pPersist(pid);render();}
 function pPay(pid,from,to){const p=getP(pid);if(!p)return;const view=state.partageViewCur||p.cur;
   const el=document.getElementById('pay-'+pid+'-'+from+'-'+to);let raw=el?String(el.value).replace(',','.'):'';let val=parseFloat(raw);
   if(!(val>0)){return;}
@@ -3392,7 +3397,9 @@ function pSave(){
   const members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur})));
   const id='p'+Date.now();
   state_partages.unshift({id,title,face,cur,members,me:0,expenses:[],settlements:[]});
-  pDraft=null; openPartage(id);
+  pDraft=null;
+  if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  openPartage(id);
 }
 function viewPartage(){
   const p=getP(state.activePartage); if(!p)return go('partages');
@@ -3436,7 +3443,7 @@ function pExpCard(p,e){
     <div class="right"><span class="p-amt">${money(e.amount,e.cur)}</span>
       <button class="linkbtn" onclick="pDelExp('${p.id}','${e.id}')">✕</button></div></div></div></div>`;
 }
-function pDelExp(pid,eid){const p=getP(pid);p.expenses=p.expenses.filter(x=>x.id!==eid);render();}
+function pDelExp(pid,eid){const p=getP(pid);p.expenses=p.expenses.filter(x=>x.id!==eid);pPersist(pid);render();}
 function pReadExpForm(){ if(!pExp)return; const g=id=>document.getElementById(id);
   if(g('pe-label'))pExp.label=g('pe-label').value;
   if(g('pe-payer'))pExp.payer=+g('pe-payer').value;
@@ -3481,7 +3488,7 @@ function pAddExp(pid){
   if(x.mode==='egal')split.with=(x.with&&x.with.length)?x.with.slice():p.members.map((m,i)=>i);
   if(x.mode==='parts'||x.mode==='exact'){split.with=p.members.map((m,i)=>i);split.shares=Object.assign({},x.shares);}
   p.expenses.unshift({id:'e'+Date.now(),label:x.label||'',note:x.note||'',cat:x.cat||'other',payer:x.payer||0,amount:+x.amount,cur:x.cur||p.cur,split,month:pMonthNow()});
-  state.partageNew=false; pExp=null; render();
+  state.partageNew=false; pExp=null; pPersist(pid); render();
 }
 function pBalancesView(p){
   const me=pMyIndex(p), view=state.partageViewCur||pMyCur(p), bal=pBalances(p);
