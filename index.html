@@ -1614,6 +1614,9 @@ const db={
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
   async deletePartage(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('partages').delete().eq('id',id); if(error)throw error; },
   async deleteTontine(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('tontines').delete().eq('id',id); if(error)throw error; },
+  async loadCases(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').select('data').order('created_at',{ascending:false}); if(error)throw error; state_cases=(data||[]).map(r=>r.data).filter(Boolean); },
+  async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('cases').upsert(row); if(error)throw error; },
+  async deleteCase(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('cases').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -1752,6 +1755,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1831,7 +1835,7 @@ function render(){
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
-  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,case:1,casecreate:1,casedetail:1,notif:1};
+  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,notif:1};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
@@ -3307,7 +3311,19 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
   const name=g('mc-name'),mission=g('mc-mission'),country=g('mc-country'),city=g('mc-city');
   const te=document.getElementById('mc-type');const type=te?te.value:(caseDraft?caseDraft.type:'pro');
   if(!name||!mission){alert(tr('mc_need'));return;}
-  state_cases.unshift({id:'cs'+Date.now(),name,type,mission,country,city});caseDraft=null;go('case');}
+  if(caseDraft&&caseDraft.editId){
+    const c=state_cases.find(x=>x.id===caseDraft.editId);
+    if(c){c.name=name;c.type=type;c.mission=mission;c.country=country;c.city=city;}
+    const eid=caseDraft.editId;caseDraft=null;
+    if(BACKEND==='supabase'){db.saveCase(state_cases.find(x=>x.id===eid)).then(()=>openCase(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    openCase(eid);return;
+  }
+  const nc={id:'cs'+Date.now(),name,type,mission,country,city};
+  state_cases.unshift(nc);caseDraft=null;
+  if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  go('case');}
+function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; caseDraft={editId:id,name:c.name||'',type:c.type||'pro',mission:c.mission||'',country:c.country||'',city:c.city||''}; go('casecreate'); }
+function delCase(id){ if(!confirm('Supprimer cette Case ? Cette action est définitive.'))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); } }
 function caseGlyph(s){s=s||64;return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex:0 0 auto">
   <defs><linearGradient id="cgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2150"/><stop offset="1" stop-color="#0b1030"/></linearGradient></defs>
   <ellipse cx="50" cy="93" rx="38" ry="4" fill="#0b1030" opacity=".22"/>
@@ -3363,6 +3379,7 @@ function viewCaseDetail(){
     <h1 class="page-title" style="margin-top:2px">${esc(c.name)}</h1></div></div>
     <p class="lead">${esc(c.mission)}</p>
     <div class="t-meta">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div>
+    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delCase('${c.id}')">🗑 Supprimer</button></div>
     <div style="margin-top:6px">${trustSeal(tr('mc_seal'))}</div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
