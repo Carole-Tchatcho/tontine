@@ -1751,7 +1751,7 @@ function backLabel(){ if(navStack.length){ try{ const v=JSON.parse(navStack[navS
 function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navStack.pop(); _navBack=true; try{const s=JSON.parse(snap); Object.assign(state,s);}catch(e){_navBack=false;} if(typeof unsubscribeActive==='function')unsubscribeActive(); render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){} }
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
-  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'))await db.loadList();
+  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
@@ -4424,7 +4424,7 @@ function viewAuth(){
 }
 async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
-async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
+async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
 async function boot(){
   if(BACKEND!=='supabase'){loadLocal();render();return;}            /* mode démo : restaure les essais locaux */
@@ -4433,7 +4433,7 @@ async function boot(){
     sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){state.user=authDispName(s.user);state.uid=s.user.id;} });
     const{data}=await sb.auth.getUser();
     if(!data.user){state.view='auth';render();return;}
-    state.user=authDispName(data.user);state.uid=data.user.id;await db.loadList();state.view='home';render();
+    state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();
   }catch(e){ BACKEND='memory'; render(); }                    /* repli démo si l'init échoue */
 }
 boot();
