@@ -1756,6 +1756,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
   if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1763,15 +1764,15 @@ async function openTontine(id){state.active=id;state.view='dash';state.tab='grou
 
 function notifFeed(){
   const list=[];
-  state_tontines.forEach(t=>{
-    const r=t.rounds[t.currentRound];if(!r)return;
-    const meS=r.contribs[t.me];
-    if(t.members[t.me] && meS!=='confirmed')
+  (state_tontines||[]).forEach(t=>{
+    const r=(t.rounds||[])[t.currentRound];if(!r)return;
+    const members=t.members||[]; const meS=(r.contribs||[])[t.me];
+    if(members[t.me] && meS!=='confirmed')
       list.push({type:'g',t:tr('nfd_pay_t').replace('{n}',t.name),d:tr('nfd_pay_d').replace('{x}',money(t.amount,t.currency)).replace('{l}',r.label)});
     list.push({type:'b',t:tr('nfd_next_t').replace('{n}',benName(t,r.beneficiary)),d:tr('nfd_next_d').replace('{name}',t.name).replace('{l}',r.label)});
   });
-  state_caisses.forEach(c=>c.appels.forEach(a=>{
-    if(a.statut==='ouvert' && a.joursRestants<=7 && (state.consent[a.id]||'notified')!=='authorized')
+  (state_caisses||[]).forEach(c=>(c.appels||[]).forEach(a=>{
+    if(a.statut==='ouvert' && a.joursRestants<=7 && ((state.consent||{})[a.id]||'notified')!=='authorized')
       list.push({type:'g',t:tr('nfd_appel_t').replace('{j}',a.joursRestants).replace('{motif}',a.motif),d:tr('nfd_appel_d').replace('{g}',c.group).replace('{x}',money(a.montant,c.currency)).replace('{j}',a.joursRestants)});
   }));
   return list;
@@ -1834,8 +1835,8 @@ function render(){
   if(state.view==='case'||state.view==='casecreate'||state.view==='casedetail')$('#nav-case').classList.add('on');
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
-  {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
-  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,notif:1};
+  {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
+  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
