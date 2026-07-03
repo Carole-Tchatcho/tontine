@@ -1602,6 +1602,9 @@ async function sbGetTontine(id,uid){
   return assembleSB(t,mem||[],rd||[],co,uid);
 }
 const db={
+  async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean); },
+  async saveEvent(ev){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); ev.creator=uid; const row={id:ev.id,creator_id:uid,is_public:!!ev.openToAll,visibility:ev.visibility||'public',country:ev.country||null,city:ev.city||null,date_iso:ev.dateISO||null,title:ev.title||'',data:ev}; const{error}=await sb.from('events').upsert(row); if(error)throw error; },
+  async deleteEvent(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('events').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -1737,6 +1740,7 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'))await db.loadList();
+  if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1790,6 +1794,16 @@ function animateCounts(fresh){
   });
 }
 
+function viewBientot(){
+  const EN=state.lang==='en';
+  const FRN={events:'Événements',event:'Événements',eventcreate:'Événements',diffusion:'Événements',partages:'Partage',partage:'Partage',partagecreate:'Partage',notif:'Rappels',entraide:'Entraide',mandate:'Entraide',caisse:'Entraide',registre:'Entraide',federation:'Entraide',caissecreate:'Entraide',attestation:'Entraide',case:'Ma Case',casecreate:'Ma Case',casedetail:'Ma Case'};
+  const ENN={events:'Events',event:'Events',eventcreate:'Events',diffusion:'Events',partages:'Sharing',partage:'Sharing',partagecreate:'Sharing',notif:'Reminders',entraide:'Mutual aid',mandate:'Mutual aid',caisse:'Mutual aid',registre:'Mutual aid',federation:'Mutual aid',caissecreate:'Mutual aid',attestation:'Mutual aid',case:'My Space',casecreate:'My Space',casedetail:'My Space'};
+  const name=(EN?ENN:FRN)[state.view]||(EN?'This section':'Cette section');
+  const soon=EN?'Coming soon':'Bientôt disponible';
+  const lead=EN?'This feature is coming soon.':'Cette fonctionnalité arrive prochainement.';
+  const body=EN?`&laquo;&nbsp;${name}&nbsp;&raquo; is being built and will join the registry soon. In the meantime, the Tontine is fully active.`:`&laquo;&nbsp;${name}&nbsp;&raquo; est en cours de construction et rejoindra bient&ocirc;t le registre. En attendant, la Tontine est pleinement active.`;
+  app().innerHTML=`<div class="eyebrow">UBORA</div><h1 class="page-title">${name}</h1><p class="lead">${lead}</p><div class="panel" style="text-align:center;padding:44px 24px"><div style="font-size:32px;opacity:.65;margin-bottom:10px">&#10022;</div><div class="page-title" style="font-size:23px;margin:0 0 8px">${soon}</div><div class="lead" style="margin:0 auto;max-width:440px">${body}</div></div>${footer()}`;
+}
 function render(){
   if(_curSnap && !_navBack){ try{ if(JSON.parse(_curSnap).view!==state.view){ navStack.push(_curSnap); if(navStack.length>40)navStack.shift(); } }catch(e){} }
   document.querySelectorAll('.hnav button').forEach(b=>b.classList.remove('on'));
@@ -1805,8 +1819,10 @@ function render(){
   if(state.view==='case'||state.view==='casecreate'||state.view==='casedetail')$('#nav-case').classList.add('on');
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
-  $('#notifcount').textContent=notifFeed().filter(n=>n.type==='g').length;
-  ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
+  {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
+  const _GATED_SOON={entraide:1,mandate:1,caisse:1,registre:1,federation:1,caissecreate:1,attestation:1,partages:1,partage:1,partagecreate:1,case:1,casecreate:1,casedetail:1,notif:1};
+  if(_GATED_SOON[state.view]){viewBientot();}
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -3687,7 +3703,7 @@ function eventStats(ev){
   return {tickets,collected};
 }
 function openEvent(id){state.activeEvent=id;state.reportFor=null;state.reportDone=null;go('event');}
-function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;saveLocal();render();}
+function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;if(BACKEND==='supabase'){db.saveEvent(ev).catch(()=>{});}else saveLocal();render();}
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
@@ -3733,12 +3749,17 @@ function eSave(){eRead();
     if(ev){ tiers.forEach(t=>{const old=ev.billets.find(b=>b.nom===t.nom);if(old)t.vendus=old.vendus;});
       Object.assign(ev,{category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,dateISO:_extra.dateISO,title:eDraft.title.trim(),type:eDraft.type,date:_dispDate,lieu:eDraft.lieu.trim()||'—',
         currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,editors}); }
-    const id=eDraft.editId; eDraft=null; saveLocal(); openEvent(id); return;
+    const id=eDraft.editId; eDraft=null;
+    if(BACKEND==='supabase'&&ev){ db.saveEvent(ev).then(()=>openEvent(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
+    saveLocal(); openEvent(id); return;
   }
-  state_events.unshift({id:'e'+Date.now(),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
+  const _newEv={id:'e'+Date.now(),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
     date:_dispDate,lieu:eDraft.lieu.trim()||'—',currency:eDraft.currency,
-    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',billets:tiers});
-  eDraft=null;saveLocal();go('events');
+    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',billets:tiers};
+  state_events.unshift(_newEv);
+  eDraft=null;
+  if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
+  saveLocal();go('events');
 }
 function canEditEvent(ev){ if(!ev)return false; if(ev.creator&&ev.creator===state.user)return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
 
