@@ -2998,15 +2998,15 @@ function viewEntraide(){
     <h1 class="page-title">${tr('et_title')}</h1>
     <p class="lead">${tr('et_lead')}</p>
     <div>${trustSeal(tr('et_seal'))}</div>
-    ${mandateStrip}
-    <h2 class="section-h">${tr('et_sec_networks')}</h2>
-    ${federationsList().map(f=>{const fm=f==='RPN'?RESEAU_RPN:null;const n=rosterFor(f).length;
+    <div style="margin:16px 0 8px"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button></div>
+    <h2 class="section-h">Mes caisses</h2>
+    <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">Aucune caisse pour l'instant. Créez la première.</div>`}</div>
+    ${[].map(f=>{const fm=f==='RPN'?RESEAU_RPN:null;const n=rosterFor(f).length;
       const sub=fm?`${fm.totalAssociations} ${tr('et_assocs')} · ${fm.totalMembres.toLocaleString(state.lang==='en'?'en-US':'fr-FR')} ${tr('et_members')}`:`${n} ${n>1?tr('et_assocs'):tr('et_assoc1')} ${tr('et_on_ubora')}`;
       return `<div class="panel rpn-banner" onclick="openFederation('${f.replace(/'/g,"\\'")}')"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${tr('net_word')} ${f}</div><div class="msub">${sub} · ${tr('et_built_bottom')}</div></div><span class="reg-link" style="margin:0">${tr('et_directory')}</span></div></div>`;
     }).join('')}
     <h2 class="section-h">${tr('et_sec_open')}</h2>
     <div class="cards">${cards||`<div class="empty">${tr('et_empty')}</div>`}</div>
-    <p class="msub" style="margin-top:20px">${tr('et_fee_line').replace('{p}',feePct)}</p>
     ${footer()}`;
 }
 
