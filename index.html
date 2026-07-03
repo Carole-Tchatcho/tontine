@@ -1558,6 +1558,7 @@ function ctEligibleNews(c){return !!c.news && !c.bereavement && !c.introSent;} /
 function ctReasonExcluded(c){ if(c.bereavement)return tr('df_exc_deuil'); if(c.introSent)return tr('df_exc_already'); if(!c.news)return tr('df_exc_noconsent'); return ''; }
 
 const getC=id=>state_caisses.find(c=>c.id===id);
+function cPersist(cId){ const c=getC(cId); if(!c)return; if(BACKEND==='supabase'){db.saveCaisse(c).catch(e=>console.warn('saveCaisse',e));} else saveLocal(); }
 const caisseRoleName=(c,role)=>{const b=c.bureau.find(x=>x.role===role);return b?b.name:'—';};
 
 /* ===================== COUCHE DONNÉES — adaptateur mémoire <-> Supabase =====================
@@ -1605,6 +1606,9 @@ const db={
   async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveEvent(ev){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); ev.creator=uid; const row={id:ev.id,creator_id:uid,is_public:!!ev.openToAll,visibility:ev.visibility||'public',country:ev.country||null,city:ev.city||null,date_iso:ev.dateISO||null,title:ev.title||'',data:ev}; const{error}=await sb.from('events').upsert(row); if(error)throw error; },
   async deleteEvent(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('events').delete().eq('id',id); if(error)throw error; },
+  async loadCaisses(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').select('data').order('created_at',{ascending:false}); if(error)throw error; state_caisses=(data||[]).map(r=>r.data).filter(Boolean); },
+  async saveCaisse(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('caisses').upsert(row); if(error)throw error; },
+  async deleteCaisse(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('caisses').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -1741,6 +1745,7 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'))await db.loadList();
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
+  if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
   if(BACKEND==='supabase'){await db.loadActive(id);subscribeActive(id);}
@@ -1820,7 +1825,7 @@ function render(){
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){_nc.textContent=''; _nc.style.display='none';}}
-  const _GATED_SOON={entraide:1,mandate:1,caisse:1,registre:1,federation:1,caissecreate:1,attestation:1,partages:1,partage:1,partagecreate:1,case:1,casecreate:1,casedetail:1,notif:1};
+  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,partages:1,partage:1,partagecreate:1,case:1,casecreate:1,casedetail:1,notif:1};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
   const a=app();
@@ -2734,7 +2739,9 @@ function cSave(){cRead();
     seed:[{ts:new Date().toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{day:'numeric',month:'long',year:'numeric'}),type:'a',
       what:tr('cc_seed_created').replace('{c}',creator).replace('{n}',name)+((cDraft.federation&&cDraft.federation!=='Aucun')?tr('cc_seed_net').replace('{f}',cDraft.federation):'.')}]
   });
-  const id=state_caisses[0].id; cDraft=null; saveLocal(); openCaisse(id);
+  const id=state_caisses[0].id; cDraft=null;
+  if(BACKEND==='supabase'){db.saveCaisse(getC(id)).then(()=>openCaisse(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  saveLocal(); openCaisse(id);
 }
 function viewCaisseCreate(){
   if(!cDraft)startCaisse();
@@ -2935,17 +2942,17 @@ function caisseJournal(c){
     <div class="panel">${rows||`<div class="empty">${tr('cj_empty')}</div>`}</div>`;
 }
 
-function caisseDeclare(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='declared';render();}
-function caisseConfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='confirmed';state.flash='c:'+cId+':'+aId+':'+fi;render();}
-function caisseUnconfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='none';render();}
+function caisseDeclare(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='declared';cPersist(cId);render();}
+function caisseConfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='confirmed';state.flash='c:'+cId+':'+aId+':'+fi;cPersist(cId);render();}
+function caisseUnconfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='none';cPersist(cId);render();}
 function caisseReceptionsValidees(a){return !!(a&&a.versements)&&a.versements.indexOf('declared')<0;}
 function caisseHasCommissaire(c){if(!c)return false;return ((c.bureau||[]).concat(c.members||[])).some(m=>m&&m.role==='commissaire');}
 function caisseRemis(cId,aId){const a=getC(cId).appels.find(x=>x.id===aId);
   if(!caisseReceptionsValidees(a)){alert(tr('cac_need_confirm'));return;}
-  a.total=a.versements.filter(s=>s==='confirmed').length*a.montant; a.remis=true; a.statut='clos'; a.remisLe=tr('cj_today'); render();}
+  a.total=a.versements.filter(s=>s==='confirmed').length*a.montant; a.remis=true; a.statut='clos'; a.remisLe=tr('cj_today'); cPersist(cId); render();}
 function caisseCertify(cId,aId){const c=getC(cId);const a=c&&c.appels.find(x=>x.id===aId);
   if(!a||!a.remis||!caisseReceptionsValidees(a)||!caisseHasCommissaire(c)){alert(tr('cac_need_tresorier'));return;}
-  a.certifie=true;render();}
+  a.certifie=true;cPersist(cId);render();}
 function caisseCreateAppel(cId){const c=getC(cId);
   const motif=($('#ap-motif').value||'').trim(); if(!motif){alert(tr('al_cap_motif'));return;}
   const benef=($('#ap-benef').value||'').trim()||'—';
@@ -2953,7 +2960,7 @@ function caisseCreateAppel(cId){const c=getC(cId);
   c.appels.unshift({id:'a'+Date.now(),motif,beneficiaire:benef,sousType:$('#ap-type').value,montant,
     ouvertLe:tr('cj_today'),echeance:($('#ap-echeance').value||'').trim()||'—',statut:'ouvert',remis:false,certifie:false,
     versements:new Array(c.foyers.length).fill('none')});
-  state.caisseNew=false; render();}
+  state.caisseNew=false; cPersist(cId); render();}
 function caisseCSV(cId){const c=getC(cId);
   const lines=[[tr('csv_caisse'),c.name],[tr('csv_group'),c.group],[tr('csv_type'),typeCaisseLabel(c.type)],[],
     [tr('csv_h_appel'),tr('csv_h_nature'),tr('csv_h_benef'),tr('csv_h_foyer'),tr('csv_h_statut'),tr('csv_h_amount')+' ('+c.currency+')']];
