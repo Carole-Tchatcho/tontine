@@ -4434,16 +4434,51 @@ async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:(
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
 async function boot(){
-  let _pendingJoin=null; try{ const _m=(location.hash||'').match(/join=([A-Za-z0-9]+)/i); if(_m){_pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){}} else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} } }catch(e){}
-  if(BACKEND!=='supabase'){loadLocal();render();return;}            /* mode démo : restaure les essais locaux */
+  /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
+  let _pendingJoin=null;
+  try{
+    const _m=(location.hash||'').match(/join=([A-Za-z0-9]+)/i);
+    if(_m){ _pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){} }
+    else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} }
+  }catch(e){}
+
+  if(BACKEND!=='supabase'){ loadLocal(); render(); return; }   /* mode démo : restaure les essais locaux */
+
   try{
     await initSB();
-    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){state.user=authDispName(s.user);state.uid=s.user.id;} });
+    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ state.user=authDispName(s.user); state.uid=s.user.id; } });
+
+    /* 2) Retour d'un lien de connexion : on ATTEND que la session s'établisse
+          à partir de l'URL avant de décider quoi afficher (sinon on retombe à tort
+          sur la page « entrez votre e-mail » — le bug de la capture d'écran). */
+    const _hasCode  = /[?&#]code=/.test(location.search) || /[?&#]code=/.test(location.hash);
+    const _hasToken = /access_token=/.test(location.hash);
+    if(_hasCode || _hasToken){
+      await new Promise((resolve)=>{
+        let done=false; const finish=()=>{ if(!done){ done=true; resolve(); } };
+        const sub = sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ try{sub.data.subscription.unsubscribe();}catch(e){} finish(); } });
+        if(_hasCode){ sb.auth.exchangeCodeForSession(location.href).then(finish).catch(finish); }
+        setTimeout(finish, 5000);   /* filet de sécurité : ne jamais rester bloqué */
+      });
+      /* Nettoie l'URL pour éviter un ré-échange au rafraîchissement */
+      try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+    }
+
     const{data}=await sb.auth.getUser();
-    if(!data.user){state.view='auth';render();return;}
-    state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();
-    if(_pendingJoin){ try{localStorage.removeItem('ubora_join');}catch(e){} state.joinCode=_pendingJoin; try{const p=await db.preview(_pendingJoin); if(p&&p.places_libres>0){state.joinPreview=p;state.view='joinform';render();return;}}catch(e){} state.view='join';render();return; }
-    state.view='home';render();
+    if(!data.user){ state.view='auth'; render(); return; }
+
+    state.user=authDispName(data.user); state.uid=data.user.id;
+    state_reunions=[]; state_contacts=[]; state_outbox=[];
+    await db.loadList();
+
+    /* 3) Une fois connecté, si un code d'invitation attendait, on ouvre le formulaire de la tontine */
+    if(_pendingJoin){
+      try{localStorage.removeItem('ubora_join');}catch(e){}
+      state.joinCode=_pendingJoin;
+      try{ const p=await db.preview(_pendingJoin); if(p&&p.places_libres>0){ state.joinPreview=p; state.view='joinform'; render(); return; } }catch(e){}
+      state.view='join'; render(); return;
+    }
+    state.view='home'; render();
   }catch(e){ BACKEND='memory'; render(); }                    /* repli démo si l'init échoue */
 }
 boot();
