@@ -1569,7 +1569,7 @@ const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON;
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
-  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}); return sb; }
+  const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}); return sb; }
 
 const ST_DB2UI={termine:'done',en_cours:'now',a_venir:'soon'};
 function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
