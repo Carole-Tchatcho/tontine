@@ -1606,20 +1606,28 @@ async function sbGetTontine(id,uid){
 const db={
   async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveEvent(ev){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); ev.creator=uid; const row={id:ev.id,creator_id:uid,is_public:!!ev.openToAll,visibility:ev.visibility||'public',country:ev.country||null,city:ev.city||null,date_iso:ev.dateISO||null,title:ev.title||'',data:ev}; const{error}=await sb.from('events').upsert(row); if(error)throw error; },
-  async deleteEvent(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('events').delete().eq('id',id); if(error)throw error; },
+  async deleteEvent(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadCaisses(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').select('data').order('created_at',{ascending:false}); if(error)throw error; state_caisses=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveCaisse(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('caisses').upsert(row); if(error)throw error; },
-  async deleteCaisse(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('caisses').delete().eq('id',id); if(error)throw error; },
+  async deleteCaisse(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadPartages(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').select('data').order('created_at',{ascending:false}); if(error)throw error; state_partages=(data||[]).map(r=>r.data).filter(Boolean); },
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
-  async deletePartage(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('partages').delete().eq('id',id); if(error)throw error; },
-  async deleteTontine(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('tontines').delete().eq('id',id); if(error)throw error; },
+  async deletePartage(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
+  async deleteTontine(id){ if(BACKEND!=='supabase')return;
+    /* voie propre : RPC qui supprime la tontine ET tout son contenu (membres, tours, versements, journal) */
+    const r=await sb.rpc('delete_tontine',{p_tontine:id});
+    if(!r.error) return;
+    const _m=String((r.error&&r.error.message)||'');
+    if(!/delete_tontine|function|schema cache|not exist/i.test(_m)) throw r.error;
+    /* repli : suppression directe si la commande SQL n'est pas encore installée */
+    const{data,error}=await sb.from('tontines').delete().eq('id',id).select('id'); if(error)throw error;
+    if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante ou contenu li\u00E9). Installer la commande SQL delete_tontine.'); },
   async loadCases(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').select('data').order('created_at',{ascending:false}); if(error)throw error; state_cases=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('cases').upsert(row); if(error)throw error; },
-  async deleteCase(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('cases').delete().eq('id',id); if(error)throw error; },
+  async deleteCase(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadReunions(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').select('data').order('created_at',{ascending:false}); if(error)throw error; state_reunions=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveReunion(r){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:r.id,creator_id:uid,is_public:false,data:r}; const{error}=await sb.from('reunions').upsert(row); if(error)throw error; },
-  async deleteReunion(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('reunions').delete().eq('id',id); if(error)throw error; },
+  async deleteReunion(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
