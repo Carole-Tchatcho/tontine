@@ -1617,6 +1617,9 @@ const db={
   async loadCases(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').select('data').order('created_at',{ascending:false}); if(error)throw error; state_cases=(data||[]).map(r=>r.data).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('cases').upsert(row); if(error)throw error; },
   async deleteCase(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('cases').delete().eq('id',id); if(error)throw error; },
+  async loadReunions(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').select('data').order('created_at',{ascending:false}); if(error)throw error; state_reunions=(data||[]).map(r=>r.data).filter(Boolean); },
+  async saveReunion(r){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:r.id,creator_id:uid,is_public:false,data:r}; const{error}=await sb.from('reunions').upsert(row); if(error)throw error; },
+  async deleteReunion(id){ if(BACKEND!=='supabase')return; const{error}=await sb.from('reunions').delete().eq('id',id); if(error)throw error; },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
@@ -1751,11 +1754,12 @@ function backLabel(){ if(navStack.length){ try{ const v=JSON.parse(navStack[navS
 function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navStack.pop(); _navBack=true; try{const s=JSON.parse(snap); Object.assign(state,s);}catch(e){_navBack=false;} if(typeof unsubscribeActive==='function')unsubscribeActive(); render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){} }
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
-  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
+  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
   if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
 async function openTontine(id){state.active=id;state.view='dash';state.tab='group';
@@ -1957,21 +1961,23 @@ let state_reunions=[{
     caisseReturn:20000, debts:[{name:'Guy',amount:18200,note:''},{name:'Alix',amount:10000,note:''}]}]
 }];
 function openReunion(id){state.activeReunion=id;go('reunion');}
+function reuPersist(r){ if(!r)return; if(BACKEND==='supabase'){db.saveReunion(r).catch(e=>console.warn('saveReunion',e));} else saveLocal(); }
+function delReunion(id){ if(!confirm('Supprimer cette réunion ? Cette action est définitive.'))return; const done=()=>{ state_reunions=state_reunions.filter(x=>x.id!==id); go('home'); }; if(BACKEND==='supabase'){ db.deleteReunion(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
 function reuActive(){return state_reunions.find(x=>x.id===state.activeReunion);}
 function reuOpenSeance(r){return r&&r.seances.find(s=>s.open);}
 function reuPot(s){return ((s&&s.contribs)||[]).reduce((a,c)=>a+(Number(c.tontine)||0),0);}
 function reuPotConf(s){return ((s&&s.contribs)||[]).reduce((a,c)=>a+(c.status==='confirmed'?(Number(c.tontine)||0):0),0);}
 function reuSetContrib(i,v){const r=reuActive(),s=reuOpenSeance(r);if(!s||!s.contribs[i])return;s.contribs[i].tontine=impParseAmount(v)||0;}
-function reuDeclare(i){const r=reuActive(),s=reuOpenSeance(r);if(!s||!s.contribs[i])return;s.contribs[i].status='declared';render();}
-function reuConfirm(i){const r=reuActive(),s=reuOpenSeance(r);if(!s||!s.contribs[i])return;s.contribs[i].status=(s.contribs[i].status==='confirmed')?'declared':'confirmed';render();}
-function reuSetBen(idx){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.beneficiaryIdx=+idx;render();}
-function reuSetCaisse(v){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.caisseReturn=impParseAmount(v)||0;render();}
-function reuAddDebt(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;const n=document.getElementById('reu-debt-name'),a=document.getElementById('reu-debt-amt');const nm=n?String(n.value).trim():'',am=a?impParseAmount(a.value):null;if(!nm)return;s.debts=s.debts||[];s.debts.push({name:nm,amount:am||0,note:''});render();}
-function reuCloseSeance(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.open=false;render();}
-function reuNewSeance(){const r=reuActive();if(!r)return;if(reuOpenSeance(r)){alert(tr('re_one_open'));return;}const n=r.seances.length+1;r.seances.unshift({id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',n),open:true,beneficiaryIdx:0,contribs:r.members.map(()=>({tontine:0,cc:r.ccAmount||0,status:'none'})),caisseReturn:0,debts:[]});render();}
-function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getElementById('reu-mem-name'),c=document.getElementById('reu-mem-contact');const nm=n?String(n.value).trim():'';if(!nm)return;r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});render();}
-function startReunion(){const nm=state.user||'Moi';const r={id:'r'+Date.now(),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;go('reunion');}
-function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:'r'+Date.now(),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:'s'+Date.now(),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;go('reunion');}
+function reuDeclare(i){const r=reuActive(),s=reuOpenSeance(r);if(!s||!s.contribs[i])return;s.contribs[i].status='declared';reuPersist(r);render();}
+function reuConfirm(i){const r=reuActive(),s=reuOpenSeance(r);if(!s||!s.contribs[i])return;s.contribs[i].status=(s.contribs[i].status==='confirmed')?'declared':'confirmed';reuPersist(r);render();}
+function reuSetBen(idx){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.beneficiaryIdx=+idx;reuPersist(r);render();}
+function reuSetCaisse(v){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.caisseReturn=impParseAmount(v)||0;reuPersist(r);render();}
+function reuAddDebt(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;const n=document.getElementById('reu-debt-name'),a=document.getElementById('reu-debt-amt');const nm=n?String(n.value).trim():'',am=a?impParseAmount(a.value):null;if(!nm)return;s.debts=s.debts||[];s.debts.push({name:nm,amount:am||0,note:''});reuPersist(r);render();}
+function reuCloseSeance(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.open=false;reuPersist(r);render();}
+function reuNewSeance(){const r=reuActive();if(!r)return;if(reuOpenSeance(r)){alert(tr('re_one_open'));return;}const n=r.seances.length+1;r.seances.unshift({id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',n),open:true,beneficiaryIdx:0,contribs:r.members.map(()=>({tontine:0,cc:r.ccAmount||0,status:'none'})),caisseReturn:0,debts:[]});reuPersist(r);render();}
+function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getElementById('reu-mem-name'),c=document.getElementById('reu-mem-contact');const nm=n?String(n.value).trim():'';if(!nm)return;r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});reuPersist(r);render();}
+function startReunion(){const nm=state.user||'Moi';const r={id:'r'+Date.now(),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
+function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:'r'+Date.now(),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:'s'+Date.now(),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
 function viewReunion(){
   const r=reuActive(); if(!r)return go('home');
   const open=reuOpenSeance(r); const closed=r.seances.filter(s=>!s.open);
@@ -1997,6 +2003,7 @@ function viewReunion(){
   app().innerHTML=`<button class="backlink" onclick="go('home')">\u2039 ${tr('imp_back_home')}</button>
     <div class="eyebrow">${tr('re_eyebrow')}</div><h1 class="page-title">${esc(r.name)}</h1>
     <div class="t-meta">${r.currency} \u00b7 ${r.members.length} ${tr('c_members')} \u00b7 ${tr('db_code')} <span class="code">${r.code}</span></div>
+    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="delReunion('${r.id}')">🗑 Supprimer</button></div>
     <div>${trustSeal(tr('re_note_holds'))}</div>
     <div style="margin-top:14px">${cur}</div>
     ${open?`<div class="row" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="reuNewSeance()">${tr('re_new_seance')}</button></div>`:''}
