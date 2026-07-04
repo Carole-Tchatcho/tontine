@@ -2403,7 +2403,7 @@ function dashJournal(t){
 }
 
 function dashInvite(t){
-  const link=location.origin+location.pathname;
+  const link=location.origin+location.pathname+'#join='+t.code;
   const _mailBody='Bonjour,\n\nJe t\'invite à rejoindre ma tontine « '+t.name+' » sur UBORA.\n\n1) Ouvre : '+link+'\n2) Clique « Rejoindre »\n3) Entre le code : '+t.code+'\n\nÀ bientôt !';
   const mailtoHref='mailto:?subject='+encodeURIComponent('Rejoins ma tontine « '+t.name+' » sur UBORA')+'&body='+encodeURIComponent(_mailBody);
   const me=t.members[t.me], isOrg=!!(me&&me.role==='organisateur');
@@ -4268,7 +4268,7 @@ function viewEvents(){
       <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${pct}%</span>`:''}</div>
       ${ev.objectif?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}
       <div class="reg-cta"><span class="reg-count">${flag||(ev.openToAll?tr('ev_open_all'):tr('ev_ticketed'))}</span>
-        <button class="btn btn-gold btn-sm" onclick="openEvent('${ev.id}')">${tr('ev_view_take')}</button></div>
+        <div class="row-gap">${canEditEvent(ev)?`<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">✎</button><button class="btn btn-ghost btn-sm" onclick="delEvent('${ev.id}')">🗑</button>`:''}<button class="btn btn-gold btn-sm" onclick="openEvent('${ev.id}')">${tr('ev_view_take')}</button></div></div>
     </div>`;
   }).join('');
   app().innerHTML=`
@@ -4434,13 +4434,16 @@ async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:(
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
 async function boot(){
+  let _pendingJoin=null; try{ const _m=(location.hash||'').match(/join=([A-Za-z0-9]+)/i); if(_m){_pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){}} else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} } }catch(e){}
   if(BACKEND!=='supabase'){loadLocal();render();return;}            /* mode démo : restaure les essais locaux */
   try{
     await initSB();
     sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){state.user=authDispName(s.user);state.uid=s.user.id;} });
     const{data}=await sb.auth.getUser();
     if(!data.user){state.view='auth';render();return;}
-    state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();
+    state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();
+    if(_pendingJoin){ try{localStorage.removeItem('ubora_join');}catch(e){} state.joinCode=_pendingJoin; try{const p=await db.preview(_pendingJoin); if(p&&p.places_libres>0){state.joinPreview=p;state.view='joinform';render();return;}}catch(e){} state.view='join';render();return; }
+    state.view='home';render();
   }catch(e){ BACKEND='memory'; render(); }                    /* repli démo si l'init échoue */
 }
 boot();
