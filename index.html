@@ -2208,6 +2208,7 @@ function viewJoinForm(){
     <div class="eyebrow">${tr('jf_eyebrow_pre')}${state.joinCode||(t&&t.code)||''}</div>
     <h1 class="page-title">${titre}</h1>
     <p class="lead">${sous}</p>
+    ${(BACKEND==='supabase'&&state.email)?`<div class="asnote" style="margin-bottom:14px">Vous rejoignez en tant que <b>${esc(state.email)}</b>. Ce n\u2019est pas vous ? <a href="#" onclick="uboraLogout(true);return false" style="color:#C9A84C;text-decoration:underline">Changer de compte</a> \u2014 le lien d\u2019invitation restera valable apr\u00E8s reconnexion.</div>`:''}
     <div class="panel"><div style="padding:20px 22px">
       <div class="field" style="margin-top:0"><label>${tr('your_name')}</label>
         <input type="text" id="j-name" placeholder="${tr('jf_name_ph')}"></div>
@@ -4441,14 +4442,21 @@ async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:(
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
 
-/* ---------- badge de mode : sait-on où vont les données ? ---------- */
+/* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
+async function uboraLogout(keepJoin){
+  if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
+  try{ if(sb) await sb.auth.signOut(); }catch(e){}
+  location.reload();
+}
 function showBackendBadge(err){
   try{
     var old=document.getElementById('ub-backend-badge'); if(old)old.remove();
     var ok=(BACKEND==='supabase');
     var d=document.createElement('div'); d.id='ub-backend-badge';
-    d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;'+(ok?'background:#13151A;color:#C9A84C;border:1px solid #C9A84C':'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E');
-    d.textContent=ok?'\u25CF Base connect\u00E9e':'\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base';
+    d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;display:flex;gap:10px;align-items:center;'+(ok?'background:#13151A;color:#C9A84C;border:1px solid #C9A84C':'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E');
+    var html=ok?'\u25CF Base connect\u00E9e':'\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base';
+    if(ok&&state.email){ html+=' \u00B7 <span style="color:#FAFAF7">'+state.email+'</span> \u00B7 <a href="#" onclick="uboraLogout();return false" style="color:#D9C07E;text-decoration:underline">se d\u00E9connecter</a>'; }
+    d.innerHTML=html;
     if(err){ d.title=String((err&&err.message)||err); }
     document.body.appendChild(d);
   }catch(e){}
@@ -4467,7 +4475,7 @@ async function boot(){
 
   try{
     await initSB();
-    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ state.user=authDispName(s.user); state.uid=s.user.id; } });
+    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ state.user=authDispName(s.user); state.uid=s.user.id; state.email=s.user.email||s.user.phone||''; } });
 
     /* 2) Retour d'un lien de connexion : on ATTEND que la session s'établisse
           à partir de l'URL avant de décider quoi afficher (sinon on retombe à tort
@@ -4488,7 +4496,7 @@ async function boot(){
     const{data}=await sb.auth.getUser();
     if(!data.user){ state.view='auth'; render(); showBackendBadge(); return; }
 
-    state.user=authDispName(data.user); state.uid=data.user.id;
+    state.user=authDispName(data.user); state.uid=data.user.id; state.email=data.user.email||data.user.phone||'';
     state_reunions=[]; state_contacts=[]; state_outbox=[];
     await db.loadList();
 
