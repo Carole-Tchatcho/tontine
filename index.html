@@ -1198,14 +1198,14 @@ Object.assign(I18N.fr,{
   df_subject:'Objet',df_message:'Message',df_channels:'Canaux',df_ch_email:'E-mail',df_ch_sms:'SMS / WhatsApp',
   df_audience:'Destinataires (consentis uniquement)',df_aud_members:'Mes membres',df_aud_pres:'Présidents (opt-in)',df_aud_import:'Contacts importés',
   df_recipients_n:'{n} destinataire(s) consenti(s)',df_send:'Envoyer l\u2019annonce',df_send_sim:'(simulation — aucun envoi réel)',
-  df_sent_ok:'Annonce simulée vers {n} destinataire(s) consenti(s).',df_need_channel:'Choisissez au moins un canal.',df_need_aud:'Choisissez au moins un public.',
+  df_sent_ok:'Annonce simulée vers {n} destinataire(s) consenti(s).',df_sent_live:'Annonce envoy\u00E9e par e-mail \u00E0 {n} destinataire(s) consenti(s){s}.',df_demo_live:'Mode r\u00E9el \u2014 les e-mails partent aux personnes consenties (LCAP / RGPD / nLPD). Les SMS restent simul\u00E9s pour l\u2019instant.',df_need_channel:'Choisissez au moins un canal.',df_need_aud:'Choisissez au moins un public.',
   df_an_prefill_sub:'Invitation : {t}',df_an_prefill_msg:'Bonjour, l\u2019association {g} vous convie à « {t} » le {d}, {l}. Billets et infos sur UBORA.',
   df_news_h:'Newsletter UBORA — édition 0',
   df_news_note:'Une semaine après l\u2019événement, une invitation à découvrir l\u2019univers UBORA part aux personnes concernées — sauf les deuils, et une seule fois par personne (jamais de relance, même si elles reviennent sur un autre événement).',
   df_news_eligible:'{n} éligible(s) à l\u2019édition 0',df_news_excluded_h:'Exclus (et pourquoi)',
   df_exc_deuil:'deuil — jamais sollicité',df_exc_already:'a déjà reçu l\u2019intro',df_exc_noconsent:'pas de consentement newsletter',
   df_schedule:'Programmer à J+7',df_scheduled:'Programmée à J+7 ✓',df_send_now:'Simuler l\u2019envoi maintenant',
-  df_news_sent:'Édition 0 simulée vers {n} personne(s). Elles sont marquées « intro envoyée » — pas de doublon possible.',
+  df_news_sent:'Édition 0 simulée vers {n} personne(s). Elles sont marquées « intro envoyée » — pas de doublon possible.',df_news_sent_live:'\u00C9dition 0 envoy\u00E9e par e-mail \u00E0 {n} personne(s). Elles sont marqu\u00E9es \u00AB intro envoy\u00E9e \u00BB \u2014 pas de doublon possible.',
   df_news_none:'Personne d\u2019éligible — l\u2019anti-doublon fait son travail.',
   df_dedup_note:'L\u2019anti-doublon repose sur un identifiant normalisé (e-mail / téléphone) et un drapeau « intro envoyée » définitif.',
   df_outbox_h:'Journal d\u2019envoi (simulé)',df_outbox_empty:'Aucun envoi simulé.',df_ob_announce:'Annonce',df_ob_news:'Newsletter édition 0',
@@ -1226,14 +1226,14 @@ Object.assign(I18N.en,{
   df_subject:'Subject',df_message:'Message',df_channels:'Channels',df_ch_email:'Email',df_ch_sms:'SMS / WhatsApp',
   df_audience:'Recipients (consented only)',df_aud_members:'My members',df_aud_pres:'Presidents (opt-in)',df_aud_import:'Imported contacts',
   df_recipients_n:'{n} consented recipient(s)',df_send:'Send the announcement',df_send_sim:'(simulation — no real send)',
-  df_sent_ok:'Announcement simulated to {n} consented recipient(s).',df_need_channel:'Choose at least one channel.',df_need_aud:'Choose at least one audience.',
+  df_sent_ok:'Announcement simulated to {n} consented recipient(s).',df_sent_live:'Announcement emailed to {n} consented recipient(s){s}.',df_demo_live:'Live mode \u2014 emails are really sent to consented people (CASL / GDPR / nFADP). SMS remain simulated for now.',df_need_channel:'Choose at least one channel.',df_need_aud:'Choose at least one audience.',
   df_an_prefill_sub:'Invitation: {t}',df_an_prefill_msg:'Hello, the {g} association invites you to “{t}” on {d}, {l}. Tickets and details on UBORA.',
   df_news_h:'UBORA newsletter — edition 0',
   df_news_note:'One week after the event, an invitation to discover the UBORA universe goes to the people involved — except bereavements, and only once per person (never again, even if they appear in another event).',
   df_news_eligible:'{n} eligible for edition 0',df_news_excluded_h:'Excluded (and why)',
   df_exc_deuil:'bereavement — never contacted',df_exc_already:'already received the intro',df_exc_noconsent:'no newsletter consent',
   df_schedule:'Schedule at +7 days',df_scheduled:'Scheduled at +7 days ✓',df_send_now:'Simulate sending now',
-  df_news_sent:'Edition 0 simulated to {n} person(s). They\u2019re flagged “intro sent” — no duplicate possible.',
+  df_news_sent:'Edition 0 simulated to {n} person(s). They\u2019re flagged “intro sent” — no duplicate possible.',df_news_sent_live:'Edition 0 emailed to {n} person(s). They\u2019re flagged \u201Cintro sent\u201D \u2014 no duplicate possible.',
   df_news_none:'No one eligible — the de-dup is doing its job.',
   df_dedup_note:'De-dup relies on a normalized identifier (email / phone) and a permanent “intro sent” flag.',
   df_outbox_h:'Send log (simulated)',df_outbox_empty:'No simulated send.',df_ob_announce:'Announcement',df_ob_news:'Newsletter edition 0',
@@ -1621,6 +1621,11 @@ const db={
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
   async deletePartage(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async sendEmail(to,subject,html){ if(BACKEND!=='supabase')throw new Error('Base non connect\u00E9e'); const{data,error}=await sb.functions.invoke('send-email',{body:{to,subject,html}}); if(error)throw error; if(data&&data.ok===false)throw new Error(data.error||'Envoi refus\u00E9'); return data; },
+  async loadContacts(){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)return;
+    const{data}=await sb.from('carnet').select('data').eq('user_id',uid).maybeSingle();
+    state_contacts=(data&&Array.isArray(data.data))?data.data:[]; },
+  async saveContacts(){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
+    const{error}=await sb.from('carnet').upsert({user_id:uid,data:state_contacts,updated_at:new Date().toISOString()}); if(error)throw error; },
   async setEcheance(t,dateStr){ if(BACKEND==='memory'){t.rounds[t.currentRound].echeance=dateStr||null;return;}
     const rid=t.rounds[t.currentRound].id;
     const{data,error}=await sb.from('rounds').update({date_echeance:dateStr||null}).eq('id',rid).select('id'); if(error)throw error;
@@ -1775,6 +1780,7 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
+  if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}}
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
@@ -4024,7 +4030,8 @@ function reportReasonsSummary(ev){
 function diffEv(){return state.diffuseEvent?state_events.find(x=>x.id===state.diffuseEvent):null;}
 function openDiffuse(id){state.diffuseEvent=id||null;state.diffuseTab=id?'annonce':'carnet';go('diffusion');}
 function diffTab(t){state.diffuseTab=t;render();}
-function ctToggle(id,f){const c=state_contacts.find(x=>x.id===id);if(!c||c.bereavement)return;c[f]=!c[f];saveLocal();render();}
+function persistContacts(){ if(BACKEND==='supabase'){ db.saveContacts().catch(e=>console.warn('carnet',e)); } else saveLocal(); }
+function ctToggle(id,f){const c=state_contacts.find(x=>x.id===id);if(!c||c.bereavement)return;c[f]=!c[f];persistContacts();render();}
 function ctParse(text){
   return String(text||'').split(/\r?\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
     const parts=l.split(/[,;\t]/).map(x=>x.trim());
@@ -4036,7 +4043,7 @@ function ctParse(text){
 }
 function ctAdd(list){let n=0;
   list.forEach(c=>{state_contacts.push({id:uid('k'),name:c.name||c.email||c.phone,email:c.email||'',phone:c.phone||'',announce:false,news:false,bereavement:false,introSent:false,cat:'import',source:tr('df_pending')});n++;});
-  if(n)saveLocal(); return n;
+  if(n)persistContacts(); return n;
 }
 function ctImport(){const ta=$('#diff-import');const list=ctParse(ta?ta.value:'');if(!list.length){alert(tr('df_import_empty'));return;}const n=ctAdd(list);alert(tr('df_imported_n').replace('{n}',n));render();}
 function ctImportFile(input){const f=input&&input.target&&input.target.files&&input.target.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{const n=ctAdd(ctParse(e.target.result));alert(tr('df_imported_n').replace('{n}',n));render();};r.readAsText(f);}
@@ -4048,6 +4055,28 @@ function announceSend(){
   if(!cats.length){alert(tr('df_need_aud'));return;}
   const rec=state_contacts.filter(c=>ctTargetable(c)&&cats.includes(c.cat));
   const ev=diffEv(), ch=[email?tr('df_ch_email'):null,sms?tr('df_ch_sms'):null].filter(Boolean).join(' + ');
+  if(BACKEND==='supabase'&&email){
+    (async()=>{
+      const dest=rec.filter(c=>(c.email||'').indexOf('@')>0);
+      const title=ev?ev.title:'Annonce UBORA';
+      const when=(ev&&(ev.dateISO||ev.date_iso))?(' \u00B7 '+(ev.dateISO||ev.date_iso)):'';
+      const where=(ev&&ev.city)?(' \u00B7 '+ev.city):'';
+      const link=location.origin+location.pathname;
+      let sent=0;
+      for(const c of dest){
+        try{ await db.sendEmail(c.email,'Annonce \u2014 '+title,
+          '<p>Bonjour '+esc(c.name||'')+',</p><p><b>'+esc(title)+'</b>'+esc(when+where)+'</p>'
+          +(ev&&ev.desc?('<p>'+esc(ev.desc)+'</p>'):'')
+          +'<p><a href="'+link+'">Voir sur UBORA</a></p>'
+          +'<p style="color:#8a8a86">Vous recevez ce message car vous avez donn\u00E9 votre consentement. R\u00E9pondez STOP pour ne plus recevoir.</p>'); sent++; }
+        catch(e){ console.warn('annonce',c.email,e); }
+      }
+      state_outbox.unshift({id:uid('o'),kind:'announce',n:sent,ch:ch+(sms?' (SMS simul\u00E9)':''),ev:ev?ev.title:'',ts:Date.now()});
+      alert(tr('df_sent_live').replace('{n}',sent).replace('{s}',sms?' \u2014 SMS simul\u00E9s':''));
+      render();
+    })();
+    return;
+  }
   state_outbox.unshift({id:uid('o'),kind:'announce',n:rec.length,ch,ev:ev?ev.title:'',ts:Date.now()});
   saveLocal(); alert(tr('df_sent_ok').replace('{n}',rec.length)); render();
 }
@@ -4055,6 +4084,26 @@ function newsSchedule(){state.diffScheduled=true;render();}
 function newsSendNow(){
   const elig=state_contacts.filter(ctEligibleNews);
   if(!elig.length){alert(tr('df_news_none'));return;}
+  if(BACKEND==='supabase'){
+    (async()=>{
+      const dest=elig.filter(c=>(c.email||'').indexOf('@')>0);
+      const link=location.origin+location.pathname;
+      let sent=0;
+      for(const c of dest){
+        try{ await db.sendEmail(c.email,'UBORA \u2014 \u00E9dition 0 : le registre de confiance',
+          '<p>Bonjour '+esc(c.name||'')+',</p>'
+          +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
+          +'<p><a href="'+link+'">D\u00E9couvrir le registre</a></p>'
+          +'<p style="color:#8a8a86">Vous recevez cette \u00E9dition unique car vous avez consenti \u00E0 la newsletter. R\u00E9pondez STOP pour ne plus recevoir.</p>'); c.introSent=true; sent++; }
+        catch(e){ console.warn('news',c.email,e); }
+      }
+      persistContacts();
+      state_outbox.unshift({id:uid('o'),kind:'news',n:sent,ch:tr('df_ch_email'),ts:Date.now()});
+      alert(tr('df_news_sent_live').replace('{n}',sent));
+      render();
+    })();
+    return;
+  }
   elig.forEach(c=>c.introSent=true);
   state_outbox.unshift({id:uid('o'),kind:'news',n:elig.length,ch:tr('df_ch_email')+' + '+tr('df_ch_sms'),ts:Date.now()});
   saveLocal(); alert(tr('df_news_sent').replace('{n}',elig.length)); render();
@@ -4140,7 +4189,7 @@ function viewDiffusion(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <h1 class="page-title">${tr('df_title')}</h1>
     <p class="lead">${tr('df_lead')}</p>
-    <div class="diff-demo">● ${tr('df_demo')}</div>
+    <div class="diff-demo">● ${tr(BACKEND==='supabase'?'df_demo_live':'df_demo')}</div>
     ${tabs}${body}${footer()}`;
 }
 function diffOutbox(){
@@ -4593,6 +4642,7 @@ async function boot(){
       try{ const p=await db.preview(_pendingJoin); if(p&&p.places_libres>0){ state.joinPreview=p; state.view='joinform'; render(); showBackendBadge(); return; } }catch(e){}
       state.view='join'; render(); showBackendBadge(); return;
     }
+    try{await db.loadContacts();}catch(e){}
     state.view='home'; render(); showBackendBadge();
   }catch(e){
     /* repli démo si l'init échoue — mais on le DIT, au lieu de basculer en silence */
