@@ -1780,7 +1780,9 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
-  if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}}
+  if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}
+    try{const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body']);
+      window._ed0={sub:(((_s||[]).find(x=>x.key==='edition0_subject')||{}).value)||'',body:(((_s||[]).find(x=>x.key==='edition0_body')||{}).value)||''};}catch(e){}}
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
@@ -4184,10 +4186,11 @@ function viewDiffusion(){
           ${elig.map(c=>`<div class="ct-row"><div class="ci"><div class="mname">${c.name}</div><div class="msub">${[c.email,c.phone].filter(Boolean).join(' · ')||'—'}</div></div><span class="pill p-paid">✓</span></div>`).join('')||`<div class="msub">${tr('df_news_none')}</div>`}
           ${BACKEND==='supabase'?`
           <div class="field" style="margin-top:14px"><label>Objet de l\u2019\u00E9dition 0</label>
-            <input id="nw-sub" value="UBORA \u2014 \u00E9dition 0" style="width:100%"></div>
+            <input id="nw-sub" value="${esc((window._ed0&&window._ed0.sub)||'UBORA \u2014 \u00E9dition 0')}" style="width:100%"></div>
           <div class="field"><label>Contenu de l\u2019\u00E9dition 0 (votre newsletter UBORA)</label>
-            <textarea id="nw-msg" rows="7" placeholder="Collez ici le contenu r\u00E9el de votre newsletter UBORA\u2026" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical"></textarea>
-            <div class="hint">Le pied de conformit\u00E9 (\u00AB vous avez consenti\u2026 STOP \u00BB) est ajout\u00E9 automatiquement. L\u2019anti-doublon marque chaque personne \u00AB intro envoy\u00E9e \u00BB.</div></div>`:''}
+            <textarea id="nw-msg" rows="7" placeholder="Collez ici le contenu r\u00E9el de votre newsletter UBORA\u2026" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical">${esc((window._ed0&&window._ed0.body)||'')}</textarea>
+            <div class="hint"><b>Automatique\u00A0:</b> une fois enregistr\u00E9e, l\u2019\u00E9dition 0 part toute seule \u00E0 chaque nouveau compte qui a consenti \u00E0 la newsletter \u2014 une seule fois par personne. Le pied de conformit\u00E9 est ajout\u00E9 automatiquement.</div>
+            <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="saveEd0()">\uD83D\uDCBE Enregistrer comme \u00E9dition 0 automatique</button>${(window._ed0&&window._ed0.body)?`<span class="pill p-paid">\u00E9dition 0 en service \u2713</span>`:`<span class="pill p-due">pas encore enregistr\u00E9e</span>`}</div></div>`:''}
           <div class="row-gap" style="margin-top:14px">
             <button class="btn btn-ghost btn-sm" onclick="newsSchedule()">${state.diffScheduled?tr('df_scheduled'):tr('df_schedule')}</button>
             <button class="btn btn-gold btn-sm" onclick="newsSendNow()">${BACKEND==='supabase'?'Envoyer l\u2019\u00E9dition 0':(tr('df_send_now')+' '+tr('df_send_sim'))}</button>
@@ -4526,18 +4529,54 @@ async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_jo
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
+async function saveEd0(){
+  try{
+    const sub=($('#nw-sub')&&$('#nw-sub').value.trim())||'UBORA \u2014 \u00E9dition 0';
+    const body=($('#nw-msg')&&$('#nw-msg').value.trim())||'';
+    if(!body){alert('Collez d\u2019abord le contenu de votre \u00E9dition 0.');return;}
+    const{error}=await sb.from('app_settings').upsert([{key:'edition0_subject',value:sub},{key:'edition0_body',value:body}]);
+    if(error)throw error;
+    window._ed0={sub,body};
+    alert('\u00C9dition 0 enregistr\u00E9e \u2713 \u2014 elle partira d\u00E9sormais automatiquement \u00E0 chaque nouveau compte consentant.');
+    render();
+  }catch(e){ alert(e.message||e); }
+}
 async function sendWelcomeIfNew(){
   try{
     if(BACKEND!=='supabase'||!state.uid||!state.email||state.email.indexOf('@')<1) return;
-    const{data:pr}=await sb.from('profiles').select('welcome_sent,nom').eq('id',state.uid).maybeSingle();
-    if(!pr||pr.welcome_sent) return;
+    const{data:pr}=await sb.from('profiles').select('welcome_sent,edition0_sent,newsletter_opt_in,nom').eq('id',state.uid).maybeSingle();
+    if(!pr) return;
     const link=location.origin+location.pathname;
-    await db.sendEmail(state.email,'Bienvenue dans l\u2019univers UBORA',
-      '<p>Bonjour '+esc(pr.nom||'')+',</p>'
-      +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
-      +'<p><a href="'+link+'">Ouvrir le registre</a></p>'
-      +'<p style="color:#8a8a86">Vous recevez ce message unique \u00E0 la cr\u00E9ation de votre compte UBORA.</p>');
-    await sb.from('profiles').update({welcome_sent:true}).eq('id',state.uid);
+    /* 1) Bienvenue dans le registre \u2014 une seule fois */
+    if(!pr.welcome_sent){
+      await db.sendEmail(state.email,'Bienvenue dans l\u2019univers UBORA',
+        '<p>Bonjour '+esc(pr.nom||'')+',</p>'
+        +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
+        +'<p><a href="'+link+'">Ouvrir le registre</a></p>'
+        +'<p style="color:#8a8a86">Vous recevez ce message unique \u00E0 la cr\u00E9ation de votre compte UBORA.</p>');
+      await sb.from('profiles').update({welcome_sent:true}).eq('id',state.uid);
+    }
+    /* 2) \u00C9dition 0 de la newsletter UBORA \u2014 automatique, si consentement, une seule fois */
+    if(!pr.edition0_sent){
+      let consent=!!pr.newsletter_opt_in;
+      if(!consent){
+        const{data:mk}=await sb.from('memberships').select('id').eq('user_id',state.uid).eq('consent_marketing',true).limit(1);
+        consent=!!(mk&&mk.length);
+      }
+      if(consent){
+        const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body']);
+        const _sub=(((_s||[]).find(x=>x.key==='edition0_subject')||{}).value)||'UBORA \u2014 \u00E9dition 0';
+        const _body=(((_s||[]).find(x=>x.key==='edition0_body')||{}).value)||'';
+        if(_body){
+          await db.sendEmail(state.email,_sub,
+            '<p>Bonjour '+esc(pr.nom||'')+',</p>'
+            +'<p>'+esc(_body).replace(/\n/g,'<br>')+'</p>'
+            +'<p><a href="https://ubora.caroletchatcho.com">D\u00E9couvrir la m\u00E9thode UBORA</a></p>'
+            +'<p style="color:#8a8a86">Vous recevez cette \u00E9dition car vous avez consenti \u00E0 la newsletter lors de votre inscription. R\u00E9pondez STOP pour ne plus recevoir.</p>');
+          await sb.from('profiles').update({edition0_sent:true}).eq('id',state.uid);
+        }
+      }
+    }
   }catch(e){ console.warn('welcome',e); }
 }
 async function postLoginRoute(){
