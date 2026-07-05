@@ -831,7 +831,7 @@ Object.assign(I18N.fr,{
   consent_tx_d2:'« On vous prévient pour votre tour et vos cotisations. » Toujours actif.',
   consent_mk_d2:'« Recevez nos Décryptages et la méthode. » Décoché par défaut — choix libre.',
   jf_join_btn:'Rejoindre la tontine',al_jf_name:'Entrez votre nom.',
-  st_confirmed:'confirmé ✓',st_declared:'déclaré',st_late:'en retard',dm_status_late:'En retard',dm_late_note:'Votre versement est attendu \u2014 un rappel, sans jugement.',st_due:'à verser'
+  st_confirmed:'confirmé ✓',st_declared:'déclaré',st_late:'en retard',dm_status_late:'En retard',dm_late_note:'Votre versement est attendu \u2014 un rappel, sans jugement.',st_due:'à verser',dg_remind:'\u2709 Rappel',al_remind_ok:'Rappel envoy\u00E9 \u00E0 {m} \u2713'
 });
 Object.assign(I18N.en,{
   back_home:'My tontines',your_name:'Your name',cancel:'Cancel',
@@ -857,7 +857,7 @@ Object.assign(I18N.en,{
   consent_tx_d2:'“We notify you about your turn and your contributions.” Always on.',
   consent_mk_d2:'“Receive our insights and the method.” Unchecked by default — free choice.',
   jf_join_btn:'Join the tontine',al_jf_name:'Enter your name.',
-  st_confirmed:'confirmed ✓',st_declared:'declared',st_late:'late',dm_status_late:'Late',dm_late_note:'Your contribution is due \u2014 a gentle nudge, no judgment.',st_due:'to pay'
+  st_confirmed:'confirmed ✓',st_declared:'declared',st_late:'late',dm_status_late:'Late',dm_late_note:'Your contribution is due \u2014 a gentle nudge, no judgment.',st_due:'to pay',dg_remind:'\u2709 Remind',al_remind_ok:'Reminder sent to {m} \u2713'
 });
 /* --- i18n : tableau de bord tontine + parcours + niveaux + Le Cercle --- */
 Object.assign(I18N.fr,{
@@ -1613,6 +1613,7 @@ const db={
   async loadPartages(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').select('data').order('created_at',{ascending:false}); if(error)throw error; state_partages=(data||[]).map(r=>r.data).filter(Boolean); },
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
   async deletePartage(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
+  async sendEmail(to,subject,html){ if(BACKEND!=='supabase')throw new Error('Base non connect\u00E9e'); const{data,error}=await sb.functions.invoke('send-email',{body:{to,subject,html}}); if(error)throw error; if(data&&data.ok===false)throw new Error(data.error||'Envoi refus\u00E9'); return data; },
   async deleteTontine(id){ if(BACKEND!=='supabase')return;
     /* voie propre : RPC qui supprime la tontine ET tout son contenu (membres, tours, versements, journal) */
     const r=await sb.rpc('delete_tontine',{p_tontine:id});
@@ -2298,7 +2299,7 @@ function dashGroup(t){
     let action='';
     if(!closed){
     if(s==='declared') action=`<button class="btn btn-green btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_confirm_recv')}</button>`;
-    else if(s==='none') action=`<button class="btn btn-ghost btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_mark_recv')}</button>`;
+    else if(s==='none') action=`<button class="btn btn-ghost btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_mark_recv')}</button>${(BACKEND==='supabase'&&m.contact&&m.contact.indexOf('@')>0)?`<button class="btn btn-ghost btn-sm" onclick="sendReminderEmail('${t.id}',${i})">${tr('dg_remind')}</button>`:''}`;
     else action=`<button class="btn btn-ghost btn-sm" onclick="orgUnconfirm('${t.id}',${i})">${tr('cancel')}</button>`;
     }
     return `<div class="mrow ${isFlash?'flash-row':''}">
@@ -2412,7 +2413,7 @@ function dashJournal(t){
 }
 
 function dashInvite(t){
-  const link=location.origin+location.pathname+'#join='+t.code;
+  const link=location.origin+location.pathname+'?join='+t.code;
   const _mailBody='Bonjour,\n\nJe t\'invite à rejoindre ma tontine « '+t.name+' » sur UBORA.\n\n1) Ouvre : '+link+'\n2) Clique « Rejoindre »\n3) Entre le code : '+t.code+'\n\nÀ bientôt !';
   const mailtoHref='mailto:?subject='+encodeURIComponent('Rejoins ma tontine « '+t.name+' » sur UBORA')+'&body='+encodeURIComponent(_mailBody);
   const me=t.members[t.me], isOrg=!!(me&&me.role==='organisateur');
@@ -4443,7 +4444,7 @@ function viewAuth(){
       </div>
     </div></div>${footer()}`;
 }
-async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
+async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_join')||'';}catch(e){} const _redir=location.origin+location.pathname+(_pj?('?join='+encodeURIComponent(_pj)):''); const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:_redir}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
@@ -4458,7 +4459,23 @@ async function postLoginRoute(){
   state.view='home';render();showBackendBadge();
 }
 
+async function sendReminderEmail(tid,idx){
+  const t=(typeof getT==='function'?getT(tid):null)||state_tontines.find(x=>x.id===tid); if(!t)return;
+  const m=t.members[idx]; if(!m)return;
+  const to=(m.contact||'').trim();
+  if(to.indexOf('@')<1){alert('Le contact de ce membre n\u2019est pas une adresse e-mail.');return;}
+  const link=location.origin+location.pathname;
+  const subject='Rappel \u2014 tontine \u00AB '+t.name+' \u00BB sur UBORA';
+  const html='<p>Bonjour '+esc(m.name)+',</p>'
+    +'<p>Petit rappel, sans jugement : votre versement de <b>'+money(t.amount,t.currency)+'</b> pour la tontine <b>\u00AB '+esc(t.name)+' \u00BB</b> est attendu pour le tour en cours.</p>'
+    +'<p><a href="'+link+'">Ouvrir le registre UBORA</a></p>'
+    +'<p style="color:#8a8a86">UBORA ne d\u00E9tient aucun fonds \u2014 registre de confiance.</p>';
+  try{ await db.sendEmail(to,subject,html); alert(tr('al_remind_ok').replace('{m}',m.name)); }
+  catch(e){ alert('Envoi impossible : '+(e.message||e)); }
+}
+
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
+const UBORA_BUILD='v7.36';
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
   try{ if(sb) await sb.auth.signOut(); }catch(e){}
@@ -4470,7 +4487,7 @@ function showBackendBadge(err){
     var ok=(BACKEND==='supabase');
     var d=document.createElement('div'); d.id='ub-backend-badge';
     d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;display:flex;gap:10px;align-items:center;'+(ok?'background:#13151A;color:#C9A84C;border:1px solid #C9A84C':'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E');
-    var html=ok?'\u25CF Base connect\u00E9e':'\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base';
+    var html=(ok?'\u25CF Base connect\u00E9e':'\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base')+' \u00B7 '+UBORA_BUILD;
     if(ok&&state.email){ html+=' \u00B7 <span style="color:#FAFAF7">'+state.email+'</span> \u00B7 <a href="#" onclick="uboraLogout();return false" style="color:#D9C07E;text-decoration:underline">se d\u00E9connecter</a>'; }
     d.innerHTML=html;
     if(err){ d.title=String((err&&err.message)||err); }
@@ -4482,7 +4499,7 @@ async function boot(){
   /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
   let _pendingJoin=null;
   try{
-    const _m=(location.hash||'').match(/join=([A-Za-z0-9]+)/i);
+    const _m=((location.hash||'')+' '+(location.search||'')).match(/join=([A-Za-z0-9]+)/i);
     if(_m){ _pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){} }
     else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} }
   }catch(e){}
@@ -4507,6 +4524,7 @@ async function boot(){
       });
       /* Nettoie l'URL pour éviter un ré-échange au rafraîchissement */
       try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+      /* le code d'invitation éventuel a déjà été capturé plus haut */
     }
 
     const{data}=await sb.auth.getUser();
