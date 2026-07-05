@@ -4092,13 +4092,16 @@ function newsSendNow(){
     (async()=>{
       const dest=elig.filter(c=>(c.email||'').indexOf('@')>0);
       const link=location.origin+location.pathname;
+      const _sub=($('#nw-sub')&&$('#nw-sub').value.trim())||'UBORA \u2014 \u00E9dition 0';
+      const _msg=($('#nw-msg')&&$('#nw-msg').value.trim())||'';
+      if(!_msg){ alert('\u00C9crivez (ou collez) le contenu de l\u2019\u00E9dition 0 avant l\u2019envoi \u2014 c\u2019est votre newsletter.'); return; }
       let sent=0;
       for(const c of dest){
-        try{ await db.sendEmail(c.email,'UBORA \u2014 \u00E9dition 0 : le registre de confiance',
+        try{ await db.sendEmail(c.email,_sub,
           '<p>Bonjour '+esc(c.name||'')+',</p>'
-          +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
-          +'<p><a href="'+link+'">D\u00E9couvrir le registre</a></p>'
-          +'<p style="color:#8a8a86">Vous recevez cette \u00E9dition unique car vous avez consenti \u00E0 la newsletter. R\u00E9pondez STOP pour ne plus recevoir.</p>'); c.introSent=true; sent++; }
+          +'<p>'+esc(_msg).replace(/\n/g,'<br>')+'</p>'
+          +'<p><a href="'+link+'">D\u00E9couvrir le registre UBORA</a></p>'
+          +'<p style="color:#8a8a86">Vous recevez cette \u00E9dition car vous avez consenti \u00E0 la newsletter. R\u00E9pondez STOP pour ne plus recevoir.</p>'); c.introSent=true; sent++; }
         catch(e){ console.warn('news',c.email,e); }
       }
       persistContacts();
@@ -4179,9 +4182,15 @@ function viewDiffusion(){
       <div class="panel"><div class="panel-h"><h3>${tr('df_news_h')}</h3><span class="pill p-now">${tr('df_news_eligible').replace('{n}',elig.length)}</span></div>
         <div style="padding:14px 20px">
           ${elig.map(c=>`<div class="ct-row"><div class="ci"><div class="mname">${c.name}</div><div class="msub">${[c.email,c.phone].filter(Boolean).join(' · ')||'—'}</div></div><span class="pill p-paid">✓</span></div>`).join('')||`<div class="msub">${tr('df_news_none')}</div>`}
+          ${BACKEND==='supabase'?`
+          <div class="field" style="margin-top:14px"><label>Objet de l\u2019\u00E9dition 0</label>
+            <input id="nw-sub" value="UBORA \u2014 \u00E9dition 0" style="width:100%"></div>
+          <div class="field"><label>Contenu de l\u2019\u00E9dition 0 (votre newsletter UBORA)</label>
+            <textarea id="nw-msg" rows="7" placeholder="Collez ici le contenu r\u00E9el de votre newsletter UBORA\u2026" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical"></textarea>
+            <div class="hint">Le pied de conformit\u00E9 (\u00AB vous avez consenti\u2026 STOP \u00BB) est ajout\u00E9 automatiquement. L\u2019anti-doublon marque chaque personne \u00AB intro envoy\u00E9e \u00BB.</div></div>`:''}
           <div class="row-gap" style="margin-top:14px">
             <button class="btn btn-ghost btn-sm" onclick="newsSchedule()">${state.diffScheduled?tr('df_scheduled'):tr('df_schedule')}</button>
-            <button class="btn btn-gold btn-sm" onclick="newsSendNow()">${tr('df_send_now')} ${tr('df_send_sim')}</button>
+            <button class="btn btn-gold btn-sm" onclick="newsSendNow()">${BACKEND==='supabase'?'Envoyer l\u2019\u00E9dition 0':(tr('df_send_now')+' '+tr('df_send_sim'))}</button>
           </div>
           <div class="msub" style="margin-top:10px">${tr('df_dedup_note')}</div>
         </div></div>
@@ -4517,9 +4526,24 @@ async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_jo
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
+async function sendWelcomeIfNew(){
+  try{
+    if(BACKEND!=='supabase'||!state.uid||!state.email||state.email.indexOf('@')<1) return;
+    const{data:pr}=await sb.from('profiles').select('welcome_sent,nom').eq('id',state.uid).maybeSingle();
+    if(!pr||pr.welcome_sent) return;
+    const link=location.origin+location.pathname;
+    await db.sendEmail(state.email,'Bienvenue dans l\u2019univers UBORA',
+      '<p>Bonjour '+esc(pr.nom||'')+',</p>'
+      +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
+      +'<p><a href="'+link+'">Ouvrir le registre</a></p>'
+      +'<p style="color:#8a8a86">Vous recevez ce message unique \u00E0 la cr\u00E9ation de votre compte UBORA.</p>');
+    await sb.from('profiles').update({welcome_sent:true}).eq('id',state.uid);
+  }catch(e){ console.warn('welcome',e); }
+}
 async function postLoginRoute(){
   state_reunions=[];state_contacts=[];state_outbox=[];state_caisses=[];
   await db.loadList();
+  sendWelcomeIfNew();
   let _pj=null; try{_pj=localStorage.getItem('ubora_join');}catch(e){}
   if(_pj){ try{localStorage.removeItem('ubora_join');}catch(e){}
     state.joinCode=_pj;
@@ -4647,6 +4671,7 @@ async function boot(){
       state.view='join'; render(); showBackendBadge(); return;
     }
     try{await db.loadContacts();}catch(e){}
+    sendWelcomeIfNew();
     state.view='home'; render(); showBackendBadge();
   }catch(e){
     /* repli démo si l'init échoue — mais on le DIT, au lieu de basculer en silence */
