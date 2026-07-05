@@ -1601,7 +1601,14 @@ async function sbGetTontine(id,uid){
     sb.from('rounds').select('*').eq('tontine_id',id)]);
   const ids=(rd||[]).map(r=>r.id); let co=[];
   if(ids.length){const{data}=await sb.from('contributions').select('*').in('round_id',ids);co=data||[];}
-  return assembleSB(t,mem||[],rd||[],co,uid);
+  const loc=assembleSB(t,mem||[],rd||[],co,uid);
+  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null);
+    try{ const[{data:_bu},{data:_au}]=await Promise.all([
+      sb.from('tontine_bureau').select('*').eq('tontine_id',id).is('jusqua',null),
+      sb.from('tontine_audit').select('*').eq('tontine_id',id).order('created_at',{ascending:false}).limit(25)]);
+      loc.bureau=_bu||[]; loc.audit=_au||[];
+    }catch(e){ loc.bureau=loc.bureau||[]; loc.audit=loc.audit||[]; } }
+  return loc;
 }
 const db={
   async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean); },
@@ -1662,7 +1669,7 @@ const db={
     const uid=await sbUid();
     if(!uid){ alert('Session non reconnue — reconnecte-toi puis réessaie.'); state.view='auth'; render(); throw new Error('no-session'); }
     await sb.from('profiles').update({nom:d.oName.trim(),contact:d.oContact.trim()||null}).eq('id',uid);
-    const{data:t,error}=await sb.from('tontines').insert({nom:d.name.trim(),montant:Number(d.amount)||0,devise:d.currency,
+    const{data:t,error}=await sb.from('tontines').insert({nom:d.name.trim(),montant:Number(d.amount)||0,devise:d.currency,jour_echeance:d.jourEcheance||null,
       frequence:d.frequency,places,code:genCode(),organisateur_id:uid,tour_courant:0}).select().single(); if(error)throw error;
     await sb.from('memberships').insert({tontine_id:t.id,user_id:uid,slot:0,role:'organisateur',
       consent_marketing:!!d.oMk,consent_marketing_at:d.oMk?new Date().toISOString():null});
@@ -2115,7 +2122,7 @@ function viewHome(){
 }
 
 /* ---------- création : squelette seulement ---------- */
-function startCreate(){draft={name:'',amount:'',currency:'CHF',frequency:'mensuelle',places:6,oName:'',oContact:'',oCountry:state.homeCountry,oMk:false,renforced:false};go('create');}
+function startCreate(){draft={name:'',amount:'',currency:'CHF',frequency:'mensuelle',places:6,jourEcheance:null,oName:'',oContact:'',oCountry:state.homeCountry,oMk:false,renforced:false};go('create');}
 function viewCreate(){
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
@@ -2139,6 +2146,9 @@ function viewCreate(){
       </div>
       <div class="field"><label>${tr('cr_freq')}</label>
         <select onchange="draft.frequency=this.value">${Object.keys(FREQ).map(f=>`<option value="${f}" ${draft.frequency===f?'selected':''}>${freqLabel(f)}</option>`).join('')}</select></div>
+      <div class="field"><label>Jour de distribution / \u00E9ch\u00E9ance</label>
+        <div class="hint">Le jour du mois o\u00F9 le b\u00E9n\u00E9ficiaire re\u00E7oit \u2014 les versements sont attendus ce jour-l\u00E0, et le rappel automatique part 48\u00A0h avant. Modifiable ensuite par le bureau.</div>
+        <select onchange="draft.jourEcheance=this.value?+this.value:null"><option value="">\u2014 \u00E0 d\u00E9finir plus tard \u2014</option>${Array.from({length:28},(_,k)=>k+1).map(j=>`<option value="${j}" ${draft.jourEcheance===j?'selected':''}>le ${j} de chaque mois</option>`).join('')}</select></div>
     </div></div>
 
     <div class="panel"><div style="padding:20px 22px">
@@ -2257,7 +2267,7 @@ function viewDash(){
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
-        ${_isOrg?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance du tour en cours\u00A0: <input type="date" value="${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||''}" onchange="setTourEcheance('${t.id}',this.value)" style="font:inherit;padding:3px 8px;border:1px solid rgba(201,168,76,.5);border-radius:8px;background:transparent;color:inherit"> <span style="opacity:.7">\u2014 rappel automatique par e-mail 48\u00A0h avant</span></div>`:''}
+        ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
         <div>${trustSeal()}</div></div>
       <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
     </div>
@@ -2266,8 +2276,9 @@ function viewDash(){
       <button class="${state.tab==='me'?'on':''}" onclick="state.tab='me';render()">${tr('db_seg_me')}</button>
       <button class="${state.tab==='journal'?'on':''}" onclick="state.tab='journal';render()">${tr('db_seg_journal')}</button>
       <button class="${state.tab==='invite'?'on':''}" onclick="state.tab='invite';render()">${tr('db_seg_invite')}</button>
+      <button class="${state.tab==='gov'?'on':''}" onclick="state.tab='gov';render()">Gouvernance</button>
     </div>`;
-  const body={group:dashGroup,me:dashMe,journal:dashJournal,invite:dashInvite}[state.tab](t);
+  const body={group:dashGroup,me:dashMe,journal:dashJournal,invite:dashInvite,gov:dashGov}[state.tab](t);
   app().innerHTML=head+body+footer();
 }
 
@@ -4464,6 +4475,37 @@ async function postLoginRoute(){
   state.view='home';render();showBackendBadge();
 }
 
+const BUREAU_ROLES=[['president','Pr\u00E9sident\u00B7e'],['secretaire','Secr\u00E9taire'],['commissaire','Commissaire aux comptes']];
+function dashGov(t){
+  if(BACKEND!=='supabase') return `<div class="asnote">La gouvernance est disponible en mode connect\u00E9.</div>`;
+  const myMid=t.members[t.me]&&t.members[t.me]._membershipId;
+  const isOrg=!!(t.members[t.me]&&t.members[t.me].role==='organisateur');
+  const isBureau=(t.bureau||[]).some(b=>b.membership_id&&b.membership_id===myMid);
+  const can=isOrg||isBureau;
+  const memberOpts=sel=>t.members.map(m=>m&&m._membershipId?`<option value="${m._membershipId}" ${sel===m._membershipId?'selected':''}>${esc(m.name)}</option>`:'').join('');
+  const bureauRows=BUREAU_ROLES.map(([k,lab])=>{
+    const cur=(t.bureau||[]).find(b=>b.role===k);
+    const depuis=cur&&cur.depuis?new Date(cur.depuis).toLocaleDateString('fr-CH'):null;
+    return `<div class="field"><label>${lab}</label>
+      ${can?`<select onchange="govSetBureau('${t.id}','${k}',this.value)"><option value="">\u2014 non attribu\u00E9 \u2014</option>${memberOpts(cur&&cur.membership_id)}</select>`:`<div class="msub">${cur?esc(cur.nom||'\u2014'):'\u2014 non attribu\u00E9 \u2014'}</div>`}
+      ${depuis?`<div class="hint">en fonction depuis le ${depuis}</div>`:''}</div>`;}).join('');
+  const jours=Array.from({length:28},(_,k)=>k+1);
+  const audit=(t.audit&&t.audit.length)?t.audit.map(a=>`<div class="mrow"><div class="stack"><div class="mname" style="font-size:14px">${esc(a.champ)}\u00A0: <span style="opacity:.65">${esc(a.ancienne_valeur==null?'\u2014':a.ancienne_valeur)}</span> \u2192 <b>${esc(a.nouvelle_valeur==null?'\u2014':a.nouvelle_valeur)}</b></div><div class="msub">${a.created_at?new Date(a.created_at).toLocaleString('fr-CH'):''} \u00B7 par ${esc(a.auteur||'\u2014')}</div></div></div>`).join(''):`<div class="msub" style="padding:6px 0">Aucune modification enregistr\u00E9e pour l\u2019instant.</div>`;
+  return `<div class="asnote">Les param\u00E8tres ci-dessous sont modifiables par l\u2019organisateur\u00B7trice et le bureau. <b>Chaque modification est enregistr\u00E9e d\u00E9finitivement</b> (contr\u00F4le qualit\u00E9).</div>
+    <div class="panel"><div class="panel-h"><h3>Rythme des \u00E9ch\u00E9ances</h3></div><div style="padding:16px 22px">
+      <div class="field" style="margin-top:0"><label>Jour de distribution / \u00E9ch\u00E9ance</label>
+      ${can?`<select onchange="govSetJour('${t.id}',this.value)"><option value="">\u2014 non d\u00E9fini \u2014</option>${jours.map(j=>`<option value="${j}" ${t.jourEcheance===j?'selected':''}>le ${j} de chaque mois</option>`).join('')}</select>`:`<div class="msub">${t.jourEcheance?('le '+t.jourEcheance+' de chaque mois'):'\u2014 non d\u00E9fini \u2014'}</div>`}
+      <div class="hint">Le rappel automatique part par e-mail 48\u00A0h avant, sans aucune manipulation.</div></div>
+      <div class="field"><label>Exception pour le tour en cours (facultatif)</label>
+      ${can?`<input type="date" value="${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||''}" onchange="setTourEcheance('${t.id}',this.value)" style="font:inherit;padding:6px 10px;border:1px solid rgba(201,168,76,.5);border-radius:8px;background:transparent;color:inherit">`:`<div class="msub">${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||'\u2014'}</div>`}
+      <div class="hint">Remplace le rythme mensuel uniquement pour ce tour (report exceptionnel, etc.).</div></div>
+    </div></div>
+    <div class="panel"><div class="panel-h"><h3>Bureau de l\u2019association</h3></div><div style="padding:16px 22px">${bureauRows}
+      <div class="hint">Les bureaux \u00E9voluent\u00A0: chaque changement conserve la date de prise de fonction, et l\u2019historique appara\u00EEt ci-dessous.</div></div></div>
+    <div class="panel"><div class="panel-h"><h3>Journal des modifications</h3></div><div style="padding:10px 22px 16px">${audit}</div></div>`;
+}
+async function govSetJour(tid,v){ try{ const{error}=await sb.rpc('set_jour_echeance',{p_tontine:tid,p_jour:v?+v:null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
+async function govSetBureau(tid,role,mid){ try{ const{error}=await sb.rpc('set_bureau_member',{p_tontine:tid,p_role:role,p_membership:mid||null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
 async function setTourEcheance(tid,val){
   const t=state_tontines.find(x=>x.id===tid); if(!t)return;
   try{ await db.setEcheance(t,val); t.rounds[t.currentRound].echeance=val||null; render(); }
