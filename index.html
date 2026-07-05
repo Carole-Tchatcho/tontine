@@ -1587,7 +1587,7 @@ function assembleSB(t,memberships,rounds,contribs,uid){
   const sorted=[...rounds].sort((a,b)=>a.idx-b.idx);
   const uiR=sorted.map(r=>{const c=new Array(t.places).fill('none');
     contribs.filter(x=>x.round_id===r.id).forEach(x=>{const s=slotOf[x.membership_id];if(s!=null)c[s]=x.statut;});
-    return{id:r.id,beneficiary:r.beneficiaire_slot,label:r.label,status:ST_DB2UI[r.statut]||'soon',received:r.cagnotte_recue,contribs:c};});
+    return{id:r.id,beneficiary:r.beneficiaire_slot,label:r.label,echeance:r.date_echeance||null,status:ST_DB2UI[r.statut]||'soon',received:r.cagnotte_recue,contribs:c};});
   return{id:t.id,code:t.code,name:t.nom,amount:Number(t.montant),currency:t.devise,frequency:t.frequence,places:t.places,
     currentRound:Math.max(0,uiR.findIndex(r=>r.status==='now')),me:Math.max(0,members.findIndex(m=>m&&m._userId===uid)),
     members,rounds:uiR};
@@ -1614,6 +1614,10 @@ const db={
   async savePartage(p){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:p.id,creator_id:uid,is_public:false,data:p}; const{error}=await sb.from('partages').upsert(row); if(error)throw error; },
   async deletePartage(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async sendEmail(to,subject,html){ if(BACKEND!=='supabase')throw new Error('Base non connect\u00E9e'); const{data,error}=await sb.functions.invoke('send-email',{body:{to,subject,html}}); if(error)throw error; if(data&&data.ok===false)throw new Error(data.error||'Envoi refus\u00E9'); return data; },
+  async setEcheance(t,dateStr){ if(BACKEND==='memory'){t.rounds[t.currentRound].echeance=dateStr||null;return;}
+    const rid=t.rounds[t.currentRound].id;
+    const{data,error}=await sb.from('rounds').update({date_echeance:dateStr||null}).eq('id',rid).select('id'); if(error)throw error;
+    if(!data||!data.length) throw new Error('Mise \u00E0 jour refus\u00E9e \u2014 ex\u00E9cuter le script SQL des rappels (droit UPDATE sur rounds).'); },
   async deleteTontine(id){ if(BACKEND!=='supabase')return;
     /* voie propre : RPC qui supprime la tontine ET tout son contenu (membres, tours, versements, journal) */
     const r=await sb.rpc('delete_tontine',{p_tontine:id});
@@ -2253,6 +2257,7 @@ function viewDash(){
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
+        ${_isOrg?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance du tour en cours\u00A0: <input type="date" value="${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||''}" onchange="setTourEcheance('${t.id}',this.value)" style="font:inherit;padding:3px 8px;border:1px solid rgba(201,168,76,.5);border-radius:8px;background:transparent;color:inherit"> <span style="opacity:.7">\u2014 rappel automatique par e-mail 48\u00A0h avant</span></div>`:''}
         <div>${trustSeal()}</div></div>
       <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
     </div>
@@ -4459,6 +4464,11 @@ async function postLoginRoute(){
   state.view='home';render();showBackendBadge();
 }
 
+async function setTourEcheance(tid,val){
+  const t=state_tontines.find(x=>x.id===tid); if(!t)return;
+  try{ await db.setEcheance(t,val); t.rounds[t.currentRound].echeance=val||null; render(); }
+  catch(e){ alert(e.message||e); }
+}
 async function sendReminderEmail(tid,idx){
   const t=(typeof getT==='function'?getT(tid):null)||state_tontines.find(x=>x.id===tid); if(!t)return;
   const m=t.members[idx]; if(!m)return;
