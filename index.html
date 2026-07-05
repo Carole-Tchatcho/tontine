@@ -823,7 +823,7 @@ Object.assign(I18N.fr,{
   jn_lead:'On vous a partagé un lien ou un code ? Entrez-le pour rejoindre le groupe et renseigner vous-même vos coordonnées.',
   jn_code:'Code d\u2019invitation',jn_code_hint:'Codes de démo : <span class="code">GENEVE26</span> · <span class="code">MBARGA26</span> (ou le code d\u2019une tontine que vous venez de créer).',
   jn_code_ph:'Ex. GENEVE26',jn_continue:'Continuer',
-  al_jn_nf:'Code introuvable.',al_jn_full:'Cette tontine est complète.',al_jn_nf2:'Code introuvable. Essayez GENEVE26 ou MBARGA26.',
+  al_jn_nf:'Code introuvable.',al_jn_nf_live:'Code introuvable. Entrez le code d\u2019invitation \u00E0 6 caract\u00E8res (ex. HZH66T) \u2014 pas le nom de la tontine.',jn_code_hint_live:'Entrez le code d\u2019invitation \u00E0 6 caract\u00E8res transmis par l\u2019organisateur\u00B7trice (ex. HZH66T) \u2014 pas le nom de la tontine.',au_email_code_hint:'Le lien fonctionne sur n\u2019importe quel appareil \u2014 ou saisissez ici le code \u00E0 6 chiffres indiqu\u00E9 dans l\u2019e-mail re\u00E7u.',al_jn_full:'Cette tontine est complète.',al_jn_nf2:'Code introuvable. Essayez GENEVE26 ou MBARGA26.',
   jf_eyebrow_pre:'Rejoindre · ',jf_seats:'il reste {n} place(s).',jf_willjoin:'Vous allez rejoindre la tontine du code {c}.',
   jf_name_ph:'Prénom et initiale',jf_your_contact:'Votre contact',
   jf_contact_hint:'Sert uniquement à vos rappels. Vous le renseignez vous-même — personne ne le fait à votre place.',
@@ -849,7 +849,7 @@ Object.assign(I18N.en,{
   jn_lead:'Someone shared a link or code with you? Enter it to join the group and fill in your own details.',
   jn_code:'Invitation code',jn_code_hint:'Demo codes: <span class="code">GENEVE26</span> · <span class="code">MBARGA26</span> (or the code of a tontine you just created).',
   jn_code_ph:'e.g. GENEVE26',jn_continue:'Continue',
-  al_jn_nf:'Code not found.',al_jn_full:'This tontine is full.',al_jn_nf2:'Code not found. Try GENEVE26 or MBARGA26.',
+  al_jn_nf:'Code not found.',al_jn_nf_live:'Code not found. Enter the 6-character invitation code (e.g. HZH66T) \u2014 not the tontine name.',jn_code_hint_live:'Enter the 6-character invitation code shared by the organizer (e.g. HZH66T) \u2014 not the tontine name.',au_email_code_hint:'The link works on any device \u2014 or type here the 6-digit code shown in the e-mail.',al_jn_full:'This tontine is full.',al_jn_nf2:'Code not found. Try GENEVE26 or MBARGA26.',
   jf_eyebrow_pre:'Join · ',jf_seats:'{n} seat(s) left.',jf_willjoin:'You\u2019re about to join the tontine with code {c}.',
   jf_name_ph:'First name and initial',jf_your_contact:'Your contact',
   jf_contact_hint:'Used only for your reminders. You enter it yourself — no one does it for you.',
@@ -2177,7 +2177,7 @@ function viewJoin(){
     <p class="lead">${tr('jn_lead')}</p>
     <div class="panel"><div style="padding:20px 22px">
       <div class="field" style="margin-top:0"><label>${tr('jn_code')}</label>
-        <div class="hint">${tr('jn_code_hint')}</div>
+        <div class="hint">${tr(BACKEND==='supabase'?'jn_code_hint_live':'jn_code_hint')}</div>
         <input type="text" id="joincode" placeholder="${tr('jn_code_ph')}" style="text-transform:uppercase">
       </div>
       <div style="margin-top:16px"><button class="btn btn-gold" onclick="tryJoin()">${tr('jn_continue')}</button></div>
@@ -2187,12 +2187,12 @@ function tryJoin(){
   const code=($('#joincode').value||'').trim().toUpperCase();
   state.joinCode=code;state.joinPreview=null;
   if(BACKEND==='supabase'){state.joinTarget=null;
-    db.preview(code).then(p=>{ if(!p){alert(tr('al_jn_nf'));return;}
+    db.preview(code).then(p=>{ if(!p){alert(tr(BACKEND==='supabase'?'al_jn_nf_live':'al_jn_nf'));return;}
       if(p.places_libres<=0){alert(tr('al_jn_full'));return;}
       state.joinPreview=p;state.view='joinform';render();window.scrollTo({top:0,behavior:'smooth'});});
     return;}
   const t=state_tontines.find(x=>x.code===code);
-  if(!t){alert(tr('al_jn_nf2'));return;}
+  if(!t){alert(tr(BACKEND==='supabase'?'al_jn_nf_live':'al_jn_nf2'));return;}
   if(filled(t)>=t.places){alert(tr('al_jn_full'));return;}
   state.joinTarget=t.id;state.view='joinform';render();window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -4429,6 +4429,11 @@ function viewAuth(){
       <div class="field" style="margin-top:0"><label>${tr('au_email')}</label>
         <input type="text" id="au-email" placeholder="${tr('au_email_ph')}"></div>
       <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="authEmail()">${tr('au_get_link')}</button></div>
+      <div id="au-eotp" style="display:none;margin-top:12px">
+        <div class="hint">${tr('au_email_code_hint')}</div>
+        <input type="text" id="au-etoken" placeholder="123456" inputmode="numeric" autocomplete="one-time-code">
+        <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authVerifyEmail()">${tr('au_validate')}</button></div>
+      </div>
       <div class="field"><label>${tr('au_or_phone')}</label>
         <input type="text" id="au-phone" placeholder="${tr('au_phone_ph')}"></div>
       <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="authPhone()">${tr('au_get_code')}</button></div>
@@ -4438,9 +4443,20 @@ function viewAuth(){
       </div>
     </div></div>${footer()}`;
 }
-async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
+async function authEmail(){try{const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:window.location.href}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
-async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state_reunions=[];state_contacts=[];state_outbox=[];await db.loadList();state.view='home';render();}catch(e){alert(e.message);}}
+async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
+async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
+async function postLoginRoute(){
+  state_reunions=[];state_contacts=[];state_outbox=[];state_caisses=[];
+  await db.loadList();
+  let _pj=null; try{_pj=localStorage.getItem('ubora_join');}catch(e){}
+  if(_pj){ try{localStorage.removeItem('ubora_join');}catch(e){}
+    state.joinCode=_pj;
+    try{const p=await db.preview(_pj); if(p&&p.places_libres>0){state.joinPreview=p;state.view='joinform';render();showBackendBadge();return;}}catch(e){}
+    state.view='join';render();showBackendBadge();return; }
+  state.view='home';render();showBackendBadge();
+}
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
 async function uboraLogout(keepJoin){
@@ -4497,7 +4513,7 @@ async function boot(){
     if(!data.user){ state.view='auth'; render(); showBackendBadge(); return; }
 
     state.user=authDispName(data.user); state.uid=data.user.id; state.email=data.user.email||data.user.phone||'';
-    state_reunions=[]; state_contacts=[]; state_outbox=[];
+    state_reunions=[]; state_contacts=[]; state_outbox=[]; state_caisses=[];
     await db.loadList();
 
     /* 3) Une fois connecté, si un code d'invitation attendait, on ouvre le formulaire de la tontine */
