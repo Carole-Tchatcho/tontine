@@ -2251,7 +2251,7 @@ function viewDash(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
-        <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span></div>
+        <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
         <div>${trustSeal()}</div></div>
       <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
     </div>
@@ -2478,7 +2478,7 @@ function orderEditorHtml(t){
   return `<div style="margin-top:14px;border-top:1px solid rgba(0,0,0,.08);padding-top:12px"><div class="msub" style="font-weight:600">${tr('dg_order_h')}</div><div class="msub" style="margin-bottom:8px">${tr('dg_order_hint')}${hasBureau?' '+tr('dg_order_hint_bureau'):''}</div>${rowsO}${pend}${hist}</div>`;
 }
 function bridgeClick(){window.open('https://ubora.caroletchatcho.com','_blank','noopener');}
-function copyRefLink(ev){const link='https://ubora.app/r/'+(state.user||'amb').toString().slice(0,8);
+function copyRefLink(ev){const link=location.origin+location.pathname+'#ref='+encodeURIComponent((state.user||'amb').toString().slice(0,8));
   try{navigator.clipboard.writeText(link);}catch(e){}
   const b=ev.currentTarget,o=b.textContent;b.textContent=tr('di_link_copied');setTimeout(()=>b.textContent=o,1500);}
 function copyLink(ev){const i=$('#invlink');i.select();try{navigator.clipboard.writeText(i.value);}catch(e){}
