@@ -4058,14 +4058,18 @@ function announceSend(){
   if(BACKEND==='supabase'&&email){
     (async()=>{
       const dest=rec.filter(c=>(c.email||'').indexOf('@')>0);
-      const title=ev?ev.title:'Annonce UBORA';
+      const _sub=($('#an-sub')&&$('#an-sub').value.trim())||'';
+      const _msg=($('#an-msg')&&$('#an-msg').value.trim())||'';
+      const title=_sub||(ev?ev.title:'Annonce UBORA');
       const when=(ev&&(ev.dateISO||ev.date_iso))?(' \u00B7 '+(ev.dateISO||ev.date_iso)):'';
       const where=(ev&&ev.city)?(' \u00B7 '+ev.city):'';
       const link=location.origin+location.pathname;
       let sent=0;
       for(const c of dest){
         try{ await db.sendEmail(c.email,'Annonce \u2014 '+title,
-          '<p>Bonjour '+esc(c.name||'')+',</p><p><b>'+esc(title)+'</b>'+esc(when+where)+'</p>'
+          '<p>Bonjour '+esc(c.name||'')+',</p>'
+          +(_msg?('<p>'+esc(_msg).replace(/\n/g,'<br>')+'</p>'):'')
+          +(ev?('<p><b>'+esc(ev.title)+'</b>'+esc(when+where)+'</p>'):'')
           +(ev&&ev.desc?('<p>'+esc(ev.desc)+'</p>'):'')
           +'<p><a href="'+link+'">Voir sur UBORA</a></p>'
           +'<p style="color:#8a8a86">Vous recevez ce message car vous avez donn\u00E9 votre consentement. R\u00E9pondez STOP pour ne plus recevoir.</p>'); sent++; }
