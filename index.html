@@ -1654,7 +1654,7 @@ const db={
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
     state_tontines=await Promise.all((tons||[]).map(t=>sbGetTontine(t.id,uid)));
-    try{const{data}=await sb.from('my_level').select('niveau').single();state.serverLevel=data?.niveau;}catch(e){} },
+    try{const{data}=await sb.from('my_level').select('*').single();state.serverLevel=data?.niveau;state.serverStats=data||null;}catch(e){} },
   async loadActive(id){ if(BACKEND!=='supabase')return; const uid=await sbUid(); const t=await sbGetTontine(id,uid);
     const i=state_tontines.findIndex(x=>x.id===id); if(i>=0)state_tontines[i]=t; else if(t)state_tontines.push(t); },
   async declare(t,i){ if(BACKEND==='memory'){const rd=t.rounds[t.currentRound];rd.contribs[i]='declared';rd.payRef=rd.payRef||[];if(!rd.payRef[i])rd.payRef[i]='UB-'+(t.code||'T')+'-T'+(t.currentRound+1)+'-'+initials(t.members[i]?t.members[i].name:'');return;}
@@ -3872,8 +3872,15 @@ function repCircles(){
   return names;
 }
 function viewReputation(){
-  const p=repProfile(), L=LEVELS[p.lvl], circles=repCircles();
-  const stmt=tr('rp_stmt').replace('{y}',p.years).replace('{o}',p.onTime).replace('{c}',p.cycles).replace('{n}',p.circles);
+  let p=repProfile();
+  if(BACKEND==='supabase'&&state.serverStats){
+    const ss=state.serverStats;
+    p={lvl:myLevel(),cycles:ss.cycles||0,onTime:(ss.ponctualite!=null?ss.ponctualite:100),circles:ss.tontines||0,endorse:null,years:null};
+  }
+  const L=LEVELS[p.lvl], circles=(BACKEND==='supabase')?state_tontines.map(t=>t.name):repCircles();
+  const stmt=(BACKEND==='supabase')
+    ? `${p.onTime}% \u00E0 temps \u00B7 ${p.cycles} versement${p.cycles>1?'s':''} confirm\u00E9${p.cycles>1?'s':''} \u00B7 ${p.circles} cercle${p.circles>1?'s':''} \u2014 calcul\u00E9 sur le registre r\u00E9el`
+    : tr('rp_stmt').replace('{y}',p.years).replace('{o}',p.onTime).replace('{c}',p.cycles).replace('{n}',p.circles);
   const metric=(n,l)=>`<div class="stat"><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`;
   const list=circles.length?circles.map(n=>`<div class="reg-row"><span>${n}</span><span class="faint">✓</span></div>`).join('')
     :`<div class="reg-row"><span class="msub">—</span></div>`;
@@ -3888,10 +3895,10 @@ function viewReputation(){
         <div class="rep-stmt">${stmt}</div></div>
     </div>
     <div class="stat-grid">
-      ${metric(p.cycles,tr('rp_m_cycles'))}
+      ${metric(p.cycles,BACKEND==='supabase'?'versements confirm\u00E9s':tr('rp_m_cycles'))}
       ${metric(p.onTime+'%',tr('rp_m_ontime'))}
       ${metric(p.circles,tr('rp_m_circles'))}
-      ${metric(p.endorse,tr('rp_m_endorse'))}
+      ${p.endorse==null?'':metric(p.endorse,tr('rp_m_endorse'))}
     </div>
     <div class="asnote">${tr('rp_note').replace('{name}',state.user)}</div>
     <h2 class="section-h">${tr('rp_earned_h')}</h2>
