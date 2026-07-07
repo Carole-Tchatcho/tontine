@@ -1299,7 +1299,11 @@ function computeLevel(s){
   return 0;
 }
 function userLevel(name){
-  if(name && name===state.user && state.demoLevel!=null) return state.demoLevel;
+  if(BACKEND==='supabase' && name && name===state.user && state.serverLevel){
+    const _i=LEVELS.findIndex(L=>L.name===state.serverLevel);
+    if(_i>-1) return _i;
+  }
+  if(BACKEND!=='supabase' && name && name===state.user && state.demoLevel!=null) return state.demoLevel;
   return name ? computeLevel(aggregateStats(name)) : 0;
 }
 function myLevel(){ return userLevel(state.user); }
@@ -1876,7 +1880,7 @@ function render(){
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
-  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,udroom:1};
+  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
@@ -2543,6 +2547,33 @@ function viewDeal(){
     ${footer()}`;
 }
 function viewUDRoom(){
+  if(BACKEND==='supabase'){
+    const _lvl=myLevel(), _elite=_lvl>=3;
+    if(!_elite){
+      const _st=aggregateStats(state.user);
+      const _rows=criteriaFor(3,_st).map(c=>`<div class="crit ${c.met?'met':'unmet'}"><span class="ck ${c.met?'ok':'no'}">${c.met?'\u2713':'\u25CB'}</span><span>${c.label}</span></div>`).join('');
+      app().innerHTML=`
+        <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
+        <div class="eyebrow">PRIVATE ROOM</div>
+        <h1 class="page-title">La salle est ferm\u00E9e \u2014 pour l\u2019instant.</h1>
+        <p class="lead">La Private Room s\u2019ouvre au niveau <b>Tontine Elite</b>. Elle se m\u00E9rite \u2014 par la r\u00E9gularit\u00E9, pas par le paiement.</p>
+        <div class="panel"><div style="padding:16px 22px">
+          <div class="unlock"><b>Pour atteindre Tontine Elite\u00A0:</b></div>${_rows}
+          <div class="hint" style="margin-top:10px">Votre niveau actuel\u00A0: <b>${esc(LEVELS[_lvl].name)}</b> \u00B7 calcul\u00E9 sur votre historique r\u00E9el (versements confirm\u00E9s, ponctualit\u00E9, tontines).</div>
+        </div></div>${footer()}`;
+      return;
+    }
+    app().innerHTML=`
+      <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
+      <div class="eyebrow">PRIVATE ROOM \u00B7 ANTICHAMBRE</div>
+      <h1 class="page-title">Bienvenue, membre Elite.</h1>
+      <p class="lead">Votre r\u00E9gularit\u00E9 vous a ouvert cette porte. La salle des <b>Ubora Deals</b> \u2014 l\u2019investissement collectif encadr\u00E9 \u2014 se constitue avec sa premi\u00E8re cohorte, sur qualification et sous licence.</p>
+      <div class="panel"><div style="padding:18px 22px">
+        <p>En manifestant votre int\u00E9r\u00EAt, vous rejoignez la liste des membres fondateurs pressentis. Vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture \u2014 aucun engagement, aucune donn\u00E9e partag\u00E9e sans votre accord.</p>
+        <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="udInterest()">\u2713 Manifester mon int\u00E9r\u00EAt</button></div>
+      </div></div>${footer()}`;
+    return;
+  }
   const vis=!!state.udVisible;
   const dir=UD_MEMBERS.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${esc(m.sector)} \u00b7 ${esc(m.city)}</div></div></div>`).join('');
   const matches=UD_MATCHES.map((m,i)=>`<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div><div class="mname">${esc(m.name)}</div><div class="msub">${tr('ud_match_reason').replace('{s}',esc(m.sector)).replace('{c}',esc(m.city))}</div></div><span class="pill p-now">${tr('ud_match_badge')}</span></div><textarea id="ud-msg-${i}" rows="2" style="width:100%;margin-top:10px;padding:8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px">${tr('ud_match_tpl').replace('{n}',esc(m.name))}</textarea><div class="row-gap" style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="udSend(${i})">${tr('ud_send')}</button></div></div></div>`).join('');
@@ -2659,7 +2690,7 @@ function viewPyramide(){
     </svg></div>
     <div class="pyr-cap" style="margin-top:2px;color:var(--gold)">${tr('py_seal_cap')}</div>
     <div class="pyr">${tiers}</div>
-    <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn btn-gold btn-sm" onclick="go('reputation')">${icon('doc')}${tr('rp_open')}</button><button class="btn btn-ghost btn-sm" onclick="simulateUp()">${tr('py_sim')}</button></div>
+    <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn btn-gold btn-sm" onclick="go('reputation')">${icon('doc')}${tr('rp_open')}</button>${BACKEND==='supabase'?'':`<button class="btn btn-ghost btn-sm" onclick="simulateUp()">${tr('py_sim')}</button>`}</div>
     ${detail}
     ${footer()}`;
 }
@@ -4683,6 +4714,14 @@ async function setTourEcheance(tid,val){
   const t=state_tontines.find(x=>x.id===tid); if(!t)return;
   try{ await db.setEcheance(t,val); t.rounds[t.currentRound].echeance=val||null; render(); }
   catch(e){ alert(e.message||e); }
+}
+async function udInterest(){
+  try{
+    await db.sendEmail('carole@caroletchatcho.com','UD Room \u2014 manifestation d\u2019int\u00E9r\u00EAt (Elite)',
+      '<p>Un membre <b>Tontine Elite</b> manifeste son int\u00E9r\u00EAt pour la Private Room.</p>'
+      +'<p>Nom\u00A0: <b>'+esc(state.user||'\u2014')+'</b><br>Contact\u00A0: <b>'+esc(state.email||'\u2014')+'</b><br>Date\u00A0: '+new Date().toLocaleString('fr-CH')+'</p>');
+    alert('Int\u00E9r\u00EAt enregistr\u00E9 \u2713 \u2014 vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture de la salle.');
+  }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
 }
 async function sendReminderEmail(tid,idx){
   const t=(typeof getT==='function'?getT(tid):null)||state_tontines.find(x=>x.id===tid); if(!t)return;
