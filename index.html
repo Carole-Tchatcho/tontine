@@ -2284,6 +2284,7 @@ function viewDash(){
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
         ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
+        ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
         <div>${trustSeal()}</div></div>
       <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
     </div>
