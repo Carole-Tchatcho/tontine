@@ -523,6 +523,7 @@
   header::before{content:'';position:absolute;inset:0;pointer-events:none;background-repeat:repeat;background-size:54px 54px;
     background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><g fill='none' stroke='rgb(154,114,48)' stroke-opacity='.26' stroke-width='1'><path d='M30 4 L56 30 L30 56 L4 30 Z'/><path d='M30 15 L45 30 L30 45 L15 30 Z'/><path d='M0 30 L5 25 M0 30 L5 35 M60 30 L55 25 M60 30 L55 35 M30 0 L25 5 M30 0 L35 5 M30 60 L25 55 M30 60 L35 55'/><circle cx='30' cy='30' r='1.6' fill='rgb(154,114,48)' fill-opacity='.26' stroke='none'/></g></svg>")}
 </style>
+  <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 </head>
 <body>
 
@@ -1781,6 +1782,10 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
+  if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
+    try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
+      window._rec={stats:(a&&a.data)||{},rows:(b&&b.data)||[],err:(a&&a.error&&a.error.message)||(b&&b.error&&b.error.message)||''};
+    }catch(e){window._rec={stats:{},rows:[],err:String(e.message||e)};}}
   if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}
     try{const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body','edition0_html']);
       const _g=k=>(((_s||[]).find(x=>x.key===k)||{}).value)||'';
@@ -1873,7 +1878,7 @@ function render(){
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
   const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1,udroom:1};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -4178,7 +4183,7 @@ function viewDiffusion(){
             <label class="ct-tog on"><input type="checkbox" id="aud-pres" checked style="margin-right:5px">${tr('df_aud_pres')} (${diffCatCount('pres')})</label>
             <label class="ct-tog"><input type="checkbox" id="aud-import" style="margin-right:5px">${tr('df_aud_import')} (${diffCatCount('import')})</label>
           </div>
-          <div class="msub" style="margin-top:8px">${tr('df_recipients_n').replace('{n}',nA)} · ${tr('df_send_sim')}</div>
+          <div class="msub" style="margin-top:8px">${tr('df_recipients_n').replace('{n}',nA)} · ${BACKEND==='supabase'?'':tr('df_send_sim')}</div>
         </div>
         <button class="btn btn-gold" onclick="announceSend()">${tr('df_send')}</button>
       </div></div>
@@ -4198,7 +4203,7 @@ function viewDiffusion(){
             <div class="hint"><b>Automatique\u00A0:</b> une fois enregistr\u00E9e, l\u2019\u00E9dition 0 part toute seule \u00E0 chaque nouveau compte qui a consenti \u00E0 la newsletter \u2014 une seule fois par personne. Le pied de conformit\u00E9 est ajout\u00E9 automatiquement.</div>
             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="saveEd0()">\uD83D\uDCBE Enregistrer comme \u00E9dition 0 automatique</button>${(window._ed0&&(window._ed0.html||window._ed0.body))?`<span class="pill p-paid">\u00E9dition 0 en service \u2713${(window._ed0&&window._ed0.html)?' (version HTML design\u00E9e)':''}</span>`:`<span class="pill p-due">pas encore enregistr\u00E9e</span>`}</div></div>`:''}
           <div class="row-gap" style="margin-top:14px">
-            <button class="btn btn-ghost btn-sm" onclick="newsSchedule()">${state.diffScheduled?tr('df_scheduled'):tr('df_schedule')}</button>
+            ${BACKEND==='supabase'?'':`<button class="btn btn-ghost btn-sm" onclick="newsSchedule()">${state.diffScheduled?tr('df_scheduled'):tr('df_schedule')}</button>`}
             <button class="btn btn-gold btn-sm" onclick="newsSendNow()">${BACKEND==='supabase'?'Envoyer l\u2019\u00E9dition 0':(tr('df_send_now')+' '+tr('df_send_sim'))}</button>
           </div>
           <div class="msub" style="margin-top:10px">${tr('df_dedup_note')}</div>
@@ -4218,8 +4223,8 @@ function diffOutbox(){
   const rows=state_outbox.slice(0,8).map(o=>`<div class="notif"><div class="nic ${o.kind==='news'?'b':'v'}">${o.kind==='news'?'✦':'✓'}</div>
     <div class="ntext"><div class="nt">${o.kind==='news'?tr('df_ob_news'):tr('df_ob_announce')}${o.ev?' — '+o.ev:''}</div>
     <div class="nd">${tr('df_recipients_n').replace('{n}',o.n)} · ${o.ch}</div></div></div>`).join('');
-  return `<div class="panel"><div class="panel-h"><h3>${tr('df_outbox_h')}</h3></div>
-    ${rows||`<div class="empty">${tr('df_outbox_empty')}</div>`}</div>`;
+  return `<div class="panel"><div class="panel-h"><h3>${BACKEND==='supabase'?'Journal d\u2019envoi':tr('df_outbox_h')}</h3></div>
+    ${rows||`<div class="empty">${BACKEND==='supabase'?'Aucun envoi pour l\u2019instant.':tr('df_outbox_empty')}</div>`}</div>`;
 }
 function delEvent(id){ if(!confirm('Supprimer cet événement ? Cette action est définitive.'))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
 function editEvent(id){
@@ -4506,8 +4511,43 @@ function activateMandate(){
   go('entraide');
 }
 
-function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance</div>`;}
+const UBORA_ADMINS=['carole@caroletchatcho.com','milly.tchatcho@gmail.com','my.tchatch@gmail.com'];
+function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
+function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
+function viewPrivacy(){
+  return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
+  <div class="kicker">REGISTRE DE CONFIANCE</div><h1 class="page-title">Confidentialit\u00E9</h1>
+  <div class="panel"><div style="padding:18px 22px;line-height:1.75">
+    <p><b>Ce que nous collectons.</b> Votre nom d\u2019affichage, votre e-mail ou t\u00E9l\u00E9phone de connexion, vos consentements (newsletter, annonces), et les donn\u00E9es de fonctionnement des tontines, caisses et \u00E9v\u00E9nements auxquels vous participez (montants d\u00E9clar\u00E9s, tours, \u00E9ch\u00E9ances). UBORA ne d\u00E9tient aucun fonds et ne collecte aucune donn\u00E9e bancaire.</p>
+    <p><b>O\u00F9 vivent ces donn\u00E9es.</b> Elles sont h\u00E9berg\u00E9es chez Supabase (base de donn\u00E9es s\u00E9curis\u00E9e). Les e-mails sont exp\u00E9di\u00E9s via Resend depuis l\u2019adresse UBORA. La mesure d\u2019audience utilise Plausible, sans cookies et sans profilage.</p>
+    <p><b>Ce que nous en faisons.</b> Faire fonctionner le registre (rappels d\u2019\u00E9ch\u00E9ance, invitations, gouvernance) et, uniquement avec votre consentement explicite, vous adresser la newsletter et les annonces de l\u2019univers UBORA. Chaque message contient un moyen simple de retirer votre consentement (r\u00E9pondre STOP).</p>
+    <p><b>Vos droits (nLPD / RGPD).</b> Acc\u00E8s, rectification, effacement, retrait du consentement \u00E0 tout moment\u00A0: \u00E9crivez \u00E0 <a href="mailto:carole@caroletchatcho.com">carole@caroletchatcho.com</a>. Les modifications de gouvernance des tontines sont journalis\u00E9es de mani\u00E8re permanente \u00E0 des fins de contr\u00F4le qualit\u00E9 entre membres.</p>
+    <p class="msub">UBORA \u00B7 registre de confiance \u00B7 Suisse</p>
+  </div></div>${footer()}`;
+}
+function viewRecolte(){
+  if(!isUboraAdmin()) return `<h1 class="page-title">R\u00E9colte</h1><div class="asnote">R\u00E9serv\u00E9 \u00E0 l\u2019\u00E9quipe UBORA.</div>${footer()}`;
+  const r=window._rec||{stats:{},rows:[]}; const st=r.stats||{}; const rows=r.rows||[];
+  const card=(n,l)=>`<div style="flex:1;min-width:160px;background:#FFFFFF;border:1px solid rgba(201,168,76,.4);border-radius:14px;padding:16px 18px;text-align:center"><div style="font-size:32px;font-family:'Cormorant Garamond',Georgia,serif;color:#1E2128">${(n===0||n)?n:'\u2014'}</div><div class="msub">${l}</div></div>`;
+  const list=rows.slice(0,100).map(x=>`<div class="mrow"><div class="stack"><div class="mname" style="font-size:14px">${esc(x.nom||'\u2014')} \u00B7 <span style="opacity:.75">${esc(x.contact||'')}</span></div><div class="msub">${esc(x.source)} \u00B7 consentement ${esc(x.consentement)}${x.depuis?(' \u00B7 depuis le '+new Date(x.depuis).toLocaleDateString('fr-CH')):''}</div></div></div>`).join('')||`<div class="msub" style="padding:8px 0">Aucun contact consenti pour l\u2019instant.</div>`;
+  return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
+  <div class="kicker">\u00C9QUIPE UBORA</div><h1 class="page-title">R\u00E9colte des donn\u00E9es</h1>
+  <div class="asnote">Seuls les contacts <b>ayant consenti</b> figurent dans l\u2019export \u2014 jamais les personnes en deuil, jamais les non-consentis (nLPD / RGPD / LCAP).</div>
+  ${r.err?`<div class="asnote" style="border-color:#B3402A">Erreur\u00A0: ${esc(r.err)} \u2014 le script SQL \u00AB r\u00E9colte \u00BB est-il ex\u00E9cut\u00E9\u00A0?</div>`:''}
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">
+    ${card(st.comptes,'comptes cr\u00E9\u00E9s')}${card(st.consentis_newsletter,'consentis newsletter')}${card(st.consentis_marketing,'consentis marketing')}${card(st.contacts_carnet,'contacts carnet')}${card(st.tontines,'tontines')}${card(st.adhesions,'adh\u00E9sions')}
+  </div>
+  <div class="row-gap" style="margin:6px 0 14px"><button class="btn btn-gold btn-sm" onclick="recolteCSV()">\u2B07 Exporter les consentis (CSV \u00B7 ${rows.length})</button><button class="btn btn-ghost btn-sm" onclick="go('recolte')">\u21BB Actualiser</button></div>
+  <div class="panel"><div class="panel-h"><h3>Contacts consentis${rows.length>100?' (100 premiers affich\u00E9s)':''}</h3></div><div style="padding:8px 22px 14px">${list}</div></div>${footer()}`;
+}
+function recolteCSV(){
+  const rows=(window._rec&&window._rec.rows)||[]; if(!rows.length){alert('Rien \u00E0 exporter pour l\u2019instant.');return;}
+  const esc2=v=>('"'+String(v==null?'':v).replace(/"/g,'""')+'"');
+  const lines=['nom;contact;source;consentement;depuis'].concat(rows.map(x=>[x.nom,x.contact,x.source,x.consentement,x.depuis||''].map(esc2).join(';')));
+  const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ubora-recolte-consentis.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
 function viewAuth(){
   app().innerHTML=`
     <div class="eyebrow">${tr('au_eyebrow')}</div>
