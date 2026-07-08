@@ -4101,6 +4101,20 @@ function ctAdd(list){let n=0;
   list.forEach(c=>{state_contacts.push({id:uid('k'),name:c.name||c.email||c.phone,email:c.email||'',phone:c.phone||'',announce:false,news:false,bereavement:false,introSent:false,cat:'import',source:tr('df_pending')});n++;});
   if(n)persistContacts(); return n;
 }
+async function ctPhotoOCR(ev){
+  const f=ev.target.files&&ev.target.files[0]; ev.target.value=''; if(!f)return;
+  const ta=$('#diff-import'); if(!ta)return;
+  ta.value='\u23F3 Lecture de la photo en cours\u2026 (30 secondes environ, tout se passe dans votre navigateur \u2014 la photo n\u2019est envoy\u00E9e nulle part)';
+  try{
+    if(!window.Tesseract){
+      await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';sc.onload=res;sc.onerror=()=>rej(new Error('Chargement du lecteur impossible \u2014 v\u00E9rifiez la connexion.'));document.head.appendChild(sc);});
+    }
+    const r=await Tesseract.recognize(f,'fra+eng');
+    const lines=(r.data.text||'').split('\n').map(l=>l.trim()).filter(l=>l.length>2);
+    ta.value=lines.join('\n');
+    alert('Texte extrait de la photo \u2713 \u2014 v\u00E9rifiez et corrigez les lignes (l\u2019OCR peut se tromper), puis cliquez \u00AB Ajouter au carnet \u00BB.');
+  }catch(e){ ta.value=''; alert('Lecture impossible\u00A0: '+(e.message||e)); }
+}
 function ctImport(){const ta=$('#diff-import');const list=ctParse(ta?ta.value:'');if(!list.length){alert(tr('df_import_empty'));return;}const n=ctAdd(list);alert(tr('df_imported_n').replace('{n}',n));render();}
 function ctImportFile(input){const f=input&&input.target&&input.target.files&&input.target.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{const n=ctAdd(ctParse(e.target.result));alert(tr('df_imported_n').replace('{n}',n));render();};r.readAsText(f);}
 function diffCatCount(cat){return state_contacts.filter(c=>ctTargetable(c)&&c.cat===cat).length;}
@@ -4111,17 +4125,29 @@ function announceSend(){
   if(!cats.length){alert(tr('df_need_aud'));return;}
   const rec=state_contacts.filter(c=>ctTargetable(c)&&cats.includes(c.cat));
   const ev=diffEv(), ch=[email?tr('df_ch_email'):null,sms?tr('df_ch_sms'):null].filter(Boolean).join(' + ');
-  if(BACKEND==='supabase'&&email){
+  if(BACKEND==='supabase'&&(email||sms)){
     (async()=>{
-      const dest=rec.filter(c=>(c.email||'').indexOf('@')>0);
+      const dest=email?rec.filter(c=>(c.email||'').indexOf('@')>0):[];
+      /* Canal WhatsApp : file de messages pr\u00E9-remplis, un clic par destinataire */
+      state.waQueue=[];
+      if(sms){
+        const _sub0=($('#an-sub')&&$('#an-sub').value.trim())||'Annonce UBORA';
+        const _msg0=($('#an-msg')&&$('#an-msg').value.trim())||'';
+        const _lnk=location.origin+location.pathname;
+        rec.filter(c=>(c.phone||'').replace(/\D/g,'').length>=8).forEach(c=>{
+          let d=(c.phone||'').replace(/\D/g,''); if(d.indexOf('00')===0)d=d.slice(2);
+          state.waQueue.push({name:c.name||d,num:d,text:encodeURIComponent(_sub0+'\n\n'+_msg0+'\n\n'+_lnk)});
+        });
+      }
       const _sub=($('#an-sub')&&$('#an-sub').value.trim())||'';
       const _msg=($('#an-msg')&&$('#an-msg').value.trim())||'';
       const title=_sub||(ev?ev.title:'Annonce UBORA');
       const when=(ev&&(ev.dateISO||ev.date_iso))?(' \u00B7 '+(ev.dateISO||ev.date_iso)):'';
       const where=(ev&&ev.city)?(' \u00B7 '+ev.city):'';
       const link=location.origin+location.pathname;
-      let sent=0;
+      let sent=0,fail=0;
       for(const c of dest){
+        await new Promise(r=>setTimeout(r,350));   /* cadence douce : jamais plus de ~3 envois/seconde */
         try{ await db.sendEmail(c.email,'Annonce \u2014 '+title,
           '<p>Bonjour '+esc(c.name||'')+',</p>'
           +(_msg?('<p>'+esc(_msg).replace(/\n/g,'<br>')+'</p>'):'')
@@ -4129,10 +4155,10 @@ function announceSend(){
           +(ev&&ev.desc?('<p>'+esc(ev.desc)+'</p>'):'')
           +'<p><a href="'+link+'">Voir sur UBORA</a></p>'
           +'<p style="color:#8a8a86">Vous recevez ce message car vous avez donn\u00E9 votre consentement. R\u00E9pondez STOP pour ne plus recevoir.</p>'); sent++; }
-        catch(e){ console.warn('annonce',c.email,e); }
+        catch(e){ fail++; console.warn('annonce',c.email,e); }
       }
-      state_outbox.unshift({id:uid('o'),kind:'announce',n:sent,ch:ch+(sms?' (SMS simul\u00E9)':''),ev:ev?ev.title:'',ts:Date.now()});
-      alert(tr('df_sent_live').replace('{n}',sent).replace('{s}',sms?' \u2014 SMS simul\u00E9s':''));
+      state_outbox.unshift({id:uid('o'),kind:'announce',n:sent,ch:ch+(sms&&state.waQueue.length?' + WhatsApp ('+state.waQueue.length+' pr\u00E9par\u00E9s)':''),ev:ev?ev.title:'',ts:Date.now()});
+      alert(tr('df_sent_live').replace('{n}',sent).replace('{s}',(fail?' \u2014 '+fail+' \u00E9chec(s)':'')+(sms&&state.waQueue.length?' \u00B7 '+state.waQueue.length+' WhatsApp pr\u00E9par\u00E9(s) ci-dessous':'')));
       render();
     })();
     return;
@@ -4153,16 +4179,18 @@ function newsSendNow(){
       if(!_msg&&window._ed0&&window._ed0.html) _msg=window._ed0.html;
       if(!_msg){ alert('\u00C9crivez (ou collez) le contenu de l\u2019\u00E9dition 0 avant l\u2019envoi \u2014 c\u2019est votre newsletter.'); return; }
       const _isHtml=_msg.charAt(0)==='<';
-      let sent=0;
+      let sent=0,fail=0;
       for(const c of dest){
+        await new Promise(r=>setTimeout(r,350));
         try{
           let _payload;
           const _foot='<p style="max-width:640px;margin:14px auto;padding:0 12px;color:#8a8a86;font:12px/1.6 sans-serif;text-align:center">Vous recevez cette \u00E9dition car vous avez consenti \u00E0 la newsletter. R\u00E9pondez STOP pour ne plus recevoir.</p>';
           if(_isHtml){ let h=_msg.split('{{PRENOM}}').join(esc(c.name||'')); _payload=h.indexOf('</body>')>-1?h.replace('</body>',_foot+'</body>'):(h+_foot); }
           else{ _payload='<p>Bonjour '+esc(c.name||'')+',</p><p>'+esc(_msg).replace(/\n/g,'<br>')+'</p><p><a href="'+link+'">D\u00E9couvrir le registre UBORA</a></p>'+_foot; }
           await db.sendEmail(c.email,_sub,_payload); c.introSent=true; sent++; }
-        catch(e){ console.warn('news',c.email,e); }
+        catch(e){ fail++; console.warn('news',c.email,e); }
       }
+      if(fail) alert(fail+' envoi(s) en \u00E9chec \u2014 les personnes concern\u00E9es restent \u00E9ligibles pour un prochain envoi.');
       persistContacts();
       state_outbox.unshift({id:uid('o'),kind:'news',n:sent,ch:tr('df_ch_email'),ts:Date.now()});
       alert(tr('df_news_sent_live').replace('{n}',sent));
@@ -4203,6 +4231,7 @@ function viewDiffusion(){
           <div class="row-gap" style="margin-top:10px">
             <button class="btn btn-gold btn-sm" onclick="ctImport()">${tr('df_import_btn')}</button>
             <label class="filebtn">📎 ${tr('df_import_file')}<input type="file" accept=".csv,.txt" style="display:none" onchange="ctImportFile(event)"></label>
+            <label class="filebtn">\uD83D\uDCF7 Importer une photo<input type="file" accept="image/*" style="display:none" onchange="ctPhotoOCR(event)"></label>
           </div>
         </div></div>
       <div class="panel"><div class="panel-h"><h3>${tr('df_tab_carnet')}</h3>
@@ -4232,6 +4261,12 @@ function viewDiffusion(){
           <div class="msub" style="margin-top:8px">${tr('df_recipients_n').replace('{n}',nA)} · ${BACKEND==='supabase'?'':tr('df_send_sim')}</div>
         </div>
         <button class="btn btn-gold" onclick="announceSend()">${tr('df_send')}</button>
+        ${(BACKEND==='supabase'&&state.waQueue&&state.waQueue.length)?`
+        <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>\uD83D\uDCAC WhatsApp \u2014 ${state.waQueue.length} message(s) pr\u00E9par\u00E9(s)</h3></div>
+          <div style="padding:12px 20px">
+            <div class="hint" style="margin-bottom:8px">Cliquez chaque destinataire\u00A0: WhatsApp s\u2019ouvre avec le message pr\u00EAt \u2014 vous n\u2019avez qu\u2019\u00E0 appuyer sur Envoyer. (Num\u00E9ros au format international requis.)</div>
+            ${state.waQueue.map((w,i)=>`<div class="row-gap" style="margin:6px 0"><a class="btn btn-ghost btn-sm" href="https://wa.me/${w.num}?text=${w.text}" target="_blank" rel="noopener">\uD83D\uDCAC ${esc(w.name)}</a><button class="btn btn-ghost btn-sm" onclick="state.waQueue.splice(${i},1);render()" title="Marquer comme fait">\u2713 fait</button></div>`).join('')}
+          </div></div>`:''}
       </div></div>
       ${diffOutbox()}`;
   } else {
