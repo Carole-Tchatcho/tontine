@@ -3304,7 +3304,7 @@ ${bureau?`<h3>${esc(tr('at_bureau_h'))}</h3>${bureau}`:''}
 /* --- conversion de devises (taux indicatifs — un taux réel sera utilisé en production) --- */
 const FX={EUR:1,CHF:0.94,USD:1.08,GBP:0.85,CAD:1.47,MAD:10.8,XAF:655.957,XOF:655.957,NGN:1700,ZAR:20,FCFA:655.957}; /* unités par 1 EUR */
 const APEX_CURS=['CHF','EUR','USD','GBP','CAD','MAD','FCFA'];
-const APEX_CALC=['CHF','EUR','USD','GBP','CAD','MAD','FCFA'];  /* devises supportées par la page calculateurs */
+const APEX_CALC=['CHF','EUR','USD','GBP','CAD','MAD','FCFA','NGN','ZAR'];  /* devises supportées par la page calculateurs */
 /* pays de résidence → devise de base de l'abonné */
 const COUNTRY_CUR={'Suisse':'CHF','France':'EUR','Belgique':'EUR','Allemagne':'EUR','Italie':'EUR','Espagne':'EUR','Portugal':'EUR','Pays-Bas':'EUR','Royaume-Uni':'GBP','États-Unis':'USD','Canada':'CAD','Maroc':'MAD','Cameroun':'XAF','Gabon':'XAF','Tchad':'XAF','Congo':'XAF','Centrafrique':'XAF','Guinée équatoriale':'XAF','Sénégal':'XOF','Côte d\u2019Ivoire':'XOF','Mali':'XOF','Bénin':'XOF','Burkina Faso':'XOF','Togo':'XOF','Niger':'XOF','Nigeria':'NGN','Afrique du Sud':'ZAR'};
 const COUNTRIES=Object.keys(COUNTRY_CUR);
@@ -3906,13 +3906,20 @@ function viewReputation(){
     <div class="row-gap" style="margin-top:16px">
       <button class="btn btn-gold btn-sm" onclick="downloadReputation()">${icon('dl')}${tr('rp_btn_card')}</button>
     </div>
-    <p class="msub" style="margin-top:10px">${tr('rp_since')} ${p.since} · ${tr('rp_demo')}</p>
+    <p class="msub" style="margin-top:10px">${BACKEND==='supabase'?'Donn\u00E9es r\u00E9elles du registre \u2014 mises \u00E0 jour en continu':(tr('rp_since')+' '+p.since+' \u00B7 '+tr('rp_demo'))}</p>
     ${footer()}`;
 }
 function downloadReputation(){
-  const p=repProfile(), L=LEVELS[p.lvl], circles=repCircles();
+  let p=repProfile();
+  if(BACKEND==='supabase'&&state.serverStats){
+    const ss=state.serverStats;
+    p={lvl:myLevel(),cycles:ss.cycles||0,onTime:(ss.ponctualite!=null?ss.ponctualite:100),circles:ss.tontines||0,endorse:null,since:null,years:null};
+  }
+  const L=LEVELS[p.lvl];
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const stmt=tr('rp_stmt').replace('{y}',p.years).replace('{o}',p.onTime).replace('{c}',p.cycles).replace('{n}',p.circles);
+  const stmt=(BACKEND==='supabase')
+    ? `${p.onTime}% \u00E0 temps \u00B7 ${p.cycles} versement${p.cycles>1?'s':''} confirm\u00E9${p.cycles>1?'s':''} \u00B7 ${p.circles} cercle${p.circles>1?'s':''} \u2014 calcul\u00E9 sur le registre r\u00E9el`
+    : tr('rp_stmt').replace('{y}',p.years).replace('{o}',p.onTime).replace('{c}',p.cycles).replace('{n}',p.circles);
   const cell=(n,l)=>`<td style="text-align:center;padding:10px 6px"><div style="font-size:24px;font-weight:700;color:#23306e">${esc(String(n))}</div><div style="font-size:11px;color:#7a5a2e">${esc(l)}</div></td>`;
   const html=`<!doctype html><html lang="${state.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(tr('rp_title'))} — ${esc(state.user)}</title>
 <style>body{margin:0;background:#efe6d2;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#3a2a16}
@@ -3927,9 +3934,9 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
 <div class="eye" style="margin-top:10px">${esc(tr('rp_eyebrow'))}</div>
 <h1>${esc(state.user)}</h1><div class="lvl">${esc(tr('rp_level'))} · <b>${esc(L.name)}</b></div>
 <div class="stmt">${esc(stmt)}</div>
-<table><tr>${cell(p.cycles,tr('rp_m_cycles'))}${cell(p.onTime+'%',tr('rp_m_ontime'))}${cell(p.circles,tr('rp_m_circles'))}${cell(p.endorse,tr('rp_m_endorse'))}</tr></table>
+<table><tr>${cell(p.cycles,BACKEND==='supabase'?'versements confirm\u00E9s':tr('rp_m_cycles'))}${cell(p.onTime+'%',tr('rp_m_ontime'))}${cell(p.circles,tr('rp_m_circles'))}${p.endorse==null?'':cell(p.endorse,tr('rp_m_endorse'))}</tr></table>
 <div class="note">${tr('rp_note').replace('{name}',esc(state.user))}</div>
-<div class="foot">${esc(tr('at_issued'))} · ${esc(tr('rp_since'))} ${p.since}</div>
+<div class="foot">${esc(tr('at_issued'))} · ${BACKEND==='supabase'?'Donn\u00E9es r\u00E9elles du registre':(esc(tr('rp_since'))+' '+p.since)}</div>
 </div></body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'}),el=document.createElement('a');
   el.href=URL.createObjectURL(blob);el.download='reputation-ubora.html';
