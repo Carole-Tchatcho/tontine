@@ -4181,7 +4181,7 @@ function diffContactRow(c){
   if(!c.announce&&c.cat==='import'&&!c.bereavement)tags.push(`<span class="pill p-due">${tr('df_pending')}</span>`);
   const tog=c.bereavement?'':`
     <button class="ct-tog ${c.announce?'on':''}" onclick="ctToggle('${c.id}','announce')">${tr('df_th_announce')}</button>
-    <button class="ct-tog ${c.news?'on':''}" onclick="ctToggle('${c.id}','news')">${tr('df_th_news')}</button>`;
+    <button class="ct-tog ${c.news?'on':''}" onclick="ctToggle('${c.id}','news')">${tr('df_th_news')}</button>${(BACKEND==='supabase'&&(c.email||'').indexOf('@')>0&&!c.optin_at)?`<button class="ct-tog" title="Demander le consentement par e-mail" onclick="ctAskConsent('${c.id}')">\u2709 Demander</button>`:''}${c.optin_at?`<span class="pill p-paid" title="Consentement confirm\u00E9 par la personne le ${new Date(c.optin_at).toLocaleDateString('fr-CH')}">double opt-in \u2713</span>`:''}`;
   return `<div class="ct-row"><div class="ci"><div class="mname">${c.name} ${tags.join(' ')}</div>
       <div class="msub">${[c.email,c.phone].filter(Boolean).join(' · ')||'—'} · ${c.source}</div></div>${tog}</div>`;
 }
@@ -4729,6 +4729,24 @@ async function setTourEcheance(tid,val){
   try{ await db.setEcheance(t,val); t.rounds[t.currentRound].echeance=val||null; render(); }
   catch(e){ alert(e.message||e); }
 }
+async function ctAskConsent(id){
+  const c=state_contacts.find(x=>x.id===id); if(!c)return;
+  if((c.email||'').indexOf('@')<1){alert('Ce contact n\u2019a pas d\u2019adresse e-mail.');return;}
+  try{
+    const{data:tok,error}=await sb.rpc('optin_create',{p_contact_id:c.id,p_email:c.email});
+    if(error)throw error;
+    const link=location.origin+location.pathname+'?optin='+tok;
+    await db.sendEmail(c.email,'UBORA \u2014 confirmez votre consentement',
+      '<p>Bonjour '+esc(c.name||'')+',</p>'
+      +'<p><b>'+esc(state.user||'Un membre UBORA')+'</b> souhaite vous adresser les annonces et la newsletter de l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements.</p>'
+      +'<p style="margin:18px 0"><a href="'+link+'" style="background:#C9A84C;color:#0D0F12;padding:12px 22px;border-radius:24px;text-decoration:none;font-weight:600">\u2713 Je confirme mon consentement</a></p>'
+      +'<p style="color:#8a8a86">Un seul clic suffit \u2014 aucun compte \u00E0 cr\u00E9er. Si vous n\u2019\u00EAtes pas \u00E0 l\u2019origine de cette demande, ignorez simplement ce message\u00A0: rien ne vous sera envoy\u00E9 sans votre accord.</p>');
+    c.source='invitation \u00E0 consentir envoy\u00E9e le '+new Date().toLocaleDateString('fr-CH');
+    persistContacts();
+    alert('Demande envoy\u00E9e \u00E0 '+c.email+' \u2713 \u2014 ses consentements s\u2019activeront d\u00E8s son clic.');
+    render();
+  }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
+}
 async function udInterest(){
   try{
     await db.sendEmail('carole@caroletchatcho.com','UD Room \u2014 manifestation d\u2019int\u00E9r\u00EAt (Elite)',
@@ -4774,6 +4792,21 @@ function showBackendBadge(err){
 }
 
 async function boot(){
+  /* 0) Lien de confirmation de consentement (double opt-in) — fonctionne sans compte */
+  const _ot=(location.search||'').match(/[?&]optin=([0-9a-fA-F-]{16,})/);
+  if(_ot&&BACKEND==='supabase'){
+    try{ await initSB(); }catch(e){}
+    let _okc=false,_errc='';
+    try{ const{data,error}=await sb.rpc('optin_confirm',{p_token:_ot[1]}); if(error)throw error; _okc=!!data; }
+    catch(e){ _errc=String((e&&e.message)||e); }
+    document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FAFAF7;font-family:'DM Sans',system-ui,sans-serif;padding:24px">
+      <div style="max-width:460px;text-align:center;background:#FFFFFF;border:1px solid rgba(201,168,76,.45);border-radius:18px;padding:38px 30px">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#1E2128;margin-bottom:12px">${_okc?'Consentement confirm\u00E9 \u2713':'Lien expir\u00E9 ou d\u00E9j\u00E0 utilis\u00E9'}</div>
+        <p style="color:#4a4a46;line-height:1.7">${_okc?'Merci\u00A0! Vous recevrez d\u00E9sormais les annonces et la newsletter de l\u2019univers UBORA. Vous pourrez retirer votre accord \u00E0 tout moment en r\u00E9pondant STOP \u00E0 n\u2019importe quel message.':'Ce lien de confirmation n\u2019est plus valable. Demandez simplement un nouvel e-mail de confirmation \u00E0 la personne qui vous a invit\u00E9\u00B7e.'}</p>
+        <a href="${location.origin+location.pathname}" style="display:inline-block;margin-top:16px;color:#C9A84C;text-decoration:underline">D\u00E9couvrir le registre UBORA</a>
+      </div></div>`;
+    return;
+  }
   /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
   let _pendingJoin=null;
   try{
