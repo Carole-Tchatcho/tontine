@@ -4573,7 +4573,7 @@ function viewEvent(){
           : `<p class="msub">Pour vendre des billets payants, l\u2019association doit raccorder son propre compte Stripe. L\u2019argent ira <b>directement</b> chez elle\u00A0: UBORA ne d\u00E9tient aucun fonds.</p>
              <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">\uD83D\uDD17 Raccorder le compte de l\u2019association</button></div>`}
       </div></div>`:''}
-    <p class="msub" style="margin-top:14px">${tr('ev_pay_note').replace('{p}',feePct)}</p>
+    <p class="msub" style="margin-top:14px">${BACKEND==='supabase'?`Paiement g\u00E9r\u00E9 par Stripe \u00B7 l\u2019argent va directement au compte de l\u2019association \u00B7 commission UBORA ${feePct}\u00A0% pr\u00E9lev\u00E9e par Stripe.`:tr('ev_pay_note').replace('{p}',feePct)}</p>
     ${reportCtl}
     ${footer()}`;
 }
@@ -4803,10 +4803,14 @@ async function ctAskConsent(id){
 }
 async function connectStripe(evId){
   try{
-    const{data,error}=await sb.functions.invoke('stripe-connect',{body:{event_id:evId,return_url:location.origin+location.pathname}});
-    if(error)throw error;
-    if(data&&data.url){ location.href=data.url; return; }
-    throw new Error((data&&data.error)||'R\u00E9ponse inattendue.');
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-connect',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({event_id:evId,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status+' \u2014 v\u00E9rifiez que la fonction stripe-connect est d\u00E9ploy\u00E9e et que \u00AB Verify JWT \u00BB est sur OFF.'));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
   }catch(e){ alert('Raccordement impossible\u00A0: '+(e.message||e)); }
 }
 async function stripeBuy(evId,idx){
@@ -4871,6 +4875,15 @@ function showBackendBadge(err){
 }
 
 async function boot(){
+  /* 0-ter) Retour du raccordement Connect */
+  const _cx=(location.search||'').match(/[?&]connect=(ok|retry)/);
+  if(_cx){
+    try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+    setTimeout(()=>{ alert(_cx[1]==='ok'
+      ? 'Compte de l\u2019association raccord\u00E9 \u2713 \u2014 les r\u00E8glements iront directement chez elle. (Stripe peut demander quelques minutes pour finaliser la v\u00E9rification.)'
+      : 'Raccordement interrompu \u2014 vous pouvez le reprendre \u00E0 tout moment depuis la page de l\u2019\u00E9v\u00E9nement.'); },900);
+  }
+
   /* 0-bis) Retour de Stripe apr\u00E8s paiement */
   const _pay=(location.search||'').match(/[?&]paiement=(ok|annule)/);
   if(_pay){
