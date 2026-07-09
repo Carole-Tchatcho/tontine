@@ -1593,7 +1593,8 @@ function assembleSB(t,memberships,rounds,contribs,uid){
   const sorted=[...rounds].sort((a,b)=>a.idx-b.idx);
   const uiR=sorted.map(r=>{const c=new Array(t.places).fill('none');
     contribs.filter(x=>x.round_id===r.id).forEach(x=>{const s=slotOf[x.membership_id];if(s!=null)c[s]=x.statut;});
-    return{id:r.id,beneficiary:r.beneficiaire_slot,label:r.label,echeance:r.date_echeance||null,status:ST_DB2UI[r.statut]||'soon',received:r.cagnotte_recue,contribs:c};});
+    const _pr=[]; co.filter(x=>x.round_id===r.id).forEach(x=>{const s2=slotOf[x.membership_id];if(s2!=null&&x.reference)_pr[s2]=x.reference;});
+    return{id:r.id,beneficiary:r.beneficiaire_slot,label:r.label,echeance:r.date_echeance||null,status:ST_DB2UI[r.statut]||'soon',received:r.cagnotte_recue,contribs:c,payRef:_pr};});
   return{id:t.id,code:t.code,name:t.nom,amount:Number(t.montant),currency:t.devise,frequency:t.frequence,places:t.places,
     currentRound:Math.max(0,uiR.findIndex(r=>r.status==='now')),me:Math.max(0,members.findIndex(m=>m&&m._userId===uid)),
     members,rounds:uiR};
@@ -1608,7 +1609,7 @@ async function sbGetTontine(id,uid){
   const ids=(rd||[]).map(r=>r.id); let co=[];
   if(ids.length){const{data}=await sb.from('contributions').select('*').in('round_id',ids);co=data||[];}
   const loc=assembleSB(t,mem||[],rd||[],co,uid);
-  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null);
+  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null;
     try{ const[{data:_bu},{data:_au}]=await Promise.all([
       sb.from('tontine_bureau').select('*').eq('tontine_id',id).is('jusqua',null),
       sb.from('tontine_audit').select('*').eq('tontine_id',id).order('created_at',{ascending:false}).limit(25)]);
@@ -2336,7 +2337,7 @@ function dashGroup(t){
     let action='';
     if(!closed){
     if(s==='declared') action=`<button class="btn btn-green btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_confirm_recv')}</button>`;
-    else if(s==='none') action=`<button class="btn btn-ghost btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_mark_recv')}</button>${(BACKEND==='supabase'&&m.contact&&m.contact.indexOf('@')>0)?`<button class="btn btn-ghost btn-sm" onclick="sendReminderEmail('${t.id}',${i})">${tr('dg_remind')}</button>`:''}`;
+    else if(s==='none') action=`${(i===t.me)?`<button class="btn btn-gold btn-sm" onclick="memberDeclare('${t.id}',${i})">${tr('dg_pay')}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_mark_recv')}</button>${(BACKEND==='supabase'&&m.contact&&m.contact.indexOf('@')>0)?`<button class="btn btn-ghost btn-sm" onclick="sendReminderEmail('${t.id}',${i})">${tr('dg_remind')}</button>`:''}`;
     else action=`<button class="btn btn-ghost btn-sm" onclick="orgUnconfirm('${t.id}',${i})">${tr('cancel')}</button>`;
     }
     return `<div class="mrow ${isFlash?'flash-row':''}">
@@ -2477,6 +2478,19 @@ function dashInvite(t){
 async function declarePaid(id,i){const t0=getT(id),ci=t0?t0.currentRound:0,wasLate=!!(t0&&isLate(t0,ci,i));try{await db.declare(getT(id),i);}catch(e){alert(e.message);}if(wasLate&&BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[ci]&&t.rounds[ci].lateMarks)t.rounds[ci].lateMarks[i]=true;}await refresh(id);}
 function tonAttachProof(id,i){const t=getT(id);if(!t)return;const r=t.rounds[t.currentRound];const el=document.getElementById('proof-'+id+'-'+i);const v=el?String(el.value).trim():'';if(!v)return;r.payProof=r.payProof||[];r.payProof[i]=v;render();}
 function tonAutoPay(id,i,on){const t=getT(id);if(!t||!t.members[i])return;t.members[i].autopay=!!on;render();}
+async function memberDeclare(id,i){
+  const t=getT(id); if(!t)return;
+  const ref=prompt('R\u00E9f\u00E9rence de votre versement (facultatif) \u2014 ex.\u00A0: \u00AB Twint 14:32 \u00BB, \u00AB virement r\u00E9f. 8823 \u00BB, \u00AB esp\u00E8ces r\u00E9union du 12 \u00BB.\n\nElle aidera le tr\u00E9sorier \u00E0 rapprocher votre versement de son relev\u00E9.');
+  if(ref===null)return;
+  try{
+    if(BACKEND==='supabase'){
+      const{error}=await sb.rpc('declare_contribution_ref',{p_round:t.rounds[t.currentRound].id,p_ref:(ref||'').slice(0,120)});
+      if(error)throw error;
+      await refresh(id);
+    } else { await db.declare(t,i); render(); }
+    alert('Versement d\u00E9clar\u00E9 \u2713 \u2014 l\u2019organisateur\u00B7trice le confirmera d\u00E8s r\u00E9ception. UBORA ne transporte aucun fonds\u00A0: vous payez comme d\u2019habitude.');
+  }catch(e){ alert(e.message||e); }
+}
 async function orgConfirm(id,i){const t0=getT(id),ci=t0?t0.currentRound:0,wasLate=!!(t0&&isLate(t0,ci,i));try{await db.confirm(getT(id),i);state.flash='t:'+id+':'+i;}catch(e){alert(e.message);}if(wasLate&&BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[ci]&&t.rounds[ci].lateMarks)t.rounds[ci].lateMarks[i]=true;}await refresh(id);}
 async function orgUnconfirm(id,i){try{await db.unconfirm(getT(id),i);}catch(e){alert(e.message);}if(BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[t.currentRound]&&t.rounds[t.currentRound].lateMarks)t.rounds[t.currentRound].lateMarks[i]=false;}await refresh(id);}
 function addPlaces(id,k){
@@ -4774,7 +4788,53 @@ function dashGov(t){
     </div></div>
     <div class="panel"><div class="panel-h"><h3>Bureau de l\u2019association</h3></div><div style="padding:16px 22px">${bureauRows}
       <div class="hint">Les bureaux \u00E9voluent\u00A0: chaque changement conserve la date de prise de fonction, et l\u2019historique appara\u00EEt ci-dessous.</div></div></div>
-    <div class="panel"><div class="panel-h"><h3>Journal des modifications</h3></div><div style="padding:10px 22px 16px">${audit}</div></div>`;
+    ${dashRapprochement(t,can)}
+    <div class="panel"><div class="panel-h"><h3>Journal des modifications</h3></div><div style="padding:10px 22px 16px">${audit}</div></div>
+    ${dashPremium(t,isOrg)}`;
+}
+function dashRapprochement(t,can){
+  const rd=t.rounds[t.currentRound]||{}; const cs=rd.contribs||[];
+  const line=(m,i)=>{
+    if(!m)return '';
+    const st=cs[i]||'none';
+    const pill=st==='confirmed'?`<span class="pill p-paid">confirm\u00E9 \u2713</span>`
+      :st==='declared'?`<span class="pill p-decl">d\u00E9clar\u00E9 \u2014 \u00E0 v\u00E9rifier</span>`
+      :`<span class="pill p-due">aucun signal</span>`;
+    const ref=(rd.payRef&&rd.payRef[i])?`<div class="msub">r\u00E9f.\u00A0: ${esc(rd.payRef[i])}</div>`:'';
+    return `<div class="mrow"><div class="stack"><div class="mname" style="font-size:14px">${esc(m.name)} \u00B7 ${money(t.amount,t.currency)}</div>${ref}</div>${pill}</div>`;
+  };
+  const rows=t.members.map(line).join('');
+  const nDecl=cs.filter(x=>x==='declared').length, nConf=cs.filter(x=>x==='confirmed').length;
+  return `<div class="panel"><div class="panel-h"><h3>Rapprochement du tour ${t.currentRound+1}</h3><span class="pill p-now">${nConf} confirm\u00E9(s) \u00B7 ${nDecl} \u00E0 v\u00E9rifier</span></div>
+    <div style="padding:12px 22px 16px">
+      <div class="asnote" style="margin-bottom:10px">Le tr\u00E9sorier compare chaque <b>d\u00E9claration</b> \u00E0 son relev\u00E9 bancaire, puis confirme. Double signature\u00A0: le membre d\u00E9clare, le bureau confirme \u2014 <b>l\u2019argent ne passe jamais par UBORA</b>.</div>
+      ${rows}
+      ${can?`<div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="exportCompta('${t.id}')">\u2B07 Export comptable (CSV)</button></div>`:''}
+    </div></div>`;
+}
+function exportCompta(tid){
+  const t=state_tontines.find(x=>x.id===tid); if(!t)return;
+  const esc2=v=>('"'+String(v==null?'':v).replace(/"/g,'""')+'"');
+  const lines=['tour;membre;montant;devise;statut;reference'];
+  t.rounds.forEach((rd,ri)=>{ (t.members||[]).forEach((m,i)=>{ if(!m)return;
+    const st=(rd.contribs&&rd.contribs[i])||'none';
+    const ref=(rd.payRef&&rd.payRef[i])||'';
+    lines.push([ri+1,m.name,t.amount,t.currency,st,ref].map(esc2).join(';'));
+  });});
+  const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='ubora-compta-'+(t.code||'tontine')+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+function dashPremium(t,isOrg){
+  if(BACKEND!=='supabase')return '';
+  const on=isPremium(t);
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Premium</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
+    <div style="padding:14px 22px">
+      ${on?`<p class="msub">Merci\u00A0! Votre association soutient le registre. Rappels SMS, exports comptables et audit avanc\u00E9 sont actifs.</p>`
+        :`<p class="msub">Le registre est <b>gratuit</b> pour une tontine. <b>Premium \u2014 19\u00A0CHF/mois par association</b>\u00A0: tontines illimit\u00E9es, rappels SMS automatiques, exports comptables, bureau &amp; journal d\u2019audit avanc\u00E9s.</p>
+          <div class="asnote" style="margin:10px 0">UBORA ne pr\u00E9l\u00E8ve <b>aucune commission sur vos cotisations</b> et ne d\u00E9tient aucun fonds. L\u2019abonnement r\u00E9mun\u00E8re le logiciel et son h\u00E9bergement \u2014 rien d\u2019autre.</div>
+          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="premiumSubscribe('${t.id}')">\u2728 Passer en Premium \u2014 19 CHF/mois</button>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
+    </div></div>`;
 }
 async function govSetJour(tid,v){ try{ const{error}=await sb.rpc('set_jour_echeance',{p_tontine:tid,p_jour:v?+v:null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
 async function govSetBureau(tid,role,mid){ try{ const{error}=await sb.rpc('set_bureau_member',{p_tontine:tid,p_role:role,p_membership:mid||null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
@@ -4855,7 +4915,21 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.40';
+const UBORA_BUILD='v7.45';
+/* ---------- Abonnement Premium (par tontine/association) ---------- */
+function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>new Date()); }
+async function premiumSubscribe(tid){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-subscribe',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({tontine_id:tid,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert('Abonnement indisponible\u00A0: '+(e.message||e)); }
+}
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
   try{ if(sb) await sb.auth.signOut(); }catch(e){}
