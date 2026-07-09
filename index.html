@@ -4251,6 +4251,9 @@ function viewDiffusion(){
           <div class="aud-grid">
             <label class="ct-tog on"><input type="checkbox" id="ch-email" checked style="margin-right:5px">${tr('df_ch_email')}</label>
             <label class="ct-tog"><input type="checkbox" id="ch-sms" style="margin-right:5px">${tr('df_ch_sms')}</label>
+          </div>
+          ${BACKEND==='supabase'?`<div class="hint" style="margin-top:8px"><b>WhatsApp\u00A0: actif d\u00E8s maintenant</b> \u2014 les messages sont pr\u00E9par\u00E9s, vous les envoyez d\u2019un clic depuis votre num\u00E9ro.<br><b>SMS automatiques\u00A0: \u00E0 venir</b> \u2014 option <b>Premium</b> (rappels et annonces envoy\u00E9s seuls, co\u00FBt \u00E0 la charge de l\u2019organisation, ~0,03\u20130,10\u00A0CHF/SMS selon le pays). Ce chantier attend le raccordement Stripe.</div>`:''}
+          <div style="display:none">
           </div></div>
         <div class="field"><label>${tr('df_audience')}</label>
           <div class="aud-grid">
