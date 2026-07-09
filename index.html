@@ -4498,7 +4498,7 @@ function viewEvent(){
   const pct=ev.objectif?Math.min(100,Math.round(collected/ev.objectif*100)):0;
   const rows=ev.billets.map((b,i)=>`<div class="evt-ticket">
       <div><div class="mname">${b.nom}</div><div class="msub">${money(b.prix,ev.currency)} <span class="faint">+ ${tr('ev_plusfees')} ${money(uboraFee(b.prix),ev.currency)}</span> · ${b.vendus} ${tr('ev_taken')}</div></div>
-      <button class="btn btn-gold btn-sm" onclick="buyTicket('${ev.id}',${i})">${tr('ev_take')}</button>
+      <button class="btn btn-gold btn-sm" onclick="${BACKEND==='supabase'?`stripeBuy('${ev.id}',${i})`:`buyTicket('${ev.id}',${i})`}">${tr('ev_take')}</button>
     </div>`).join('');
   const eds=(ev.editors||[]).map(e=>e.nom).filter(Boolean);
   const whoEdit=tr('ev_whoedit_pref')+(ev.creator||tr('ev_creator'))+(eds.length?(' + '+eds.join(', ')):'');
@@ -4785,6 +4785,22 @@ async function ctAskConsent(id){
     render();
   }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
 }
+async function stripeBuy(evId,idx){
+  const ev=state_events.find(x=>x.id===evId); if(!ev)return;
+  const b=ev.billets[idx]; if(!b)return;
+  const prix=Number(b.prix)||0;
+  if(prix<=0){ buyTicket(evId,idx); return; }   /* billet gratuit : pas de paiement */
+  try{
+    const{data,error}=await sb.functions.invoke('stripe-checkout',{body:{
+      event_id:evId, ticket_index:idx, ticket_name:b.nom, amount:prix,
+      currency:(ev.currency||'CHF'), event_title:ev.title,
+      return_url:location.origin+location.pathname
+    }});
+    if(error)throw error;
+    if(data&&data.url){ location.href=data.url; return; }
+    throw new Error((data&&data.error)||'R\u00E9ponse inattendue du paiement.');
+  }catch(e){ alert('Paiement indisponible\u00A0: '+(e.message||e)); }
+}
 async function udInterest(){
   try{
     await db.sendEmail('carole@caroletchatcho.com','UD Room \u2014 manifestation d\u2019int\u00E9r\u00EAt (Elite)',
@@ -4830,6 +4846,16 @@ function showBackendBadge(err){
 }
 
 async function boot(){
+  /* 0-bis) Retour de Stripe apr\u00E8s paiement */
+  const _pay=(location.search||'').match(/[?&]paiement=(ok|annule)/);
+  if(_pay){
+    const _ok=_pay[1]==='ok';
+    try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+    setTimeout(()=>{ alert(_ok
+      ? 'Paiement re\u00E7u \u2713 \u2014 votre billet est enregistr\u00E9. Un re\u00E7u vous a \u00E9t\u00E9 envoy\u00E9 par Stripe.'
+      : 'Paiement annul\u00E9 \u2014 aucun montant n\u2019a \u00E9t\u00E9 pr\u00E9lev\u00E9.'); },900);
+  }
+
   /* 0) Lien de confirmation de consentement (double opt-in) — fonctionne sans compte */
   const _ot=(location.search||'').match(/[?&]optin=([0-9a-fA-F-]{16,})/);
   if(_ot&&BACKEND==='supabase'){
