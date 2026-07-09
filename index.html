@@ -4820,14 +4820,15 @@ async function stripeBuy(evId,idx){
   if(prix<=0){ buyTicket(evId,idx); return; }   /* billet gratuit : pas de paiement */
   if(!ev.stripe_account){ alert('Cet \u00E9v\u00E9nement n\u2019a pas encore raccord\u00E9 le compte de son association \u2014 la billetterie payante est indisponible. Contactez l\u2019organisateur\u00B7trice.'); return; }
   try{
-    const{data,error}=await sb.functions.invoke('stripe-checkout',{body:{
-      event_id:evId, ticket_index:idx, ticket_name:b.nom, amount:prix,
-      currency:(ev.currency||'CHF'), event_title:ev.title,
-      return_url:location.origin+location.pathname
-    }});
-    if(error)throw error;
-    if(data&&data.url){ location.href=data.url; return; }
-    throw new Error((data&&data.error)||'R\u00E9ponse inattendue du paiement.');
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-checkout',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({event_id:evId,ticket_index:idx,ticket_name:b.nom,amount:prix,
+        currency:(ev.currency||'CHF'),event_title:ev.title,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status+' \u2014 v\u00E9rifiez que stripe-checkout est en version 2 (Connect) et que \u00AB Verify JWT \u00BB est sur OFF.'));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue du paiement.');
   }catch(e){ alert('Paiement indisponible\u00A0: '+(e.message||e)); }
 }
 async function udInterest(){
