@@ -4828,12 +4828,12 @@ function exportCompta(tid){
 function dashPremium(t,isOrg){
   if(BACKEND!=='supabase')return '';
   const on=isPremium(t);
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Premium</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine Premium</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
     <div style="padding:14px 22px">
       ${on?`<p class="msub">Merci\u00A0! Votre association soutient le registre. Rappels SMS, exports comptables et audit avanc\u00E9 sont actifs.</p>`
-        :`<p class="msub">Le registre est <b>gratuit</b> pour une tontine. <b>Premium \u2014 19\u00A0CHF/mois par association</b>\u00A0: tontines illimit\u00E9es, rappels SMS automatiques, exports comptables, bureau &amp; journal d\u2019audit avanc\u00E9s.</p>
+        :`<p class="msub">Le registre est <b>gratuit</b> pour une tontine. <b>Tontine Premium \u2014 19\u00A0CHF/mois par association</b>\u00A0: tontines illimit\u00E9es, rappels SMS automatiques, exports comptables, bureau &amp; journal d\u2019audit avanc\u00E9s.</p>
           <div class="asnote" style="margin:10px 0">UBORA ne pr\u00E9l\u00E8ve <b>aucune commission sur vos cotisations</b> et ne d\u00E9tient aucun fonds. L\u2019abonnement r\u00E9mun\u00E8re le logiciel et son h\u00E9bergement \u2014 rien d\u2019autre.</div>
-          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="premiumSubscribe('${t.id}')">\u2728 Passer en Premium \u2014 19 CHF/mois</button>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
+          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="premiumSubscribe('${t.id}')">\u2728 Passer en Tontine Premium \u2014 19 CHF/mois</button>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
     </div></div>`;
 }
 async function govSetJour(tid,v){ try{ const{error}=await sb.rpc('set_jour_echeance',{p_tontine:tid,p_jour:v?+v:null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
@@ -4950,6 +4950,15 @@ function showBackendBadge(err){
 }
 
 async function boot(){
+  /* 0-quater) Retour de l'abonnement Premium */
+  const _pm=(location.search||'').match(/[?&]premium=(ok|annule)/);
+  if(_pm){
+    try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+    setTimeout(()=>{ alert(_pm[1]==='ok'
+      ? 'Abonnement Tontine Premium activ\u00E9 \u2713 \u2014 merci de soutenir le registre. (L\u2019activation peut prendre une minute.)'
+      : 'Abonnement annul\u00E9 \u2014 aucun montant n\u2019a \u00E9t\u00E9 pr\u00E9lev\u00E9.'); },900);
+  }
+
   /* 0-ter) Retour du raccordement Connect */
   const _cx=(location.search||'').match(/[?&]connect=(ok|retry)/);
   if(_cx){
@@ -4967,6 +4976,22 @@ async function boot(){
     setTimeout(()=>{ alert(_ok
       ? 'Paiement re\u00E7u \u2713 \u2014 votre billet est enregistr\u00E9. Un re\u00E7u vous a \u00E9t\u00E9 envoy\u00E9 par Stripe.'
       : 'Paiement annul\u00E9 \u2014 aucun montant n\u2019a \u00E9t\u00E9 pr\u00E9lev\u00E9.'); },900);
+  }
+
+  /* 0-quinquies) Déclaration « J'ai versé » depuis l'e-mail de rappel — un clic, sans connexion */
+  const _dc=(location.search||'').match(/[?&]declare=([0-9a-fA-F-]{16,})/);
+  if(_dc&&BACKEND==='supabase'){
+    try{ await initSB(); }catch(e){}
+    let _okd=false,_msg='';
+    try{ const{data,error}=await sb.rpc('declare_by_token',{p_token:_dc[1]}); if(error)throw error; _okd=!!data; }
+    catch(e){ _msg=String((e&&e.message)||e); }
+    document.body.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FAFAF7;font-family:'DM Sans',system-ui,sans-serif;padding:24px">
+      <div style="max-width:460px;text-align:center;background:#FFFFFF;border:1px solid rgba(201,168,76,.45);border-radius:18px;padding:38px 30px">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#1E2128;margin-bottom:12px">${_okd?'Versement d\u00E9clar\u00E9 \u2713':'Lien expir\u00E9 ou d\u00E9j\u00E0 utilis\u00E9'}</div>
+        <p style="color:#4a4a46;line-height:1.7">${_okd?'Merci\u00A0! Votre d\u00E9claration est enregistr\u00E9e. L\u2019organisateur\u00B7trice la confirmera d\u00E8s r\u00E9ception du versement. <b>UBORA ne transporte aucun fonds</b>\u00A0: vous payez comme d\u2019habitude.':'Ce lien n\u2019est plus valable. Ouvrez le registre et cliquez \u00AB Je verse \u00BB sur votre ligne.'}</p>
+        <a href="${location.origin+location.pathname}" style="display:inline-block;margin-top:16px;color:#C9A84C;text-decoration:underline">Ouvrir le registre UBORA</a>
+      </div></div>`;
+    return;
   }
 
   /* 0) Lien de confirmation de consentement (double opt-in) — fonctionne sans compte */
