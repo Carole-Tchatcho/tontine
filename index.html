@@ -4017,7 +4017,14 @@ function eRead(){ if(!eDraft)return;
   eDraft.visibility=g('e-visibility',eDraft.visibility);eDraft.audience=g('e-audience',eDraft.audience);
   {const oc=$('#e-open');if(oc)eDraft.openToAll=oc.checked;}
   eDraft.ed1n=g('e-ed1n',eDraft.ed1n);eDraft.ed1c=g('e-ed1c',eDraft.ed1c);eDraft.ed2n=g('e-ed2n',eDraft.ed2n);eDraft.ed2c=g('e-ed2c',eDraft.ed2c);
-  eDraft.billets=eDraft.billets.map((b,i)=>({nom:g('e-tn'+i,b.nom),prix:g('e-tp'+i,b.prix)}));
+  eDraft.billets=eDraft.billets.map((b,i)=>{
+    const _nom=g('e-tn'+i,b.nom), _prix=g('e-tp'+i,b.prix);
+    if(b.vendu>0 && String(_prix)!==String(b.prix)){
+      alert('Le prix du billet \u00AB '+(b.nom||'')+' \u00BB ne peut plus \u00EAtre modifi\u00E9\u00A0: '+b.vendu+' billet(s) d\u00E9j\u00E0 vendu(s). Cr\u00E9ez un nouveau type de billet si le tarif change.');
+      return {...b,nom:_nom};
+    }
+    return {...b,nom:_nom,prix:_prix};
+  });
 }
 function eAddTier(){eRead();eDraft.billets.push({nom:'',prix:''});render();}
 function eRemoveTier(i){eRead();eDraft.billets.splice(i,1);if(!eDraft.billets.length)eDraft.billets.push({nom:'',prix:''});render();}
@@ -4313,7 +4320,7 @@ function diffOutbox(){
 function delEvent(id){ if(!confirm('Supprimer cet événement ? Cette action est définitive.'))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
 function editEvent(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
-  const isCreator=ev.creator===state.user;
+  const isCreator=!!(ev.creator&&(ev.creator===state.uid||ev.creator===state.user));
   if(!isCreator){
     if(!(ev.editors||[]).some(e=>e.nom===state.user)){alert(tr('al_edit_reserved'));return;}
     const code=prompt(tr('al_edit_code'));
