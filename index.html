@@ -833,7 +833,7 @@ Object.assign(I18N.fr,{
   consent_tx_d2:'« On vous prévient pour votre tour et vos cotisations. » Toujours actif.',
   consent_mk_d2:'« Recevez nos Décryptages et la méthode. » Décoché par défaut — choix libre.',
   jf_join_btn:'Rejoindre la tontine',al_jf_name:'Entrez votre nom.',
-  st_confirmed:'confirmé ✓',st_declared:'déclaré',st_late:'en retard',dm_status_late:'En retard',dm_late_note:'Votre versement est attendu \u2014 un rappel, sans jugement.',st_due:'à verser',dg_remind:'\u2709 Rappel',al_remind_ok:'Rappel envoy\u00E9 \u00E0 {m} \u2713'
+  st_confirmed:'confirmé ✓',st_declared:'déclaré',st_late:'en retard',dm_status_late:'En retard',dm_late_note:'Votre versement est attendu \u2014 un rappel, sans jugement.',st_due:'à verser',dg_pay:'\uD83D\uDCB3 Je verse',dg_remind:'\u2709 Rappel',al_remind_ok:'Rappel envoy\u00E9 \u00E0 {m} \u2713'
 });
 Object.assign(I18N.en,{
   back_home:'My tontines',your_name:'Your name',cancel:'Cancel',
@@ -859,7 +859,7 @@ Object.assign(I18N.en,{
   consent_tx_d2:'“We notify you about your turn and your contributions.” Always on.',
   consent_mk_d2:'“Receive our insights and the method.” Unchecked by default — free choice.',
   jf_join_btn:'Join the tontine',al_jf_name:'Enter your name.',
-  st_confirmed:'confirmed ✓',st_declared:'declared',st_late:'late',dm_status_late:'Late',dm_late_note:'Your contribution is due \u2014 a gentle nudge, no judgment.',st_due:'to pay',dg_remind:'\u2709 Remind',al_remind_ok:'Reminder sent to {m} \u2713'
+  st_confirmed:'confirmed ✓',st_declared:'declared',st_late:'late',dm_status_late:'Late',dm_late_note:'Your contribution is due \u2014 a gentle nudge, no judgment.',st_due:'to pay',dg_pay:'\uD83D\uDCB3 Pay',dg_remind:'\u2709 Remind',al_remind_ok:'Reminder sent to {m} \u2713'
 });
 /* --- i18n : tableau de bord tontine + parcours + niveaux + Le Cercle --- */
 Object.assign(I18N.fr,{
@@ -2556,7 +2556,7 @@ function viewUDRoom(){
         <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
         <div class="eyebrow">PRIVATE ROOM</div>
         <h1 class="page-title">La salle est ferm\u00E9e \u2014 pour l\u2019instant.</h1>
-        <p class="lead">La Private Room s\u2019ouvre au niveau <b>Tontine Elite</b>. Elle se m\u00E9rite \u2014 par la r\u00E9gularit\u00E9, pas par le paiement.</p>
+        <p class="lead">La Private Room \u2014 le <b>cercle de r\u00E9flexion</b> d\u2019UBORA \u2014 s\u2019ouvre au niveau <b>Tontine Elite</b>. Elle se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.</p>
         <div class="panel"><div style="padding:16px 22px">
           <div class="unlock"><b>Pour atteindre Tontine Elite\u00A0:</b></div>${_rows}
           <div class="hint" style="margin-top:10px">Votre niveau actuel\u00A0: <b>${esc(LEVELS[_lvl].name)}</b> \u00B7 calcul\u00E9 sur votre historique r\u00E9el (versements confirm\u00E9s, ponctualit\u00E9, tontines).</div>
@@ -2565,11 +2565,13 @@ function viewUDRoom(){
     }
     app().innerHTML=`
       <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
-      <div class="eyebrow">PRIVATE ROOM \u00B7 ANTICHAMBRE</div>
+      <div class="eyebrow">PRIVATE ROOM \u00B7 CERCLE DE R\u00C9FLEXION</div>
       <h1 class="page-title">Bienvenue, membre Elite.</h1>
-      <p class="lead">Votre r\u00E9gularit\u00E9 vous a ouvert cette porte. La salle des <b>Ubora Deals</b> \u2014 l\u2019investissement collectif encadr\u00E9 \u2014 se constitue avec sa premi\u00E8re cohorte, sur qualification et sous licence.</p>
+      <p class="lead">Votre r\u00E9gularit\u00E9 vous a ouvert cette porte. La Private Room est un <b>cercle de r\u00E9flexion et de formation</b> entre membres exemplaires\u00A0: on y \u00E9tudie la m\u00E9thode UBORA, on y partage des analyses document\u00E9es, on y apprend \u00E0 lire un bilan.</p>
       <div class="panel"><div style="padding:18px 22px">
-        <p>En manifestant votre int\u00E9r\u00EAt, vous rejoignez la liste des membres fondateurs pressentis. Vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture \u2014 aucun engagement, aucune donn\u00E9e partag\u00E9e sans votre accord.</p>
+        <p>\u00AB Ubora Deal \u00BB d\u00E9signe l\u2019esprit du cercle\u00A0: d\u00E9cider ensemble, avec m\u00E9thode, jamais au feeling. <b>Chaque membre investit lui-m\u00EAme, par ses propres moyens, sous sa seule responsabilit\u00E9.</b></p>
+        <div class="asnote" style="margin:12px 0">UBORA ne collecte aucun fonds, ne g\u00E8re aucun portefeuille, ne recommande aucun titre et ne promet aucun rendement. Contenu \u00E9ducatif uniquement \u2014 UBORA n\u2019est pas enregistr\u00E9e aupr\u00E8s de la FINMA. Tout investissement comporte un risque de perte en capital.</div>
+        <p>En manifestant votre int\u00E9r\u00EAt, vous rejoignez la liste des membres fondateurs pressentis du cercle. Vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture \u2014 aucun engagement.</p>
         <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="udInterest()">\u2713 Manifester mon int\u00E9r\u00EAt</button></div>
       </div></div>${footer()}`;
     return;
@@ -4564,6 +4566,13 @@ function viewEvent(){
     <div class="reg-cta"><span class="reg-count">🔒 ${whoEdit}</span>${editBtn}</div>
     ${manage?`<div style="text-align:center;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openDiffuse('${ev.id}')">${tr('ev_announce')}</button></div>`:''}
     <div class="ev-nudge click" onclick="go('apex')">${tr("ev_nudge")}</div>
+    ${(BACKEND==='supabase'&&canEditEvent(ev))?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Encaissement des billets</h3>${ev.stripe_account?`<span class="pill p-paid">compte raccord\u00E9 \u2713</span>`:`<span class="pill p-due">non raccord\u00E9</span>`}</div>
+      <div style="padding:14px 20px">
+        ${ev.stripe_account
+          ? `<p class="msub">Les r\u00E8glements vont <b>directement</b> sur le compte Stripe de l\u2019association. UBORA ne d\u00E9tient jamais les fonds\u00A0; seule la commission de ${feePct}\u00A0% est pr\u00E9lev\u00E9e au passage.</p>`
+          : `<p class="msub">Pour vendre des billets payants, l\u2019association doit raccorder son propre compte Stripe. L\u2019argent ira <b>directement</b> chez elle\u00A0: UBORA ne d\u00E9tient aucun fonds.</p>
+             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">\uD83D\uDD17 Raccorder le compte de l\u2019association</button></div>`}
+      </div></div>`:''}
     <p class="msub" style="margin-top:14px">${tr('ev_pay_note').replace('{p}',feePct)}</p>
     ${reportCtl}
     ${footer()}`;
@@ -4604,7 +4613,7 @@ function activateMandate(){
 
 const UBORA_ADMINS=['carole@caroletchatcho.com','milly.tchatcho@gmail.com','my.tchatch@gmail.com'];
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
-function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
 function viewPrivacy(){
   return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
@@ -4792,11 +4801,20 @@ async function ctAskConsent(id){
     render();
   }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
 }
+async function connectStripe(evId){
+  try{
+    const{data,error}=await sb.functions.invoke('stripe-connect',{body:{event_id:evId,return_url:location.origin+location.pathname}});
+    if(error)throw error;
+    if(data&&data.url){ location.href=data.url; return; }
+    throw new Error((data&&data.error)||'R\u00E9ponse inattendue.');
+  }catch(e){ alert('Raccordement impossible\u00A0: '+(e.message||e)); }
+}
 async function stripeBuy(evId,idx){
   const ev=state_events.find(x=>x.id===evId); if(!ev)return;
   const b=ev.billets[idx]; if(!b)return;
   const prix=Number(b.prix)||0;
   if(prix<=0){ buyTicket(evId,idx); return; }   /* billet gratuit : pas de paiement */
+  if(!ev.stripe_account){ alert('Cet \u00E9v\u00E9nement n\u2019a pas encore raccord\u00E9 le compte de son association \u2014 la billetterie payante est indisponible. Contactez l\u2019organisateur\u00B7trice.'); return; }
   try{
     const{data,error}=await sb.functions.invoke('stripe-checkout',{body:{
       event_id:evId, ticket_index:idx, ticket_name:b.nom, amount:prix,
