@@ -1593,7 +1593,7 @@ function assembleSB(t,memberships,rounds,contribs,uid){
   const sorted=[...rounds].sort((a,b)=>a.idx-b.idx);
   const uiR=sorted.map(r=>{const c=new Array(t.places).fill('none');
     contribs.filter(x=>x.round_id===r.id).forEach(x=>{const s=slotOf[x.membership_id];if(s!=null)c[s]=x.statut;});
-    const _pr=[]; co.filter(x=>x.round_id===r.id).forEach(x=>{const s2=slotOf[x.membership_id];if(s2!=null&&x.reference)_pr[s2]=x.reference;});
+    const _pr=[]; contribs.filter(x=>x.round_id===r.id).forEach(x=>{const s2=slotOf[x.membership_id];if(s2!=null&&x.reference)_pr[s2]=x.reference;});
     return{id:r.id,beneficiary:r.beneficiaire_slot,label:r.label,echeance:r.date_echeance||null,status:ST_DB2UI[r.statut]||'soon',received:r.cagnotte_recue,contribs:c,payRef:_pr};});
   return{id:t.id,code:t.code,name:t.nom,amount:Number(t.montant),currency:t.devise,frequency:t.frequence,places:t.places,
     currentRound:Math.max(0,uiR.findIndex(r=>r.status==='now')),me:Math.max(0,members.findIndex(m=>m&&m._userId===uid)),
@@ -4915,7 +4915,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.45';
+const UBORA_BUILD='v7.46';
 /* ---------- Abonnement Premium (par tontine/association) ---------- */
 function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>new Date()); }
 async function premiumSubscribe(tid){
