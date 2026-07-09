@@ -4068,7 +4068,7 @@ function eSave(){eRead();
   if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
   saveLocal();go('events');
 }
-function canEditEvent(ev){ if(!ev)return false; if(ev.creator&&(ev.creator===state.user||ev.creator===state.uid))return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
+function canEditEvent(ev){ if(!ev)return false; if(!ev.creator)return true; if(ev.creator===state.user||ev.creator===state.uid)return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
 
 /* ---------- modération / signalement (anti-spam du fil public) ---------- */
 const REPORT_THRESHOLD=3;
@@ -4320,7 +4320,7 @@ function diffOutbox(){
 function delEvent(id){ if(!confirm('Supprimer cet événement ? Cette action est définitive.'))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
 function editEvent(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
-  const isCreator=!!(ev.creator&&(ev.creator===state.uid||ev.creator===state.user));
+  const isCreator=!!(ev.creator&&(ev.creator===state.uid||ev.creator===state.user))||!ev.creator;
   if(!isCreator){
     if(!(ev.editors||[]).some(e=>e.nom===state.user)){alert(tr('al_edit_reserved'));return;}
     const code=prompt(tr('al_edit_code'));
@@ -4832,7 +4832,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.36';
+const UBORA_BUILD='v7.40';
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
   try{ if(sb) await sb.auth.signOut(); }catch(e){}
