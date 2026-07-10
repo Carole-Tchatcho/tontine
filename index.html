@@ -2468,6 +2468,7 @@ function dashInvite(t){
       <div class="row-gap" style="align-items:center">
         <button class="btn btn-gold btn-sm" onclick="addPlaces('${t.id}',1)">${tr('di_add1')}</button>
         <button class="btn btn-ghost btn-sm" onclick="addPlaces('${t.id}',2)">${tr('di_add2')}</button>
+        <button class="btn btn-ghost btn-sm" onclick="addPlacesAsk('${t.id}')">+ Choisir\u2026</button>
       </div>
     </div></div>`:'';
   return `<div class="asnote">${tr('di_asnote')}</div>
@@ -2500,8 +2501,35 @@ async function memberDeclare(id,i){
 }
 async function orgConfirm(id,i){const t0=getT(id),ci=t0?t0.currentRound:0,wasLate=!!(t0&&isLate(t0,ci,i));try{await db.confirm(getT(id),i);state.flash='t:'+id+':'+i;}catch(e){alert(e.message);}if(wasLate&&BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[ci]&&t.rounds[ci].lateMarks)t.rounds[ci].lateMarks[i]=true;}await refresh(id);}
 async function orgUnconfirm(id,i){try{await db.unconfirm(getT(id),i);}catch(e){alert(e.message);}if(BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[t.currentRound]&&t.rounds[t.currentRound].lateMarks)t.rounds[t.currentRound].lateMarks[i]=false;}await refresh(id);}
+function addPlacesAsk(id){
+  const t=getT(id); if(!t)return;
+  const v=prompt('Combien de places ajouter\u00A0? (1 \u00E0 10)','5');
+  if(v===null)return;
+  const k=parseInt(v,10);
+  if(!(k>=1&&k<=10)){alert('Indiquez un nombre entre 1 et 10. Vous pouvez recommencer pour en ajouter davantage.');return;}
+  addPlaces(id,k);
+}
+async function addPlacesServer(id,k){
+  const t=getT(id); if(!t)return;
+  const add=Math.max(1,Math.min(10,k));
+  const labels=genLabels(t.places+add,t.frequency).slice(t.places);
+  const _av=t.places, _ap=t.places+add;
+  const _pot=n=>money((Number(t.amount)||0)*(n-1),t.currency);
+  if(!confirm('Votre tontine passera de '+_av+' \u00E0 '+_ap+' places.\n\n'
+    +'\u2022 Le cycle durera '+_ap+' tours au lieu de '+_av+'.\n'
+    +'\u2022 Chaque b\u00E9n\u00E9ficiaire recevra '+_pot(_ap)+' au lieu de '+_pot(_av)+'.\n'
+    +'\u2022 Les nouveaux tours sont ajout\u00E9s \u00E0 la fin\u00A0: l\u2019historique et les tours d\u00E9j\u00E0 jou\u00E9s restent intacts.\n\n'
+    +'Confirmer\u00A0?'))return;
+  try{
+    const{error}=await sb.rpc('add_places',{p_tontine:id,p_add:add,p_labels:labels});
+    if(error)throw error;
+    await refresh(id);
+    alert(add+' place(s) ajout\u00E9e(s) \u2713 \u2014 les nouveaux membres prendront leur tour apr\u00E8s les tours existants.');
+  }catch(e){ alert(e.message||e); }
+}
 function addPlaces(id,k){
   const t=getT(id);
+  if(BACKEND==='supabase'){ addPlacesServer(id,k); return; }
   if(BACKEND!=='memory'){alert(tr('al_grow_server'));return;}
   const old=t.places, add=Math.max(1,Math.min(10,k));
   t.places=old+add;
@@ -3029,7 +3057,7 @@ function doHandover(){
   const today=new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'short',day:'numeric'});
   c.passations=c.passations||[];
   c.passations.unshift({role:b.role,from,to:nv,date:today,by:state.user});
-  b.name=nv; state.handover=null; saveLocal(); render();
+  b.name=nv; state.handover=null; cPersist(c.id); render();
 }
 function caisseFoyers(c){
   const bureau=c.bureau.map(b=>`<div class="b">${avatar(b.name)}<div class="br"><b>${b.name}</b><span>${roleLabel(b.role)}</span></div></div>`).join('');
@@ -4026,7 +4054,7 @@ function eventStats(ev){
   return {tickets,collected};
 }
 function openEvent(id){state.activeEvent=id;state.reportFor=null;state.reportDone=null;go('event');}
-function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;if(BACKEND==='supabase'){db.saveEvent(ev).catch(()=>{});}else saveLocal();render();}
+function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;if(BACKEND==='supabase'){db.saveEvent(ev).catch(e=>console.warn('event',e));}if(BACKEND==='supabase'){db.saveEvent(ev).catch(()=>{});}else saveLocal();render();}
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
@@ -4105,8 +4133,8 @@ function submitReport(id,reason){
   ev.reports=ev.reports||[]; ev.reports.push({reason,ts:Date.now()});
   state.reportFor=null; state.reportDone=id; saveLocal(); render();
 }
-function modClearReports(id){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.reports=[];ev.removed=false;state.reportDone=null;saveLocal();render();}
-function modToggleRemove(id){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.removed=!ev.removed;saveLocal();render();}
+function modClearReports(id){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.reports=[];ev.removed=false;state.reportDone=null;if(BACKEND==='supabase'){db.saveEvent(ev).catch(e=>console.warn('event',e));}else saveLocal();render();}
+function modToggleRemove(id){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.removed=!ev.removed;if(BACKEND==='supabase'){db.saveEvent(ev).catch(e=>console.warn('event',e));}else saveLocal();render();}
 function reportReasonsSummary(ev){
   const m={}; (ev.reports||[]).forEach(r=>{m[r.reason]=(m[r.reason]||0)+1;});
   return Object.keys(m).map(k=>`${tr('reason_'+k)} (${m[k]})`).join(' · ');
@@ -4922,7 +4950,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.50';
+const UBORA_BUILD='v7.55';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
