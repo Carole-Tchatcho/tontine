@@ -2591,7 +2591,7 @@ function viewDeal(){
     <div class="lvlcard"><h3>${tr('ud_crit_h')}</h3>${rows}</div>
     <div class="reassure" style="margin-top:14px">${tr('ud_founding')}</div>
     <div class="row-gap" style="margin-top:14px"><button class="btn btn-gold btn-sm" onclick="udApply('garant')">${tr('ud_cta_garant')}</button><button class="btn btn-ghost btn-sm" onclick="udApply('comite')">${tr('ud_cta_comite')}</button></div>
-    <div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="go('udroom')">${tr('ud_room_btn')}</button></div>
+    ${privateRoomDoor()}
     <p class="msub" style="margin-top:14px">${tr('ud_reg_note')}</p>
     ${footer()}`;
 }
@@ -2677,6 +2677,27 @@ function aggregateStats(name){
   });
   return {cyclesDone,onTime:doneTotal?Math.round(Math.max(0,cyclesDone-lateTotal)/doneTotal*100):100,lateTotal,isOrg,tontines};
 }
+function privateRoomDoor(){
+  const lvl=myLevel(), open=lvl>=3;
+  return `<div class="panel click" onclick="go('udroom')" style="margin-top:18px;cursor:pointer;overflow:hidden;
+      background:linear-gradient(135deg,#13151A 0%,#1E2128 60%,#2A2118 100%);border:1px solid rgba(201,168,76,${open?'.55':'.28'})">
+    <div style="display:flex;align-items:center;gap:18px;padding:22px 24px">
+      <div style="flex:0 0 auto;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">${kwenSVG(52)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="letter-spacing:.2em;font-size:10.5px;color:#C9A84C">${open?'PRIVATE ROOM \u00B7 ACC\u00C8S OUVERT':'PRIVATE ROOM \u00B7 SUR M\u00C9RITE'}</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#FAFAF7;margin-top:4px;line-height:1.15">
+          ${open?'Le cercle vous attend.':'La salle o\u00F9 l\u2019on apprend \u00E0 d\u00E9cider.'}</div>
+        <div style="color:#b9b9b4;font-size:13.5px;margin-top:7px;line-height:1.6">
+          ${open?'Cercle de r\u00E9flexion des membres <b style="color:#C9A84C">Tontine Elite</b>\u00A0: analyses document\u00E9es, m\u00E9thode UBORA, d\u00E9cisions partag\u00E9es.'
+                :'Un cercle de r\u00E9flexion et de formation, ouvert au niveau <b style="color:#C9A84C">Tontine Elite</b>. Il se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.'}</div>
+        <div style="margin-top:12px;color:#C9A84C;font-size:13px;font-weight:600">${open?'Entrer dans la salle \u2192':'Voir les crit\u00E8res \u2192'}</div>
+      </div>
+      ${open?'':`<div style="flex:0 0 auto;font-size:22px;opacity:.5">\uD83D\uDD12</div>`}
+    </div>
+    <svg viewBox="0 0 400 8" preserveAspectRatio="none" width="100%" height="7" style="display:block;opacity:${open?'.7':'.3'}">
+      <path d="M0 4 Q 12.5 0, 25 4 T 50 4 T 75 4 T 100 4 T 125 4 T 150 4 T 175 4 T 200 4 T 225 4 T 250 4 T 275 4 T 300 4 T 325 4 T 350 4 T 375 4 T 400 4" stroke="#C9A84C" stroke-width="1.1" fill="none"/>
+    </svg></div>`;
+}
 function viewPyramide(){
   const s=aggregateStats(state.user);
   const cur=state.serverLevel?Math.max(0,LEVELS.findIndex(L=>L.name===state.serverLevel)):myLevel();
@@ -2743,6 +2764,7 @@ function viewPyramide(){
     <div class="pyr">${tiers}</div>
     <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn btn-gold btn-sm" onclick="go('reputation')">${icon('doc')}${tr('rp_open')}</button>${BACKEND==='supabase'?'':`<button class="btn btn-ghost btn-sm" onclick="simulateUp()">${tr('py_sim')}</button>`}</div>
     ${detail}
+    ${privateRoomDoor()}
     ${footer()}`;
 }
 function selectLevel(i){ state.selectedLevel=i; render(); }
@@ -4200,6 +4222,10 @@ function announceSend(){
       /* Canal WhatsApp : file de messages pr\u00E9-remplis, un clic par destinataire */
       state.waQueue=[];
       if(sms){
+        const _avecTel=rec.filter(c=>(c.phone||'').replace(/\D/g,'').length>=8).length;
+        if(!_avecTel){ alert('Aucun destinataire consenti n\u2019a de num\u00E9ro de t\u00E9l\u00E9phone au format international (ex.\u00A0: +41\u202679\u2026 ou 0041\u202679\u2026).\n\nAjoutez les num\u00E9ros dans le Carnet, puis relancez\u00A0: WhatsApp pr\u00E9parera un message par personne.'); }
+      }
+      if(sms){
         const _sub0=($('#an-sub')&&$('#an-sub').value.trim())||'Annonce UBORA';
         const _msg0=($('#an-msg')&&$('#an-msg').value.trim())||'';
         const _lnk=location.origin+location.pathname;
@@ -4961,7 +4987,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.60';
+const UBORA_BUILD='v7.65';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
