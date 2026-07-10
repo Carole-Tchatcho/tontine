@@ -3017,7 +3017,7 @@ function caisseAppelCard(c,a){
     const lateTag=!f.aJour?` <span class="pill p-late" style="margin-left:6px">${tr('cac_late')}</span>`:'';
     const isFlash=state.flash==='c:'+c.id+':'+a.id+':'+i;
     return `<div class="mrow ${isFlash?'flash-row':''}">${avatar(f.name.replace('Foyer ',''))}
-      <div class="stack"><div class="mname">${f.name}${meTag}${lateTag}</div><div class="msub">${f.contact}</div></div>
+      <div class="stack"><div class="mname">${f.name}${meTag}${lateTag}</div><div class="msub">${f.contact}</div>${(a.refs&&a.refs[i])?`<div class="msub" style="opacity:.8">r\u00E9f.\u00A0: ${esc(a.refs[i])}</div>`:''}</div>
       <div class="right ${isFlash?'flash-ok':''}">${cPill(s)}${action}</div></div>`;
   }).join('');
   let footerBox='';
@@ -3106,9 +3106,20 @@ function caisseJournal(c){
     <div class="panel">${rows||`<div class="empty">${tr('cj_empty')}</div>`}</div>`;
 }
 
-function caisseDeclare(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='declared';cPersist(cId);render();}
+function caisseDeclare(cId,aId,fi){
+  const c=getC(cId), a=c.appels.find(x=>x.id===aId); if(!a)return;
+  const ref=prompt('R\u00E9f\u00E9rence de votre versement (facultatif) \u2014 ex.\u00A0: \u00AB Twint 14:32 \u00BB, \u00AB virement r\u00E9f. 8823 \u00BB, \u00AB esp\u00E8ces r\u00E9union du 12 \u00BB.\n\nElle aidera le tr\u00E9sorier \u00E0 rapprocher votre versement de son relev\u00E9.\n\nUBORA ne transporte aucun fonds\u00A0: vous versez comme d\u2019habitude.');
+  if(ref===null)return;
+  a.versements[fi]='declared';
+  a.refs=a.refs||[]; if((ref||'').trim()) a.refs[fi]=(ref||'').trim().slice(0,120);
+  cPersist(cId); render();
+}
 function caisseConfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='confirmed';state.flash='c:'+cId+':'+aId+':'+fi;cPersist(cId);render();}
-function caisseUnconfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='none';cPersist(cId);render();}
+function caisseUnconfirm(cId,aId,fi){
+  const a=getC(cId).appels.find(x=>x.id===aId);
+  a.versements[fi]='none'; if(a.refs)a.refs[fi]='';
+  cPersist(cId);render();
+}
 function caisseReceptionsValidees(a){return !!(a&&a.versements)&&a.versements.indexOf('declared')<0;}
 function caisseHasCommissaire(c){if(!c)return false;return ((c.bureau||[]).concat(c.members||[])).some(m=>m&&m.role==='commissaire');}
 function caisseRemis(cId,aId){const a=getC(cId).appels.find(x=>x.id===aId);
@@ -3127,9 +3138,9 @@ function caisseCreateAppel(cId){const c=getC(cId);
   state.caisseNew=false; cPersist(cId); render();}
 function caisseCSV(cId){const c=getC(cId);
   const lines=[[tr('csv_caisse'),c.name],[tr('csv_group'),c.group],[tr('csv_type'),typeCaisseLabel(c.type)],[],
-    [tr('csv_h_appel'),tr('csv_h_nature'),tr('csv_h_benef'),tr('csv_h_foyer'),tr('csv_h_statut'),tr('csv_h_amount')+' ('+c.currency+')']];
+    [tr('csv_h_appel'),tr('csv_h_nature'),tr('csv_h_benef'),tr('csv_h_foyer'),tr('csv_h_statut'),tr('csv_h_amount')+' ('+c.currency+')','r\u00E9f\u00E9rence']];
   c.appels.forEach(a=>c.foyers.forEach((f,i)=>{const s=a.versements[i];
-    lines.push([a.motif,a.sousType,a.beneficiaire,f.name,s==='confirmed'?tr('csv_paid'):s==='declared'?tr('csv_declared'):tr('csv_topay'),s==='confirmed'?a.montant:0]);}));
+    lines.push([a.motif,a.sousType,a.beneficiaire,f.name,s==='confirmed'?tr('csv_paid'):s==='declared'?tr('csv_declared'):tr('csv_topay'),s==='confirmed'?a.montant:0,(a.refs&&a.refs[i])||'']);}));
   const csv=lines.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),el=document.createElement('a');
   el.href=URL.createObjectURL(blob);el.download='caisse-'+c.group.toLowerCase().replace(/\s+/g,'-')+'.csv';
@@ -4950,7 +4961,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.55';
+const UBORA_BUILD='v7.60';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
