@@ -2682,7 +2682,7 @@ function privateRoomDoor(){
   return `<div class="panel click" onclick="go('udroom')" style="margin-top:18px;cursor:pointer;overflow:hidden;
       background:linear-gradient(135deg,#13151A 0%,#1E2128 60%,#2A2118 100%);border:1px solid rgba(201,168,76,${open?'.55':'.28'})">
     <div style="display:flex;align-items:center;gap:18px;padding:22px 24px">
-      <div style="flex:0 0 auto;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">${kwenSVG(52)}</div>
+      <div style="flex:0 0 auto;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">${ngameSVG(52)}</div>
       <div style="flex:1;min-width:0">
         <div style="letter-spacing:.2em;font-size:10.5px;color:#C9A84C">${open?'PRIVATE ROOM \u00B7 ACC\u00C8S OUVERT':'PRIVATE ROOM \u00B7 SUR M\u00C9RITE'}</div>
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#FAFAF7;margin-top:4px;line-height:1.15">
@@ -4987,7 +4987,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.65';
+const UBORA_BUILD='v7.66';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -5017,6 +5017,31 @@ function kwenBand(){ /* frise de rassemblement, sous l'en-tête d'une tontine Pr
     <path d="M0 6 Q 12.5 12, 25 6 T 50 6 T 75 6 T 100 6 T 125 6 T 150 6 T 175 6 T 200 6 T 225 6 T 250 6 T 275 6 T 300 6 T 325 6 T 350 6 T 375 6 T 400 6"
       stroke="#C9A84C" stroke-width="1.3" fill="none" opacity=".6"/>
   </svg>`;
+}
+/* ---------- Ngâme — l'araignée des Grassfields (glyphe héraldique) ----------
+   Sagesse, patience, lecture des signes avant d'agir (l'araignée-mygale
+   divinatoire). Elle marque la Private Room d'Ubora-Deal — le cercle de
+   réflexion — jamais le Premium. Sœur du kwèn, jamais son sosie.          */
+function ngameSVG(size,op){
+  const s=size||28, o=(op==null?1:op);
+  return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="Ng\u00E2me">
+    <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round" fill="none">
+      <g stroke-width="1.6">
+        <path d="M28 26 L 14 18 M28 26 L 10 26 M28 26 L 12 35 M28 26 L 17 45"/>
+        <path d="M36 26 L 50 18 M36 26 L 54 26 M36 26 L 52 35 M36 26 L 47 45"/>
+      </g>
+      <g stroke-width="1.6">
+        <path d="M14 18 l -3 -2 M10 26 l -3 0 M12 35 l -3 2 M17 45 l -2 3"/>
+        <path d="M50 18 l 3 -2 M54 26 l 3 0 M52 35 l 3 2 M47 45 l 2 3"/>
+      </g>
+      <circle cx="32" cy="16" r="4" stroke-width="1.7" fill="#C9A84C" fill-opacity="0.14"/>
+      <path d="M30 12.5 L 28 8 M34 12.5 L 36 8" stroke-width="1.1"/>
+      <path d="M32 22 L 40 34 L 32 54 L 24 34 Z" stroke-width="1.9" fill="#C9A84C" fill-opacity="0.14"/>
+      <g stroke-width="0.9" opacity=".8">
+        <path d="M27 30 L 37 30"/><path d="M25.5 36 L 38.5 36"/><path d="M28 43 L 36 43"/>
+      </g>
+      <path d="M32 22 L 32 54" stroke-width="0.7" opacity=".5"/>
+    </g></svg>`;
 }
 /* ---------- Abonnement Premium (par tontine/association) ---------- */
 function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>new Date()); }
