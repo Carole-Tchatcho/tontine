@@ -914,11 +914,11 @@ Object.assign(I18N.fr,{
   py_lead:'On ne s\u2019achète pas un niveau — on s\u2019y qualifie. Touchez un palier pour voir ses conditions et travailler à l\u2019atteindre.',
   py_sim:'✦ Simuler une montée de niveau (démo)',py_cap:'Touchez un palier pour ses conditions · Le Cercle, au sommet, pour le découvrir.',py_seal_cap:'Imara · Akili · Umoja — le sceau de la maison',
   ce_eyebrow:'LE SOMMET · SUR INVITATION',ce_title:'Le Cercle',
-  ce_sub:'L\u2019investissement collectif UBORA — là où la confiance bâtie dans votre tontine peut, si vous le voulez, devenir du capital.',
+  ce_sub:'L\u2019investissement UBORA — là où la confiance bâtie dans votre tontine pourra, sous cadre réglementaire, devenir du capital.',
   ce_how_h:'Comment on y entre',
   ce_how_p:'Le Cercle ne se gravit pas, ne s\u2019achète pas, ne se demande pas. Ni palier, ni critère affiché, ni candidature. On y entre sur <b>invitation personnelle de la fondatrice</b>, à sa seule discrétion. La rareté et la discrétion font sa valeur \u2014 et, contrairement à Ubora-Deal, aucun membre ne peut suggérer un nom.',
   ce_what_h:'Ce que c\u2019est',
-  ce_what_p:'Un cercle d\u2019investissement collectif et transparent. Fidèle à la règle d\u2019UBORA : <b>vos dépôts ne sont jamais investis à votre place sans vous</b>. La fondatrice y co-investit \u2014 mêmes opérations, mêmes risques. (Phase 3 \u2014 ouvre avec la licence.)',
+  ce_what_p:'Un cercle d\u2019investissement transparent, qui ouvrira sous cadre réglementaire (phase 3, avec la licence). Fidèle à la règle d\u2019UBORA : <b>vos dépôts ne sont jamais investis à votre place sans vous</b>.',
   ce_note:'Ouvre prochainement · aucune pression, aucune vente — une porte, pour qui la veut.',
   cf_1a:'Compléter 1 cycle complet',cf_1b:'Ponctualité ≥ 80 %',
   cf_2a:'1 cycle complet',cf_2b:'Ponctualité ≥ 90 %',cf_2c:'Organiser une tontine, ou en rejoindre une 2ᵉ',
@@ -928,7 +928,7 @@ Object.assign(I18N.fr,{
   lu_0:'Vous tenez votre tontine — bienvenue.',lu_1:'Relevé exportable et badge de régularité.',
   lu_2:'Badge Ambassadeur visible, 2 semaines de contenu Premium offertes, accès anticipé aux nouveautés.',
   lu_3:'La porte vers l\u2019investissement collectif.',
-  lu_4:'Investir en collectif sur des deals d\u2019envergure — plafond de capital progressif (sous licence).',
+  lu_4:'Le cercle le plus avancé de la méthode UBORA — l\u2019accès à des opérations d\u2019envergure se construira sous cadre réglementaire.',
   lu_5:'Le cercle le plus restreint, sur cooptation — l\u2019investissement collectif UBORA (sous licence).'
 });
 Object.assign(I18N.en,{
@@ -1279,7 +1279,7 @@ const LEVELS=[
  {name:'Bâtisseur',color:'#BFA158',bg:'#F4ECD8',unlock:'Relevé exportable et badge de régularité.'},
  {name:'Ambassadeur',color:'#A9842F',bg:'#F3E7C6',unlock:'Badge Ambassadeur visible, 2 semaines de contenu Premium offertes, accès anticipé aux nouveautés.'},
  {name:'Tontine Elite',color:'#C9A84C',bg:'#23306E',dark:true,unlock:'La porte vers l’investissement collectif.'},
- {name:'Ubora Deal',color:'#E3C878',bg:'#161B3D',dark:true,locked:true,unlock:'Investir en collectif sur des deals d’envergure — plafond de capital progressif (sous licence).'},
+ {name:'Ubora Deal',color:'#E3C878',bg:'#161B3D',dark:true,locked:true,unlock:'Le cercle le plus avancé de la méthode UBORA — l’accès à des opérations d’envergure se construira sous cadre réglementaire.'},
  {name:'Le Cercle',color:'#C9A84C',bg:'#0A0E22',dark:true,locked:true,unlock:'Le cercle le plus restreint, sur cooptation — l’investissement collectif UBORA (sous licence).'},
 ];
 function memberStats(t,idx){
@@ -2605,7 +2605,7 @@ function viewUDRoom(){
         <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
         <div class="eyebrow">PRIVATE ROOM</div>
         <h1 class="page-title">La salle est ferm\u00E9e \u2014 pour l\u2019instant.</h1>
-        <p class="lead">La Private Room \u2014 le <b>cercle de r\u00E9flexion</b> d\u2019UBORA \u2014 s\u2019ouvre au niveau <b>Tontine Elite</b>. Elle se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.</p>
+        <p class="lead">La Private Room \u2014 le <b>cercle de r\u00E9flexion</b> d\u2019UBORA \u2014 on peut y pr\u00E9tendre \u00E0 partir du niveau <b>Tontine Elite</b>. Elle se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.</p>
         <div class="panel"><div style="padding:16px 22px">
           <div class="unlock"><b>Pour atteindre Tontine Elite\u00A0:</b></div>${_rows}
           <div class="hint" style="margin-top:10px">Votre niveau actuel\u00A0: <b>${esc(LEVELS[_lvl].name)}</b> \u00B7 calcul\u00E9 sur votre historique r\u00E9el (versements confirm\u00E9s, ponctualit\u00E9, tontines).</div>
@@ -2688,8 +2688,8 @@ function privateRoomDoor(){
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#FAFAF7;margin-top:4px;line-height:1.15">
           ${open?'Le cercle vous attend.':'La salle o\u00F9 l\u2019on apprend \u00E0 d\u00E9cider.'}</div>
         <div style="color:#b9b9b4;font-size:13.5px;margin-top:7px;line-height:1.6">
-          ${open?'Cercle de r\u00E9flexion des membres <b style="color:#C9A84C">Tontine Elite</b>\u00A0: analyses document\u00E9es, m\u00E9thode UBORA, d\u00E9cisions partag\u00E9es.'
-                :'Un cercle de r\u00E9flexion et de formation, ouvert au niveau <b style="color:#C9A84C">Tontine Elite</b>. Il se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.'}</div>
+          ${open?'Cercle de r\u00E9flexion des membres <b style="color:#C9A84C">Tontine Elite</b>\u00A0: on y \u00E9change ses arbitrages, on confronte ses lectures du march\u00E9, on apprend de l\u2019exp\u00E9rience des autres. La r\u00E9flexion pr\u00E9c\u00E8de la d\u00E9cision \u2014 comme l\u2019araign\u00E9e Ng\u00E2me qui lit les signes avant de tisser.'
+                :'Un cercle de r\u00E9flexion et de formation, auquel on peut pr\u00E9tendre \u00E0 partir du niveau <b style="color:#C9A84C">Tontine Elite</b>. Il se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.'}</div>
         <div style="margin-top:12px;color:#C9A84C;font-size:13px;font-weight:600">${open?'Entrer dans la salle \u2192':'Voir les crit\u00E8res \u2192'}</div>
       </div>
       ${open?'':`<div style="flex:0 0 auto;font-size:22px;opacity:.5">\uD83D\uDD12</div>`}
@@ -4987,7 +4987,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.66';
+const UBORA_BUILD='v7.67';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
