@@ -2554,19 +2554,136 @@ function dashInvite(t){
 async function declarePaid(id,i){const t0=getT(id),ci=t0?t0.currentRound:0,wasLate=!!(t0&&isLate(t0,ci,i));try{await db.declare(getT(id),i);}catch(e){alert(e.message);}if(wasLate&&BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[ci]&&t.rounds[ci].lateMarks)t.rounds[ci].lateMarks[i]=true;}await refresh(id);}
 function tonAttachProof(id,i){const t=getT(id);if(!t)return;const r=t.rounds[t.currentRound];const el=document.getElementById('proof-'+id+'-'+i);const v=el?String(el.value).trim():'';if(!v)return;r.payProof=r.payProof||[];r.payProof[i]=v;render();}
 function tonAutoPay(id,i,on){const t=getT(id);if(!t||!t.members[i])return;t.members[i].autopay=!!on;render();}
-async function memberDeclare(id,i){
+/* ============ LA PREUVE DE VERSEMENT (v7.76) ============
+   UBORA ne transporte aucun fonds. Le membre paie son organisateur comme il
+   l'a toujours fait — sur son téléphone, hors d'ici — puis vient le déclarer.
+   « Orange Money » est une ÉTIQUETTE, pas une intégration : rien n'est branché
+   sur Orange, et rien ne doit l'être.
+   Les moyens proposés suivent le PAYEUR, jamais la tontine : dans un cercle
+   genevois, une membre paie par Twint depuis Genève pendant qu'une autre paie
+   par Orange Money depuis Douala. Filtrer sur la devise du cercle donnerait
+   Twint à celle de Douala — faux précisément pour la diaspora. */
+
+const PAY_LBL={om:'Orange Money',mtn:'MTN Mobile Money',wave:'Wave',moov:'Moov Money',
+  airtel:'Airtel Money',mpesa:'M-Pesa',free:'Free Money',tmoney:'T-Money',flooz:'Flooz',
+  twint:'Twint',interac:'Interac',virement:'Virement bancaire',especes:'Espèces',autre:'Autre'};
+
+/* Une référence est exigée dès que le moyen en produit une. Les espèces n'en
+   produisent pas : l'exiger obligerait à mentir pour valider le formulaire. */
+const PAY_REF_REQ=['om','mtn','wave','moov','airtel','mpesa','free','tmoney','flooz','twint','interac','virement'];
+
+const PAY_BY_COUNTRY={
+  'Cameroun':['om','mtn','virement','especes'],
+  'Côte d’Ivoire':['om','mtn','wave','moov','virement','especes'],
+  'Sénégal':['om','wave','free','virement','especes'],
+  'Mali':['om','mtn','wave','virement','especes'],
+  'Burkina Faso':['om','moov','wave','virement','especes'],
+  'Bénin':['mtn','moov','virement','especes'],
+  'Togo':['tmoney','flooz','virement','especes'],
+  'Guinée':['om','mtn','virement','especes'],
+  'Gabon':['airtel','moov','virement','especes'],
+  'Congo':['airtel','mtn','virement','especes'],
+  'République démocratique du Congo':['om','airtel','mpesa','virement','especes'],
+  'Tchad':['airtel','moov','virement','especes'],
+  'Niger':['airtel','moov','virement','especes'],
+  'Madagascar':['om','airtel','mpesa','virement','especes'],
+  'Kenya':['mpesa','airtel','virement','especes'],
+  'Ghana':['mtn','airtel','virement','especes'],
+  'Nigéria':['virement','especes','autre'],
+  'Ouganda':['mtn','airtel','virement','especes'],
+  'Rwanda':['mtn','airtel','virement','especes'],
+  'Suisse':['twint','virement','especes'],
+  'Canada':['interac','virement','especes'],
+  'France':['virement','especes','autre'],
+  'Belgique':['virement','especes','autre'],
+  'Allemagne':['virement','especes','autre'],
+  'Royaume-Uni':['virement','especes','autre'],
+  'États-Unis':['virement','especes','autre']
+};
+const PAY_DEFAULT=['virement','especes','autre'];
+function payMethodsFor(country){ return PAY_BY_COUNTRY[country]||PAY_DEFAULT; }
+function payCountryDefault(){ return state.payCountry||state.homeCountry||'Cameroun'; }
+
+function tonDeclareCancel(){ const m=document.getElementById('tdmodal'); if(m)m.remove(); }
+
+function tdRefresh(){
+  const cs=document.getElementById('td-country'), ms=document.getElementById('td-method');
+  if(!cs||!ms)return;
+  const list=payMethodsFor(cs.value), keep=ms.value;
+  ms.innerHTML=list.map(k=>`<option value="${k}"${k===keep?' selected':''}>${PAY_LBL[k]}</option>`).join('');
+  if(list.indexOf(keep)<0) ms.value=list[0];
+  tdToggleRefHint();
+}
+function tdToggleRefHint(){
+  const sel=document.getElementById('td-method'); if(!sel)return;
+  const hint=document.getElementById('td-ref-hint'), lab=document.getElementById('td-ref-label');
+  const req=PAY_REF_REQ.indexOf(sel.value)>=0;
+  if(hint) hint.innerHTML = req
+    ? `<b style="color:var(--pending)">${_FL('Obligatoire : c’est cette référence qui permettra à l’organisateur de retrouver votre versement sur son relevé.','Required: this reference is what lets the organiser match your payment on their statement.')}</b>`
+    : _FL('Facultatif — un repère utile : « réunion du 12 », « remis à Awa ».','Optional — a helpful marker: “meeting of the 12th”, “handed to Awa”.');
+  if(lab) lab.textContent = _FL('Référence','Reference') + (req?' *':' ('+_FL('facultatif','optional')+')');
+}
+
+function tonDeclare(id,i){
+  if(document.getElementById('tdmodal'))return;
   const t=getT(id); if(!t)return;
-  const ref=prompt('R\u00E9f\u00E9rence de votre versement (facultatif) \u2014 ex.\u00A0: \u00AB Twint 14:32 \u00BB, \u00AB virement r\u00E9f. 8823 \u00BB, \u00AB esp\u00E8ces r\u00E9union du 12 \u00BB.\n\nElle aidera le tr\u00E9sorier \u00E0 rapprocher votre versement de son relev\u00E9.');
-  if(ref===null)return;
+  const pays=Object.keys(COUNTRY_CONT).sort((a,b)=>a.localeCompare(b,'fr'));
+  const def=payCountryDefault();
+  document.body.insertAdjacentHTML('beforeend',`<div class="cel-overlay" id="tdmodal" onclick="if(event.target.id==='tdmodal')tonDeclareCancel()">
+    <div class="cel-card" style="text-align:left;max-width:440px">
+      <div class="cel-eyebrow">${_FL('Déclarer mon versement','Declare my payment')}</div>
+      <div class="msub" style="margin-top:8px">${_FL('UBORA ne transporte aucun fonds. Vous payez comme d’habitude ; ici vous en gardez la trace.','UBORA carries no funds. You pay as usual; here you keep the record.')}</div>
+      <div class="field" style="margin-top:14px"><label>${_FL('Depuis quel pays payez-vous ?','Which country are you paying from?')}</label>
+        <select id="td-country" onchange="tdRefresh()">${pays.map(p=>`<option value="${esc(p)}"${p===def?' selected':''}>${esc(p)}</option>`).join('')}</select></div>
+      <div class="field" style="margin-top:10px"><label>${_FL('Moyen employé','Method used')}</label>
+        <select id="td-method" onchange="tdToggleRefHint()"></select></div>
+      <div class="field" style="margin-top:10px"><label>${_FL('Montant','Amount')} (${CUR_SYM[t.currency]||t.currency})</label>
+        <input type="number" id="td-amount" value="${t.amount||''}"></div>
+      <div class="field" style="margin-top:10px"><label id="td-ref-label">${_FL('Référence','Reference')}</label>
+        <input type="text" id="td-ref" placeholder="${_FL('ex. 240716.4471.A82396','e.g. 240716.4471.A82396')}"></div>
+      <div class="msub" id="td-ref-hint" style="margin-top:6px"></div>
+      <div id="td-warn" class="msub" style="margin-top:8px;color:var(--pending);display:none"></div>
+      <div class="row" style="margin-top:16px;gap:10px">
+        <button class="btn btn-gold" onclick="tonDeclareSubmit('${id}',${i})">${_FL('Déclarer','Declare')}</button>
+        <button class="btn btn-ghost" onclick="tonDeclareCancel()">${_FL('Annuler','Cancel')}</button>
+      </div>
+    </div></div>`);
+  const amt=document.getElementById('td-amount'), warn=document.getElementById('td-warn');
+  amt.addEventListener('input',()=>{ const v=Number(amt.value)||0;
+    if(t.amount&&v&&v!==t.amount){ warn.style.display='block';
+      warn.textContent=_FL('Ce montant diffère de la cotisation attendue ('+money(t.amount,t.currency)+'). Ce n’est pas bloquant — l’organisateur le verra tel quel.',
+                           'This differs from the expected contribution ('+money(t.amount,t.currency)+'). Not blocking — the organiser will see it as is.'); }
+    else warn.style.display='none'; });
+  tdRefresh();
+}
+
+async function tonDeclareSubmit(id,i){
+  const t=getT(id); if(!t)return;
+  const country=document.getElementById('td-country').value;
+  const method=document.getElementById('td-method').value;
+  const amount=Number(document.getElementById('td-amount').value)||0;
+  const ref=(document.getElementById('td-ref').value||'').trim().slice(0,120);
+  if(!amount){ alert(_FL('Indiquez le montant versé.','Enter the amount paid.')); return; }
+  if(PAY_REF_REQ.indexOf(method)>=0&&!ref){ alert(_FL('La référence est obligatoire pour ce moyen de paiement.','A reference is required for this method.')); return; }
+  tonDeclareCancel();
+  state.payCountry=country;
   try{
     if(BACKEND==='supabase'){
-      const{error}=await sb.rpc('declare_contribution_ref',{p_round:t.rounds[t.currentRound].id,p_ref:(ref||'').slice(0,120)});
+      const{error}=await sb.rpc('declare_contribution_full',{p_round:t.rounds[t.currentRound].id,
+        p_method:method,p_amount:amount,p_ref:ref||null,p_country:country});
       if(error)throw error;
       await refresh(id);
-    } else { await db.declare(t,i); render(); }
-    alert('Versement d\u00E9clar\u00E9 \u2713 \u2014 l\u2019organisateur\u00B7trice le confirmera d\u00E8s r\u00E9ception. UBORA ne transporte aucun fonds\u00A0: vous payez comme d\u2019habitude.');
+    } else {
+      await db.declare(t,i);
+      const rd=t.rounds[t.currentRound]; rd.payRef=rd.payRef||[];
+      rd.payRef[i]=`${PAY_LBL[method]} · ${money(amount,t.currency)}${ref?' · '+ref:''}`;
+      render();
+    }
+    alert(_FL('Versement déclaré ✓ — l’organisateur·trice le confirmera dès réception.','Payment declared ✓ — the organiser will confirm on receipt.'));
   }catch(e){ alert(e.message||e); }
 }
+
+async function memberDeclare(id,i){ tonDeclare(id,i); }
 async function orgConfirm(id,i){const t0=getT(id),ci=t0?t0.currentRound:0,wasLate=!!(t0&&isLate(t0,ci,i));try{await db.confirm(getT(id),i);state.flash='t:'+id+':'+i;}catch(e){alert(e.message);}if(wasLate&&BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[ci]&&t.rounds[ci].lateMarks)t.rounds[ci].lateMarks[i]=true;}await refresh(id);}
 async function orgUnconfirm(id,i){try{await db.unconfirm(getT(id),i);}catch(e){alert(e.message);}if(BACKEND==='memory'){const t=getT(id);if(t&&t.rounds[t.currentRound]&&t.rounds[t.currentRound].lateMarks)t.rounds[t.currentRound].lateMarks[i]=false;}await refresh(id);}
 function addPlacesAsk(id){
@@ -5377,7 +5494,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.75';
+const UBORA_BUILD='v7.76';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
