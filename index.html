@@ -1660,6 +1660,37 @@ async function sbGetTontine(id,uid){
   return loc;
 }
 const db={
+  /* ---------- fédérations (v7.72) ---------- */
+  async fedUid(){ try{const{data}=await sb.auth.getUser(); return data&&data.user?data.user.id:null;}catch(e){return null;} },
+  async fedLoad(){
+    if(BACKEND!=='supabase'){ state_fed={mine:[],bureau:[],dir:[],uid:null}; return; }
+    const uid=await db.fedUid();
+    const [mine,dir,bur]=await Promise.all([
+      sb.from('my_federations').select('*'),
+      sb.from('federations').select('id,name,region,owner').order('name'),
+      uid?sb.from('federation_bureau').select('fed_id,role').eq('user_id',uid):Promise.resolve({data:[]})
+    ]);
+    if(mine.error)throw mine.error; if(dir.error)throw dir.error;
+    state_fed={ uid, mine:mine.data||[], dir:dir.data||[], bureau:(bur.data||[]) };
+  },
+  async fedLoadOne(fedId){
+    if(BACKEND!=='supabase'||!fedId){ state_fed1=null; return; }
+    const [bur,dec,mem]=await Promise.all([
+      sb.from('federation_bureau').select('fed_id,user_id,role,added_at').eq('fed_id',fedId),
+      sb.from('federation_decisions').select('*').eq('fed_id',fedId).order('created_at',{ascending:false}),
+      sb.from('federation_members').select('*').eq('fed_id',fedId)
+    ]);
+    if(bur.error)throw bur.error;
+    const f=(state_fed.dir||[]).find(x=>x.id===fedId)||null;
+    state_fed1={ fed:f, bureau:bur.data||[], decisions:dec.data||[], members:mem.data||[] };
+  },
+  async fedCreate(name,region){ const{data,error}=await sb.rpc('fed_create',{p_name:name,p_region:region||null}); if(error)throw error; return data; },
+  async fedInvite(fedId,role){ const{data,error}=await sb.rpc('fed_bureau_invite',{p_fed:fedId,p_role:role||null}); if(error)throw error; return data; },
+  async fedAccept(code){ const{data,error}=await sb.rpc('fed_bureau_accept',{p_code:code}); if(error)throw error; return data; },
+  async fedAsk(fedId,assoc,country){ const{data,error}=await sb.rpc('fed_request',{p_fed:fedId,p_assoc:assoc,p_country:country||null}); if(error)throw error; return data; },
+  async fedSign(decId){ const{data,error}=await sb.rpc('fed_sign',{p_decision:decId}); if(error)throw error; return data; },
+  async fedRefuse(decId){ const{error}=await sb.rpc('fed_reject',{p_decision:decId}); if(error)throw error; },
+  async fedRevoke(fedId,userId){ const{data,error}=await sb.rpc('fed_revoke_request',{p_fed:fedId,p_user:userId}); if(error)throw error; return data; },
   async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean).map(ev=>{
       /* « cameroun » saisi en texte libre redevient « Cameroun » : ni SQL, ni migration —
          la correction se fixe en base au premier enregistrement de l'événement */
@@ -1837,6 +1868,7 @@ function backLabel(){ if(navStack.length){ try{ const v=JSON.parse(navStack[navS
 function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navStack.pop(); _navBack=true; try{const s=JSON.parse(snap); Object.assign(state,s);}catch(e){_navBack=false;} if(typeof unsubscribeActive==='function')unsubscribeActive(); render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){} }
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
+  if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin')){try{await db.fedLoad(); if(v==='fedadmin')await db.fedLoadOne(state.activeFedId);}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
     try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
@@ -1924,7 +1956,7 @@ function render(){
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
   if(state.view==='home')$('#nav-home').classList.add('on');
-  if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
+  if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
   if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate')$('#nav-partage').classList.add('on');
   if(state.view==='diffusion')$('#nav-diffusion').classList.add('on');
@@ -1932,9 +1964,9 @@ function render(){
   if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
-  const _GATED_SOON={mandate:1,registre:1,federation:1,attestation:1};
+  const _GATED_SOON={mandate:1,registre:1,attestation:1};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFederation,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -3240,7 +3272,7 @@ function viewEntraide(){
     <h1 class="page-title">${tr('et_title')}</h1>
     <p class="lead">${tr('et_lead')}</p>
     <div>${trustSeal(tr('et_seal'))}</div>
-    <div style="margin:16px 0 8px"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button></div>
+    <div style="margin:16px 0 8px" class="row-gap"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button><button class="btn btn-ghost btn-sm" onclick="go('fedhome')">${tr('et_sec_networks')}</button></div>
     <h2 class="section-h">Mes caisses</h2>
     <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">Aucune caisse pour l'instant. Créez la première.</div>`}</div>
     ${[].map(f=>{const fm=f==='RPN'?RESEAU_RPN:null;const n=rosterFor(f).length;
@@ -4090,6 +4122,147 @@ function fedBureau(fed){return fed==='RPN'?(RESEAU_RPN.bureau||[]):[];}
 function fedRequest(fed){const an=document.getElementById('fed-assoc'),co=document.getElementById('fed-country');const assoc=an?String(an.value).trim():'',country=co?String(co.value).trim():'';if(!assoc){alert(tr('fd_need_assoc'));return;}state.fedRequests=state.fedRequests||[];const base=fedBaseCountry(fed);const geoGap=!!(base&&country&&country.toLowerCase()!==base.toLowerCase());state.fedRequests.unshift({id:'fr'+Date.now(),fed,assoc,country,status:'pending',approvals:[],geoGap,ts:EV_TODAY});render();}
 function fedApprove(id){const q=(state.fedRequests||[]).find(x=>x.id===id);if(!q||q.status!=='pending')return;const bureau=fedBureau(q.fed);const next=bureau.find(b=>q.approvals.indexOf(b)<0);if(next)q.approvals.push(next);if([...new Set(q.approvals)].length>=2){q.status='approved';q.decidedTs=EV_TODAY;}render();}
 function fedReject(id){const q=(state.fedRequests||[]).find(x=>x.id===id);if(!q||q.status!=='pending')return;q.status='refused';q.decidedTs=EV_TODAY;render();}
+/* ================= FÉDÉRATIONS — écrans réels (v7.72) =================
+   Ces écrans lisent la base. Aucune donnée de démonstration.
+   viewFederation() ci-dessous est l'ancien écran de démo : il n'est plus
+   appelé par le routeur, il partira au lot 2 avec RESEAU_RPN. */
+
+let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null;
+const _FL=(fr,en)=>state.lang==='en'?en:fr;
+
+function openFed(id){ state.activeFedId=id; go('fedadmin'); }
+
+async function fedDoCreate(){
+  const n=document.getElementById('nf-name'), r=document.getElementById('nf-region');
+  const name=n?String(n.value).trim():'', region=r?String(r.value).trim():'';
+  if(!name){ alert(_FL('Donnez un nom à la fédération.','Please name the federation.')); return; }
+  try{ const id=await db.fedCreate(name,region);
+    alert(_FL('Fédération créée. Vous êtes seule au bureau : invitez une deuxième personne, sinon aucune admission ne pourra être signée.',
+              'Federation created. You are alone on the board: invite a second person, otherwise no admission can be signed.'));
+    state.activeFedId=id; go('fedadmin');
+  }catch(e){ alert(e.message||e); }
+}
+async function fedDoAccept(){
+  const el=document.getElementById('nf-code'); const code=el?String(el.value).trim():'';
+  if(!code){ alert(_FL('Saisissez le code reçu.','Enter the code you received.')); return; }
+  try{ const fid=await db.fedAccept(code); alert(_FL('Vous êtes entré·e au bureau.','You have joined the board.')); state.activeFedId=fid; go('fedadmin'); }
+  catch(e){ alert(e.message||e); }
+}
+async function fedDoInvite(fedId){
+  const r=document.getElementById('nf-role'); const role=r?String(r.value).trim():'';
+  try{ const code=await db.fedInvite(fedId,role);
+    prompt(_FL('Transmettez ce code à la personne. Il est valable 14 jours et ne sert qu\'une fois :',
+               'Give this code to the person. Valid 14 days, single use:'), code);
+  }catch(e){ alert(e.message||e); }
+}
+async function fedDoAsk(fedId){
+  const a=document.getElementById('nf-assoc'), c=document.getElementById('nf-country');
+  const assoc=a?String(a.value).trim():'', country=c?String(c.value).trim():'';
+  if(!assoc){ alert(_FL('Nom de votre association ?','Your association name?')); return; }
+  try{ await db.fedAsk(fedId,assoc,country); alert(_FL('Demande envoyée. Deux membres du bureau doivent la signer.','Request sent. Two board members must sign it.')); go('fedhome'); }
+  catch(e){ alert(e.message||e); }
+}
+async function fedDoSign(decId){ try{ const st=await db.fedSign(decId);
+  alert(st==='approved'?_FL('Deuxième signature : décision approuvée.','Second signature: decision approved.')
+                       :_FL('Signature enregistrée. Il en faut une seconde, d\'une autre personne du bureau.','Signature recorded. A second one is needed, from another board member.'));
+  go('fedadmin'); }catch(e){ alert(e.message||e); } }
+async function fedDoRefuse(decId){ try{ await db.fedRefuse(decId); go('fedadmin'); }catch(e){ alert(e.message||e); } }
+async function fedDoRevoke(fedId,uid){
+  if(!confirm(_FL('Ouvrir une procédure de radiation ? Elle exigera deux signatures.','Open a removal procedure? It will require two signatures.')))return;
+  try{ await db.fedRevoke(fedId,uid); go('fedadmin'); }catch(e){ alert(e.message||e); }
+}
+
+function viewFedHome(){
+  const mine=state_fed.mine||[], dir=state_fed.dir||[], bur=state_fed.bureau||[];
+  const burIds=new Set(bur.map(b=>b.fed_id));
+  const mineHtml=mine.length?mine.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.fed_name)}</div><div class="msub">${esc(m.assoc_name)}${m.region?' · '+esc(m.region):''}</div></div><div class="right"><span class="pill p-paid">${_FL('admis','admitted')}</span></div></div>`).join('')
+    :`<div class="mrow"><span class="msub">${_FL('Vous n\'êtes membre d\'aucune fédération.','You are not a member of any federation.')}</span></div>`;
+  const burHtml=bur.length?bur.map(b=>{const f=dir.find(x=>x.id===b.fed_id);
+      return `<div class="mrow" onclick="openFed('${b.fed_id}')" style="cursor:pointer"><div class="stack"><div class="mname">${esc(f?f.name:b.fed_id)}</div><div class="msub">${esc(b.role||_FL('membre du bureau','board member'))}</div></div><div class="right">›</div></div>`;}).join('')
+    :`<div class="mrow"><span class="msub">${_FL('Vous ne siégez à aucun bureau.','You sit on no board.')}</span></div>`;
+  const others=dir.filter(f=>!burIds.has(f.id)&&!mine.some(m=>m.fed_id===f.id));
+  const dirHtml=others.length?others.map(f=>`<div class="mrow"><div class="stack"><div class="mname">${esc(f.name)}</div><div class="msub">${esc(f.region||'—')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="state.activeFedId='${f.id}';go('fedask')">${_FL('Demander l\'adhésion','Apply')}</button></div></div>`).join('')
+    :`<div class="mrow"><span class="msub">${_FL('Aucune autre fédération enregistrée.','No other federation registered.')}</span></div>`;
+  app().innerHTML=`
+    <button class="backlink" onclick="go('entraide')">‹ ${_FL('Entraide','Mutual aid')}</button>
+    <div class="eyebrow">${_FL('réseaux','networks')}</div>
+    <h1 class="page-title">${_FL('Réseaux & fédérations','Networks & federations')}</h1>
+    <p class="lead">${_FL('Nul ne se déclare membre d\'un réseau : deux membres du bureau le signent.','Nobody self-declares network membership: two board members sign it.')}</p>
+    <h2 class="section-h">${_FL('Mes appartenances','My memberships')}</h2>
+    <div class="panel"><div style="padding:8px 16px">${mineHtml}</div></div>
+    <h2 class="section-h">${_FL('Bureaux où je siège','Boards I sit on')}</h2>
+    <div class="panel"><div style="padding:8px 16px">${burHtml}</div></div>
+    <h2 class="section-h">${_FL('Créer une fédération','Create a federation')}</h2>
+    <div class="panel"><div style="padding:14px 18px">
+      <div class="row-gap">
+        <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Nom','Name')}</label><input id="nf-name" placeholder="${_FL('ex. RPN','e.g. RPN')}"></div>
+        <div class="field" style="flex:1;min-width:140px;margin-top:0"><label>${_FL('Pays de base','Base country')}</label><input id="nf-region" placeholder="${_FL('ex. Canada','e.g. Canada')}"></div>
+      </div>
+      <div class="msub" style="margin-top:8px">${_FL('Le pays de base sert à signaler les demandes venues d\'ailleurs.','The base country flags applications coming from elsewhere.')}</div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoCreate()">${_FL('Créer','Create')}</button></div>
+    </div></div>
+    <h2 class="section-h">${_FL('J\'ai un code d\'invitation','I have an invitation code')}</h2>
+    <div class="panel"><div style="padding:14px 18px">
+      <div class="field" style="margin-top:0"><label>${_FL('Code reçu du bureau','Code from the board')}</label><input id="nf-code" placeholder="AB3D7KM2" style="text-transform:uppercase"></div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoAccept()">${_FL('Rejoindre le bureau','Join the board')}</button></div>
+    </div></div>
+    <h2 class="section-h">${_FL('Annuaire des fédérations','Federation directory')}</h2>
+    <div class="panel"><div style="padding:8px 16px">${dirHtml}</div></div>
+    ${footer()}`;
+}
+
+function viewFedAsk(){
+  const f=(state_fed.dir||[]).find(x=>x.id===state.activeFedId);
+  if(!f){ go('fedhome'); return; }
+  app().innerHTML=`
+    <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
+    <div class="eyebrow">${_FL('adhésion','application')}</div>
+    <h1 class="page-title">${esc(f.name)}</h1>
+    <p class="lead">${_FL('Votre demande sera examinée par le bureau. Elle n\'est acquise qu\'après deux signatures.','Your application will be reviewed by the board. It requires two signatures.')}</p>
+    <div class="panel"><div style="padding:14px 18px">
+      <div class="row-gap">
+        <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Votre association','Your association')}</label><input id="nf-assoc"></div>
+        <div class="field" style="flex:1;min-width:140px;margin-top:0"><label>${_FL('Pays','Country')}</label><input id="nf-country" placeholder="${esc(f.region||'')}"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="fedDoAsk('${f.id}')">${_FL('Envoyer la demande','Send application')}</button></div>
+    </div></div>
+    ${footer()}`;
+}
+
+function viewFedAdmin(){
+  const D=state_fed1;
+  if(!D||!D.fed){ go('fedhome'); return; }
+  const f=D.fed, bur=D.bureau||[], dec=D.decisions||[], mem=D.members||[];
+  const isOwner=(f.owner===state_fed.uid);
+  const pend=dec.filter(d=>d.status==='pending');
+  const warn=bur.length<2?`<div class="asnote" style="color:var(--pending)">${_FL('Le bureau ne compte qu\'une personne. Aucune décision ne pourra être signée tant qu\'il n\'y en a pas deux.','The board has only one member. No decision can be signed until there are two.')}</div>`:'';
+  const burHtml=bur.map(b=>`<div class="mrow"><div class="stack"><div class="mname">${b.user_id===state_fed.uid?_FL('Vous','You'):esc(b.user_id.slice(0,8))+'…'}</div><div class="msub">${esc(b.role||'—')}</div></div></div>`).join('');
+  const pendHtml=pend.length?pend.map(d=>`<div class="mrow"><div class="stack"><div class="mname">${esc(d.assoc_name)} ${d.kind==='revocation'?`<span class="pill p-done">${_FL('radiation','removal')}</span>`:''}</div>${d.country?`<div class="msub">${esc(d.country)}</div>`:''}${d.geo_gap?`<div class="msub" style="color:var(--pending)">⚠ ${_FL('pays différent du pays de base','country differs from base country')}</div>`:''}</div><div class="right"><button class="btn btn-gold btn-sm" onclick="fedDoSign('${d.id}')">${_FL('Signer','Sign')}</button> <button class="btn btn-ghost btn-sm" onclick="fedDoRefuse('${d.id}')">${_FL('Refuser','Refuse')}</button></div></div>`).join('')
+    :`<div class="mrow"><span class="msub">${_FL('Aucune demande en attente.','No pending application.')}</span></div>`;
+  const memHtml=mem.length?mem.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.assoc_name)}</div><div class="msub">${esc(m.country||'—')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="fedDoRevoke('${f.id}','${m.user_id}')">${_FL('Radier','Remove')}</button></div></div>`).join('')
+    :`<div class="mrow"><span class="msub">${_FL('Aucune association admise.','No association admitted.')}</span></div>`;
+  const inviteHtml=isOwner?`<h2 class="section-h">${_FL('Inviter au bureau','Invite to the board')}</h2>
+    <div class="panel"><div style="padding:14px 18px">
+      <div class="field" style="margin-top:0"><label>${_FL('Fonction (facultatif)','Role (optional)')}</label><input id="nf-role" placeholder="${_FL('ex. trésorier','e.g. treasurer')}"></div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoInvite('${f.id}')">${_FL('Générer un code','Generate a code')}</button></div>
+      <div class="msub" style="margin-top:8px">${_FL('Le code vaut 14 jours et ne sert qu\'une fois. Transmettez-le de la main à la main.','The code lasts 14 days and works once. Hand it over directly.')}</div>
+    </div></div>`:'';
+  app().innerHTML=`
+    <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
+    <div class="eyebrow">${_FL('fédération','federation')}</div>
+    <h1 class="page-title">${esc(f.name)}</h1>
+    <p class="lead">${esc(f.region||'')}</p>
+    ${warn}
+    <h2 class="section-h">${_FL('Le bureau','The board')} (${bur.length})</h2>
+    <div class="panel"><div style="padding:8px 16px">${burHtml}</div></div>
+    ${inviteHtml}
+    <h2 class="section-h">${_FL('Demandes à trancher','Decisions to sign')}</h2>
+    <div class="panel"><div style="padding:8px 16px">${pendHtml}</div></div>
+    <h2 class="section-h">${_FL('Associations membres','Member associations')} (${mem.length})</h2>
+    <div class="panel"><div style="padding:8px 16px">${memHtml}</div></div>
+    ${footer()}`;
+}
+
 function viewFederation(){
   const fed=state.activeFed||'RPN', meta=(fed==='RPN')?RESEAU_RPN:null;
   const roster=rosterFor(fed), surUbora=roster.length, membresUbora=roster.reduce((s,x)=>s+(x.membres||0),0);
@@ -5222,7 +5395,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.71';
+const UBORA_BUILD='v7.72';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
