@@ -1421,19 +1421,9 @@ const TON_EVENT={sobre:{label:'sobre',ic:'◷'},joyeux:{label:'joyeux',ic:'✦'}
 const EVT_TYPE={gala:'Gala',tournoi:'Tournoi sportif',soiree:'Soirée',fete:'Fête',piquenique:'Pique-nique',formation:'Formation',teambuilding:'Team building',detente:'Détente',conf:'Conférence'};
 /* Réseau / fédération — un groupe déclare son appartenance en s'enregistrant ;
    l'annuaire se construit ainsi « par le bas ». RPN = Retour au Pays Natal. */
-const RESEAU_RPN={
-  id:'rpn', nom:'RPN — Retour au Pays Natal',
-  mission:'Rapatriement digne · réseau maître d\u2019œuvre, jamais assureur',
-  totalAssociations:484, totalMembres:82708, coefficient:0.40, devise:'CAD', region:'Canada', bureau:['Awa N.','Kofi B.','Marie D.'],
-  annuaire:[
-    {nom:'Binam Canada', ville:'Ottawa', membres:560},
-    {nom:'Solidarité Sawa', ville:'Toronto', membres:280},
-    {nom:'Haut-Nkam Montréal', ville:'Montréal', membres:410},
-  ]
-};
 let state_caisses=[
   {
-    id:'c1', group:'Famille Mbarga', name:'Caisse de solidarité Mbarga', type:'deces', currency:'XOF', federation:'RPN',
+    id:'c1', group:'Famille Mbarga', name:'Caisse de solidarité Mbarga', type:'deces', currency:'XOF',
     cotisation:{montant:2000,frequence:'mensuelle'}, fonds:180000,
     bureau:[
       {name:'Jean M.',role:'president'},
@@ -1462,7 +1452,7 @@ let state_caisses=[
     seed:[{ts:'12 juin 2026',type:'a',what:'Estelle M. (trésorière) a ouvert un appel — Décès de M. Pierre Mbarga (rapatriement). 25 000 FCFA par foyer.'}],
   },
   {
-    id:'c2', group:'Association des Camerounais de Montréal', name:'Caisse de solidarité ACM', type:'deces', currency:'CAD', federation:'RPN',
+    id:'c2', group:'Association des Camerounais de Montréal', name:'Caisse de solidarité ACM', type:'deces', currency:'CAD',
     cotisation:{montant:5,frequence:'mensuelle'}, fonds:2400,
     bureau:[
       {name:'Brigitte T.',role:'president'},
@@ -1501,11 +1491,11 @@ let state_caisses=[
 /* Événements communautaires — galas, soirées, tournois. Billetterie via le même rail Stripe.
    L'association est le marchand ; UBORA ne détient rien ; application fee = revenu UBORA. */
 let state_events=[
-  { id:'e1', group:'Association des Camerounais de Montréal', federation:'RPN', type:'gala', category:'culturel', country:'Canada', city:'Montréal', openToAll:false, visibility:'public', dateISO:'2026-10-18', postedISO:'2026-06-10',
+  { id:'e1', group:'Association des Camerounais de Montréal', type:'gala', category:'culturel', country:'Canada', city:'Montréal', openToAll:false, visibility:'public', dateISO:'2026-10-18', postedISO:'2026-06-10',
     title:'Gala annuel ACM 2026', date:'18 octobre 2026', lieu:'Salle Marcel-Léger, Montréal', currency:'CAD', objectif:15000,
     desc:'Soirée de gala : dîner, orchestre live, tombola solidaire. Les fonds soutiennent les actions de l\u2019association.',
     billets:[{nom:'Entrée standard',prix:60,vendus:84},{nom:'Étudiant',prix:30,vendus:22},{nom:'Table VIP (8 personnes)',prix:480,vendus:6}] },
-  { id:'e2', group:'Binam Canada', federation:'RPN', type:'tournoi', category:'sport', country:'Canada', city:'Montréal', openToAll:true, visibility:'public', dateISO:'2026-07-05', postedISO:'2026-06-18',
+  { id:'e2', group:'Binam Canada', type:'tournoi', category:'sport', country:'Canada', city:'Montréal', openToAll:true, visibility:'public', dateISO:'2026-07-05', postedISO:'2026-06-18',
     title:'Tournoi de football inter-associations', date:'5 juillet 2026', lieu:'Parc Jarry, Montréal', currency:'CAD', objectif:4000,
     desc:'Tournoi amical entre associations de la diaspora. Inscription par équipe, entrée libre pour les supporters, buvette solidaire.',
     billets:[{nom:'Inscription équipe',prix:120,vendus:9},{nom:'Supporter',prix:10,vendus:140}] },
@@ -1869,7 +1859,7 @@ function backLabel(){ if(navStack.length){ try{ const v=JSON.parse(navStack[navS
 function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navStack.pop(); _navBack=true; try{const s=JSON.parse(snap); Object.assign(state,s);}catch(e){_navBack=false;} if(typeof unsubscribeActive==='function')unsubscribeActive(); render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){} }
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
-  if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin')){try{await db.fedLoad(); if(v==='fedadmin')await db.fedLoadOne(state.activeFedId);}catch(e){console.warn(e);}}
+  if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin'||v==='entraide'||v==='caisse'||v==='caissecreate'||v==='evenements'||v==='evenement')){try{await db.fedLoad(); if(v==='fedadmin')await db.fedLoadOne(state.activeFedId);}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
     try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
@@ -3021,8 +3011,13 @@ function viewCaisseCreate(){
         <div class="field" style="flex:0 0 110px"><label>${tr('cc_cur')}</label><select id="c-cur">${CUR_ORDER.map(x=>opt(x,c.currency,CUR_LABEL[x])).join('')}</select></div>
       </div>
       <div class="field"><label>${tr('cc_fed')}</label>
-        <input id="c-fed" list="fed-list" placeholder="${tr('cc_fed_ph')}" value="${c.federation||''}">
-        <datalist id="fed-list">${federationsList().map(f=>`<option value="${f}"></option>`).join('')}</datalist>
+        ${(state_fed.mine||[]).length
+          ? `<select id="c-fed">
+               <option value="">${_FL('Aucun réseau','No network')}</option>
+               ${(state_fed.mine||[]).map(m=>`<option value="${esc(m.fed_name)}"${c.federation===m.fed_name?' selected':''}>${esc(m.fed_name)}</option>`).join('')}
+             </select>`
+          : `<select id="c-fed" disabled><option value="">${_FL('Aucun réseau','No network')}</option></select>
+             <div class="msub" style="margin-top:6px">${_FL('Vous n\'appartenez à aucune fédération. Une appartenance ne se déclare pas : elle s\'obtient auprès du bureau, à deux signatures.','You belong to no federation. Membership is not declared: it is granted by the board, with two signatures.')} <a href="#" onclick="go('fedhome');return false">${_FL('Faire une demande','Apply')}</a></div>`}
         <div class="hint" style="margin-top:6px">${tr('cc_fed_hint')}</div></div>
     </div></div>
     <div class="panel"><div class="panel-h"><h3>${tr('cc_board')}</h3></div>
@@ -3276,10 +3271,7 @@ function viewEntraide(){
     <div style="margin:16px 0 8px" class="row-gap"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button><button class="btn btn-ghost btn-sm" onclick="go('fedhome')">${tr('et_sec_networks')}</button></div>
     <h2 class="section-h">Mes caisses</h2>
     <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">Aucune caisse pour l'instant. Créez la première.</div>`}</div>
-    ${[].map(f=>{const fm=f==='RPN'?RESEAU_RPN:null;const n=rosterFor(f).length;
-      const sub=fm?`${fm.totalAssociations} ${tr('et_assocs')} · ${fm.totalMembres.toLocaleString(state.lang==='en'?'en-US':'fr-FR')} ${tr('et_members')}`:`${n} ${n>1?tr('et_assocs'):tr('et_assoc1')} ${tr('et_on_ubora')}`;
-      return `<div class="panel rpn-banner" onclick="openFederation('${f.replace(/'/g,"\\'")}')"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${tr('net_word')} ${f}</div><div class="msub">${sub} · ${tr('et_built_bottom')}</div></div><span class="reg-link" style="margin:0">${tr('et_directory')}</span></div></div>`;
-    }).join('')}
+    
     <h2 class="section-h">${tr('et_sec_open')}</h2>
     <div class="cards">${cards||`<div class="empty">${tr('et_empty')}</div>`}</div>
     ${footer()}`;
@@ -3314,7 +3306,7 @@ function entraideCard(c,a){
     : `<span class="pill ${a.ton==='joyeux'?'p-now':'p-appel'}">${ton.ic} ${tr('ton_'+a.ton)}</span>`;
   return `<div class="card caisse-card" style="border-left-color:${a.ton==='joyeux'?'var(--gold-bright)':'var(--core)'}">
     <div class="between"><div class="t-name">${a.motif}</div>${tag}</div>
-    <div class="t-meta">${c.group}${c.federation?` · <span class="rpn-tag">${tr('net_word')} ${c.federation}</span>`:''} · ${a.sousType} · ${a.joursRestants} ${tr('ec2_days_left')} · ${tr('ec2_deadline_word')} ${a.echeance}</div>
+    <div class="t-meta">${c.group}${fedTag(c.federation)} · ${a.sousType} · ${a.joursRestants} ${tr('ec2_days_left')} · ${tr('ec2_deadline_word')} ${a.echeance}</div>
     <div class="between" style="margin-top:12px"><span class="mid" style="font-size:13px">${tr('ec2_group_part')}</span><span style="font-weight:600">${conf}/${tot} ${tr('ec2_foyers')}</span></div>
     <div class="progress"><i style="width:${Math.round(conf/tot*100)}%"></i></div>
     ${zone}${nudge}
@@ -3409,7 +3401,7 @@ function viewAttestation(){
       <p class="att-intro">${tr('at_intro')}</p>
       <div class="att-meta">
         <div><span class="att-k">${tr('at_for')}</span><span class="att-v">${a.motif} · ${a.sousType}</span></div>
-        <div><span class="att-k">${c.group}${c.federation?` · ${tr('net_word')} ${c.federation}`:''}</span><span class="att-v">${tr('at_total_line').replace('{n}',list.length).replace('{sum}',money(total,cur))}</span></div>
+        <div><span class="att-k">${c.group}${fedTxt(c.federation)}</span><span class="att-v">${tr('at_total_line').replace('{n}',list.length).replace('{sum}',money(total,cur))}</span></div>
       </div>
       <h3 class="att-h">${tr('at_contribs_h')}</h3>
       <div class="att-list">${rows}</div>
@@ -3451,7 +3443,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:7px 2px;bord
 <div class="eye">${esc(tr('at_eyebrow'))}</div><h1>${esc(tr('at_title'))}</h1>
 <p class="intro">${esc(tr('at_intro'))}</p>
 <div class="meta"><div><span class="k">${esc(tr('at_for'))}</span><span>${esc(a.motif)} · ${esc(a.sousType)}</span></div>
-<div><span class="k">${esc(c.group)}${c.federation?' · '+esc(tr('net_word'))+' '+esc(c.federation):''}</span><span>${esc(tr('at_total_line').replace('{n}',list.length).replace('{sum}',money(total,cur)))}</span></div></div>
+<div><span class="k">${esc(c.group)}${fedTxt(c.federation)}</span><span>${esc(tr('at_total_line').replace('{n}',list.length).replace('{sum}',money(total,cur)))}</span></div></div>
 <h3>${esc(tr('at_contribs_h'))}</h3><table>${rows}</table>
 <h3>${esc(tr('at_cert_h'))}</h3><div class="cert">${(caisseHasCommissaire(c)&&a.certifie)?tr('at_cert_body'):tr('at_cert_body_double')}</div>
 ${bureau?`<h3>${esc(tr('at_bureau_h'))}</h3>${bureau}`:''}
@@ -4106,30 +4098,9 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
 }
 
 /* ---------- fédérations (annuaire bâti par le bas, multi-réseaux) ---------- */
-function federationsList(){
-  const set=new Set(); state_caisses.forEach(c=>{ if(c.federation) set.add(c.federation); });
-  set.add('RPN'); return [...set];
-}
-function rosterFor(fed){
-  const fromCaisses=state_caisses.filter(c=>c.federation===fed).map(c=>({nom:c.group,ville:'—',membres:c.foyers.length,surUbora:true}));
-  const seen=new Set(fromCaisses.map(x=>x.nom));
-  const approved=(state.fedRequests||[]).filter(r=>r.fed===fed&&r.status==='approved'&&!seen.has(r.assoc)).map(r=>{seen.add(r.assoc);return{nom:r.assoc,ville:r.country||'—',membres:0,surUbora:true};});
-  const seeded=(fed==='RPN')?RESEAU_RPN.annuaire.filter(x=>!seen.has(x.nom)).map(x=>({...x,surUbora:true})):[];
-  return fromCaisses.concat(approved,seeded);
-}
-function openFederation(name){state.activeFed=name;go('federation');}
-function fedBaseCountry(fed){return fed==='RPN'?(RESEAU_RPN.region||''):'';}
-function fedBureau(fed){return fed==='RPN'?(RESEAU_RPN.bureau||[]):[];}
-function fedRequest(fed){const an=document.getElementById('fed-assoc'),co=document.getElementById('fed-country');const assoc=an?String(an.value).trim():'',country=co?String(co.value).trim():'';if(!assoc){alert(tr('fd_need_assoc'));return;}state.fedRequests=state.fedRequests||[];const base=fedBaseCountry(fed);const geoGap=!!(base&&country&&country.toLowerCase()!==base.toLowerCase());state.fedRequests.unshift({id:'fr'+Date.now(),fed,assoc,country,status:'pending',approvals:[],geoGap,ts:EV_TODAY});render();}
-function fedApprove(id){const q=(state.fedRequests||[]).find(x=>x.id===id);if(!q||q.status!=='pending')return;const bureau=fedBureau(q.fed);const next=bureau.find(b=>q.approvals.indexOf(b)<0);if(next)q.approvals.push(next);if([...new Set(q.approvals)].length>=2){q.status='approved';q.decidedTs=EV_TODAY;}render();}
-function fedReject(id){const q=(state.fedRequests||[]).find(x=>x.id===id);if(!q||q.status!=='pending')return;q.status='refused';q.decidedTs=EV_TODAY;render();}
-/* ================= FÉDÉRATIONS — écrans réels (v7.72) =================
-   Ces écrans lisent la base. Aucune donnée de démonstration.
-   viewFederation() ci-dessous est l'ancien écran de démo : il n'est plus
-   appelé par le routeur, il partira au lot 2 avec RESEAU_RPN. */
-
-let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null;
-const _FL=(fr,en)=>state.lang==='en'?en:fr;
+function fedOk(name){ return !!name && (state_fed.mine||[]).some(m=>m.fed_name===name); }
+function fedTag(name){ return fedOk(name)?` · <span class="rpn-tag">${tr('net_word')} ${esc(name)}</span>`:''; }
+function fedTxt(name){ return fedOk(name)?` · ${tr('net_word')} ${esc(name)}`:''; }
 
 function openFed(id){ state.activeFedId=id; go('fedadmin'); }
 
@@ -4296,42 +4267,6 @@ function viewFedAdmin(){
     ${footer()}`;
 }
 
-function viewFederation(){
-  const fed=state.activeFed||'RPN', meta=(fed==='RPN')?RESEAU_RPN:null;
-  const roster=rosterFor(fed), surUbora=roster.length, membresUbora=roster.reduce((s,x)=>s+(x.membres||0),0);
-  const rows=roster.length?roster.map(x=>`<div class="reg-row"><span>${x.nom}${x.surUbora?` <span class="pill p-paid" style="margin-left:6px">${tr('et_on_ubora')}</span>`:''}</span><span class="faint">${x.ville} · ${x.membres} ${tr('et_members')}</span></div>`).join('')
-    :`<div class="reg-row"><span class="msub">${tr('fd_none')}</span></div>`;
-  const stats=meta?`<div class="stat-grid">
-      <div class="stat"><div class="stat-n">${meta.totalAssociations}</div><div class="stat-l">${tr('fd_stat_assocs')}</div></div>
-      <div class="stat"><div class="stat-n">${meta.totalMembres.toLocaleString(state.lang==='en'?'en-US':'fr-FR')}</div><div class="stat-l">${tr('fd_stat_members')}</div></div>
-      <div class="stat"><div class="stat-n">${meta.coefficient.toLocaleString('fr-FR',{minimumFractionDigits:2})} ${meta.devise}</div><div class="stat-l">${tr('fd_stat_quote')}</div></div>
-    </div>`:'';
-  const tail=meta?`<p class="msub" style="margin-top:12px">${tr('fd_tail').replace('{c}',meta.coefficient.toLocaleString('fr-FR',{minimumFractionDigits:2})).replace('{dev}',meta.devise)}</p>`:'';
-  const _reqs=(state.fedRequests||[]).filter(r=>r.fed===fed), _base=fedBaseCountry(fed);
-  const _pending=_reqs.filter(r=>r.status==='pending'), _decided=_reqs.filter(r=>r.status!=='pending');
-  const reqForm=`<div class="panel" style="margin-top:16px"><div class="panel-h"><h3>${tr('fd_req_h')}</h3></div><div style="padding:14px 18px"><div class="row-gap"><div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${tr('fd_req_assoc')}</label><input id="fed-assoc" placeholder="${tr('fd_req_assoc_ph')}"></div><div class="field" style="flex:1;min-width:140px;margin-top:0"><label>${tr('fd_req_country')}</label><input id="fed-country" placeholder="${tr('fd_req_country_ph')}"></div></div><div class="msub" style="margin-top:8px">${tr('fd_req_hint')}</div><div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedRequest('${fed}')">${tr('fd_req_btn')}</button><button class="btn btn-ghost btn-sm" onclick="go('caissecreate')">${tr('fd_register_btn')}</button></div></div></div>`;
-  const pendingHtml=_pending.length?`<h2 class="section-h">${tr('fd_pending_h')}</h2><div class="panel"><div style="padding:8px 16px">`+_pending.map(r=>`<div class="mrow"><div class="stack"><div class="mname">${esc(r.assoc)}${r.country?` <span class="faint">· ${esc(r.country)}</span>`:''}</div>${r.geoGap?`<div class="msub" style="color:var(--pending)">${tr('fd_geo_gap').replace('{b}',esc(_base))}</div>`:''}<div class="msub">${tr('fd_appr_count').replace('{n}',[...new Set(r.approvals)].length)}</div></div><div class="right"><button class="btn btn-gold btn-sm" onclick="fedApprove('${r.id}')">${tr('fd_approve')}</button> <button class="btn btn-ghost btn-sm" onclick="fedReject('${r.id}')">${tr('fd_reject')}</button></div></div>`).join('')+`</div></div>`:'';
-  const myHtml=_decided.length?`<h2 class="section-h">${tr('fd_my_h')}</h2><div class="panel"><div style="padding:8px 16px">`+_decided.map(r=>`<div class="mrow"><div class="stack"><div class="mname">${esc(r.assoc)}</div><div class="msub">${tr('fd_notified')}</div></div><div class="right"><span class="pill ${r.status==='approved'?'p-paid':'p-done'}">${r.status==='approved'?tr('fd_approved'):tr('fd_refused')}</span></div></div>`).join('')+`</div></div>`:'';
-  app().innerHTML=`
-    <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
-    <div class="eyebrow">${tr('fd_eyebrow')}</div>
-    <h1 class="page-title">${meta?meta.nom:(tr('net_word')+' '+fed)}</h1>
-    <p class="lead">${meta?meta.mission+'.':tr('fd_lead_generic')}</p>
-    <div class="asnote">${tr('fd_asnote')}</div>
-    ${stats}
-    <h2 class="section-h">${tr('fd_sec_mapped')}</h2>
-    <div class="panel"><div style="padding:6px 4px"><div class="reg-group">
-      <div class="reg-gh"><span>${surUbora} ${surUbora>1?tr('et_assocs'):tr('et_assoc1')}</span><span class="msub">${membresUbora.toLocaleString(state.lang==='en'?'en-US':'fr-FR')} ${tr('et_members')}</span></div>
-      ${rows}
-    </div></div></div>
-    ${reqForm}
-    ${pendingHtml}
-    ${myHtml}
-    ${tail}
-    ${footer()}`;
-}
-
-/* ---------- événements communautaires (galas, tournois, soirées) ---------- */
 function eventStats(ev){
   const tickets=ev.billets.reduce((s,b)=>s+b.vendus,0);
   const collected=ev.billets.reduce((s,b)=>s+b.vendus*b.prix,0);
@@ -4812,7 +4747,7 @@ function viewEvents(){
       ${ev.visual?`<img class="ev-thumb" src="${ev.visual}" alt="">`:''}
       <div class="between"><div class="t-name">${esc(ev.title)}</div><span class="pill p-now">${ev.dateISO?evDateLabel(ev.dateISO):esc(ev.date)}</span></div>
       <div class="ev-badges">${badges}</div>
-      <div class="t-meta">${esc(ev.group)}${ev.federation?` · <span class="rpn-tag">Réseau ${ev.federation}</span>`:''}${loc?` · ${esc(loc)}`:''}</div>
+      <div class="t-meta">${esc(ev.group)}${fedTag(ev.federation)}${loc?` · ${esc(loc)}`:''}</div>
       <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${pct}%</span>`:''}</div>
       ${ev.objectif?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}
       <div class="reg-cta"><span class="reg-count">${flag||(ev.openToAll?tr('ev_open_all'):tr('ev_ticketed'))}</span>
@@ -5082,7 +5017,7 @@ function viewEvent(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="eyebrow">${evtTypeLabel(ev.type)}</div>
     <h1 class="page-title">${ev.title}</h1>
-    <p class="lead">${ev.group}${ev.federation?' · Réseau '+ev.federation:''} · ${ev.date} · ${ev.lieu}</p>
+    <p class="lead">${ev.group}${fedTxt(ev.federation)} · ${ev.date} · ${ev.lieu}</p>
     ${ev.visual?`<img class="ev-visual" src="${ev.visual}" alt="">`:''}
     <div class="asnote">${ev.desc}</div>
     <div>${trustSeal(tr('ev_seal'))}</div>
@@ -5428,7 +5363,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.74';
+const UBORA_BUILD='v7.75';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
