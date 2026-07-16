@@ -1661,7 +1661,7 @@ async function sbGetTontine(id,uid){
 }
 const db={
   /* ---------- fédérations (v7.72) ---------- */
-  async fedUid(){ try{const{data}=await sb.auth.getUser(); return data&&data.user?data.user.id:null;}catch(e){return null;} },
+  async fedUid(){ return state.uid||null; },
   async fedLoad(){
     if(BACKEND!=='supabase'){ state_fed={mine:[],bureau:[],dir:[],uid:null}; return; }
     const uid=await db.fedUid();
@@ -4146,7 +4146,7 @@ async function fedDoAccept(){
   const el=document.getElementById('nf-code'); const code=el?String(el.value).trim():'';
   if(!code){ alert(_FL('Saisissez le code reçu.','Enter the code you received.')); return; }
   try{ const fid=await db.fedAccept(code); alert(_FL('Vous êtes entré·e au bureau.','You have joined the board.')); state.activeFedId=fid; go('fedadmin'); }
-  catch(e){ alert(e.message||e); }
+  catch(e){ const m=String(e.message||e); alert(m.indexOf('Authentification')>=0?_FL('Vous n\'êtes pas connecté·e sur ce navigateur. Connectez-vous, puis ressaisissez le code.','You are not signed in on this browser. Sign in, then re-enter the code.'):m); }
 }
 async function fedDoInvite(fedId){
   const r=document.getElementById('nf-role'); const role=r?String(r.value).trim():'';
@@ -4173,6 +4173,18 @@ async function fedDoRevoke(fedId,uid){
 }
 
 function viewFedHome(){
+  /* Un écran qui propose d'agir à quelqu'un qui ne peut pas agir est un
+     mensonge d'interface. On le dit avant, pas après le refus du serveur. */
+  if(!state.uid){
+    app().innerHTML=`
+      <button class="backlink" onclick="go('entraide')">‹ ${_FL('Entraide','Mutual aid')}</button>
+      <div class="eyebrow">${_FL('réseaux','networks')}</div>
+      <h1 class="page-title">${_FL('Réseaux & fédérations','Networks & federations')}</h1>
+      <div class="asnote" style="color:var(--pending)">${_FL('Vous n\'êtes pas connecté·e. Rien n\'est visible et rien n\'est possible ici tant que vous ne l\'êtes pas — pas même l\'annuaire.','You are not signed in. Nothing is visible and nothing is possible here until you are — not even the directory.')}</div>
+      <div style="margin-top:14px"><button class="btn btn-gold btn-sm" onclick="go('auth')">${_FL('Se connecter','Sign in')}</button></div>
+      ${footer()}`;
+    return;
+  }
   const mine=state_fed.mine||[], dir=state_fed.dir||[], bur=state_fed.bureau||[];
   const burIds=new Set(bur.map(b=>b.fed_id));
   const mineHtml=mine.length?mine.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.fed_name)}</div><div class="msub">${esc(m.assoc_name)}${m.region?' · '+esc(m.region):''}</div></div><div class="right"><span class="pill p-paid">${_FL('admis','admitted')}</span></div></div>`).join('')
@@ -4188,6 +4200,7 @@ function viewFedHome(){
     <div class="eyebrow">${_FL('réseaux','networks')}</div>
     <h1 class="page-title">${_FL('Réseaux & fédérations','Networks & federations')}</h1>
     <p class="lead">${_FL('Nul ne se déclare membre d\'un réseau : deux membres du bureau le signent.','Nobody self-declares network membership: two board members sign it.')}</p>
+    <div class="asnote">${_FL('Connecté·e en tant que','Signed in as')} <b>${esc(state.email||state.user||'—')}</b>. ${_FL('Un seul compte à la fois par navigateur : pour essayer à deux, ouvrez une fenêtre privée.','One account at a time per browser: to test with two, open a private window.')}</div>
     <h2 class="section-h">${_FL('Mes appartenances','My memberships')}</h2>
     <div class="panel"><div style="padding:8px 16px">${mineHtml}</div></div>
     <h2 class="section-h">${_FL('Bureaux où je siège','Boards I sit on')}</h2>
@@ -4204,6 +4217,7 @@ function viewFedHome(){
     <h2 class="section-h">${_FL('J\'ai un code d\'invitation','I have an invitation code')}</h2>
     <div class="panel"><div style="padding:14px 18px">
       <div class="field" style="margin-top:0"><label>${_FL('Code reçu du bureau','Code from the board')}</label><input id="nf-code" placeholder="AB3D7KM2" style="text-transform:uppercase"></div>
+      <div class="msub" style="margin-top:8px">${_FL('Le code suffit à lui seul. Personne n\'a de validation à donner.','The code alone is enough. Nobody has anything to approve.')}</div>
       <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoAccept()">${_FL('Rejoindre le bureau','Join the board')}</button></div>
     </div></div>
     <h2 class="section-h">${_FL('Annuaire des fédérations','Federation directory')}</h2>
@@ -4212,6 +4226,7 @@ function viewFedHome(){
 }
 
 function viewFedAsk(){
+  if(!state.uid){ go('fedhome'); return; }
   const f=(state_fed.dir||[]).find(x=>x.id===state.activeFedId);
   if(!f){ go('fedhome'); return; }
   app().innerHTML=`
@@ -4230,6 +4245,7 @@ function viewFedAsk(){
 }
 
 function viewFedAdmin(){
+  if(!state.uid){ go('fedhome'); return; }
   const D=state_fed1;
   if(!D||!D.fed){ go('fedhome'); return; }
   const f=D.fed, bur=D.bureau||[], dec=D.decisions||[], mem=D.members||[];
@@ -4245,7 +4261,7 @@ function viewFedAdmin(){
     <div class="panel"><div style="padding:14px 18px">
       <div class="field" style="margin-top:0"><label>${_FL('Fonction (facultatif)','Role (optional)')}</label><input id="nf-role" placeholder="${_FL('ex. trésorier','e.g. treasurer')}"></div>
       <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoInvite('${f.id}')">${_FL('Générer un code','Generate a code')}</button></div>
-      <div class="msub" style="margin-top:8px">${_FL('Le code vaut 14 jours et ne sert qu\'une fois. Transmettez-le de la main à la main.','The code lasts 14 days and works once. Hand it over directly.')}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Le code vaut 14 jours et ne sert qu\'une fois. Transmettez-le de la main à la main. Il <b>suffit</b> : celui ou celle qui le saisit entre au bureau immédiatement, vous n\'aurez rien à valider.','The code lasts 14 days and works once. Hand it over directly. It is <b>enough</b>: whoever enters it joins the board immediately, you have nothing to approve.')}</div>
     </div></div>`:'';
   app().innerHTML=`
     <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
@@ -5395,7 +5411,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.72';
+const UBORA_BUILD='v7.73';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
