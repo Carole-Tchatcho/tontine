@@ -4098,6 +4098,18 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
 }
 
 /* ---------- fédérations (annuaire bâti par le bas, multi-réseaux) ---------- */
+/* ================= FÉDÉRATIONS (v7.75) =================
+   Ces écrans lisent la base, et rien qu'elle. Aucune donnée de démonstration.
+   L'appartenance à un réseau ne se déclare pas : le bureau l'accorde à deux
+   signatures, et fedOk() la revérifie à chaque affichage. */
+
+let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null;
+const _FL=(fr,en)=>state.lang==='en'?en:fr;
+
+/* Un rattachement affiché doit être VÉRIFIÉ au moment de l'affichage, jamais
+   cru sur la foi du champ enregistré. Si l'appartenance n'est plus dans
+   my_federations — radiation, ou valeur écrite hors de l'interface — le
+   badge disparaît de lui-même. */
 function fedOk(name){ return !!name && (state_fed.mine||[]).some(m=>m.fed_name===name); }
 function fedTag(name){ return fedOk(name)?` · <span class="rpn-tag">${tr('net_word')} ${esc(name)}</span>`:''; }
 function fedTxt(name){ return fedOk(name)?` · ${tr('net_word')} ${esc(name)}`:''; }
@@ -4267,6 +4279,8 @@ function viewFedAdmin(){
     ${footer()}`;
 }
 
+
+/* ---------- événements communautaires (galas, tournois, soirées) ---------- */
 function eventStats(ev){
   const tickets=ev.billets.reduce((s,b)=>s+b.vendus,0);
   const collected=ev.billets.reduce((s,b)=>s+b.vendus*b.prix,0);
