@@ -1676,7 +1676,7 @@ const db={
   async fedLoadOne(fedId){
     if(BACKEND!=='supabase'||!fedId){ state_fed1=null; return; }
     const [bur,dec,mem]=await Promise.all([
-      sb.from('federation_bureau').select('fed_id,user_id,role,added_at').eq('fed_id',fedId),
+      sb.from('federation_bureau').select('fed_id,user_id,role,added_at,display_name').eq('fed_id',fedId),
       sb.from('federation_decisions').select('*').eq('fed_id',fedId).order('created_at',{ascending:false}),
       sb.from('federation_members').select('*').eq('fed_id',fedId)
     ]);
@@ -1684,9 +1684,10 @@ const db={
     const f=(state_fed.dir||[]).find(x=>x.id===fedId)||null;
     state_fed1={ fed:f, bureau:bur.data||[], decisions:dec.data||[], members:mem.data||[] };
   },
-  async fedCreate(name,region){ const{data,error}=await sb.rpc('fed_create',{p_name:name,p_region:region||null}); if(error)throw error; return data; },
+  async fedCreate(name,region,disp){ const{data,error}=await sb.rpc('fed_create',{p_name:name,p_region:region||null,p_display:disp||null}); if(error)throw error; return data; },
   async fedInvite(fedId,role){ const{data,error}=await sb.rpc('fed_bureau_invite',{p_fed:fedId,p_role:role||null}); if(error)throw error; return data; },
-  async fedAccept(code){ const{data,error}=await sb.rpc('fed_bureau_accept',{p_code:code}); if(error)throw error; return data; },
+  async fedAccept(code,name){ const{data,error}=await sb.rpc('fed_bureau_accept',{p_code:code,p_name:name||null}); if(error)throw error; return data; },
+  async fedRename(fedId,name){ const{error}=await sb.rpc('fed_bureau_rename',{p_fed:fedId,p_name:name}); if(error)throw error; },
   async fedAsk(fedId,assoc,country){ const{data,error}=await sb.rpc('fed_request',{p_fed:fedId,p_assoc:assoc,p_country:country||null}); if(error)throw error; return data; },
   async fedSign(decId){ const{data,error}=await sb.rpc('fed_sign',{p_decision:decId}); if(error)throw error; return data; },
   async fedRefuse(decId){ const{error}=await sb.rpc('fed_reject',{p_decision:decId}); if(error)throw error; },
@@ -4133,10 +4134,11 @@ const _FL=(fr,en)=>state.lang==='en'?en:fr;
 function openFed(id){ state.activeFedId=id; go('fedadmin'); }
 
 async function fedDoCreate(){
-  const n=document.getElementById('nf-name'), r=document.getElementById('nf-region');
-  const name=n?String(n.value).trim():'', region=r?String(r.value).trim():'';
+  const n=document.getElementById('nf-name'), r=document.getElementById('nf-region'), d=document.getElementById('nf-disp');
+  const name=n?String(n.value).trim():'', region=r?String(r.value).trim():'', disp=d?String(d.value).trim():'';
   if(!name){ alert(_FL('Donnez un nom à la fédération.','Please name the federation.')); return; }
-  try{ const id=await db.fedCreate(name,region);
+  if(!disp){ alert(_FL('Indiquez votre nom : c\'est lui qui figurera au bureau.','Enter your name: it is what will appear on the board.')); return; }
+  try{ const id=await db.fedCreate(name,region,disp);
     alert(_FL('Fédération créée. Vous êtes seule au bureau : invitez une deuxième personne, sinon aucune admission ne pourra être signée.',
               'Federation created. You are alone on the board: invite a second person, otherwise no admission can be signed.'));
     state.activeFedId=id; go('fedadmin');
@@ -4144,8 +4146,10 @@ async function fedDoCreate(){
 }
 async function fedDoAccept(){
   const el=document.getElementById('nf-code'); const code=el?String(el.value).trim():'';
+  const nm=document.getElementById('nf-cname'); const name=nm?String(nm.value).trim():'';
   if(!code){ alert(_FL('Saisissez le code reçu.','Enter the code you received.')); return; }
-  try{ const fid=await db.fedAccept(code); alert(_FL('Vous êtes entré·e au bureau.','You have joined the board.')); state.activeFedId=fid; go('fedadmin'); }
+  if(!name){ alert(_FL('Indiquez votre nom : c\'est lui qui figurera au bureau.','Enter your name: it is what will appear on the board.')); return; }
+  try{ const fid=await db.fedAccept(code,name); alert(_FL('Vous êtes entré·e au bureau.','You have joined the board.')); state.activeFedId=fid; go('fedadmin'); }
   catch(e){ const m=String(e.message||e); alert(m.indexOf('Authentification')>=0?_FL('Vous n\'êtes pas connecté·e sur ce navigateur. Connectez-vous, puis ressaisissez le code.','You are not signed in on this browser. Sign in, then re-enter the code.'):m); }
 }
 async function fedDoInvite(fedId){
@@ -4167,6 +4171,12 @@ async function fedDoSign(decId){ try{ const st=await db.fedSign(decId);
                        :_FL('Signature enregistrée. Il en faut une seconde, d\'une autre personne du bureau.','Signature recorded. A second one is needed, from another board member.'));
   go('fedadmin'); }catch(e){ alert(e.message||e); } }
 async function fedDoRefuse(decId){ try{ await db.fedRefuse(decId); go('fedadmin'); }catch(e){ alert(e.message||e); } }
+async function fedDoRename(fedId){
+  const cur=(state_fed1&&state_fed1.bureau.find(b=>b.user_id===state_fed.uid)||{}).display_name||state.user||'';
+  const n=prompt(_FL('Votre nom, tel qu\'il figurera au bureau :','Your name, as it will appear on the board:'),cur);
+  if(n===null)return;
+  try{ await db.fedRename(fedId,String(n).trim()); go('fedadmin'); }catch(e){ alert(e.message||e); }
+}
 async function fedDoRevoke(fedId,uid){
   if(!confirm(_FL('Ouvrir une procédure de radiation ? Elle exigera deux signatures.','Open a removal procedure? It will require two signatures.')))return;
   try{ await db.fedRevoke(fedId,uid); go('fedadmin'); }catch(e){ alert(e.message||e); }
@@ -4210,13 +4220,17 @@ function viewFedHome(){
       <div class="row-gap">
         <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Nom','Name')}</label><input id="nf-name" placeholder="${_FL('ex. RPN','e.g. RPN')}"></div>
         <div class="field" style="flex:1;min-width:140px;margin-top:0"><label>${_FL('Pays de base','Base country')}</label><input id="nf-region" placeholder="${_FL('ex. Canada','e.g. Canada')}"></div>
+        <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="nf-disp" value="${esc(state.user||'')}"></div>
       </div>
       <div class="msub" style="margin-top:8px">${_FL('Le pays de base sert à signaler les demandes venues d\'ailleurs.','The base country flags applications coming from elsewhere.')}</div>
       <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoCreate()">${_FL('Créer','Create')}</button></div>
     </div></div>
     <h2 class="section-h">${_FL('J\'ai un code d\'invitation','I have an invitation code')}</h2>
     <div class="panel"><div style="padding:14px 18px">
-      <div class="field" style="margin-top:0"><label>${_FL('Code reçu du bureau','Code from the board')}</label><input id="nf-code" placeholder="AB3D7KM2" style="text-transform:uppercase"></div>
+      <div class="row-gap">
+        <div class="field" style="flex:1;min-width:150px;margin-top:0"><label>${_FL('Code reçu du bureau','Code from the board')}</label><input id="nf-code" placeholder="AB3D7KM2" style="text-transform:uppercase"></div>
+        <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="nf-cname" value="${esc(state.user||'')}"></div>
+      </div>
       <div class="msub" style="margin-top:8px">${_FL('Le code suffit à lui seul. Personne n\'a de validation à donner.','The code alone is enough. Nobody has anything to approve.')}</div>
       <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="fedDoAccept()">${_FL('Rejoindre le bureau','Join the board')}</button></div>
     </div></div>
@@ -4252,7 +4266,10 @@ function viewFedAdmin(){
   const isOwner=(f.owner===state_fed.uid);
   const pend=dec.filter(d=>d.status==='pending');
   const warn=bur.length<2?`<div class="asnote" style="color:var(--pending)">${_FL('Le bureau ne compte qu\'une personne. Aucune décision ne pourra être signée tant qu\'il n\'y en a pas deux.','The board has only one member. No decision can be signed until there are two.')}</div>`:'';
-  const burHtml=bur.map(b=>`<div class="mrow"><div class="stack"><div class="mname">${b.user_id===state_fed.uid?_FL('Vous','You'):esc(b.user_id.slice(0,8))+'…'}</div><div class="msub">${esc(b.role||'—')}</div></div></div>`).join('');
+  const burHtml=bur.map(b=>{
+    const moi=(b.user_id===state_fed.uid);
+    const nom=b.display_name?esc(b.display_name):_FL('sans nom','unnamed');
+    return `<div class="mrow"><div class="stack"><div class="mname">${nom}${moi?` <span class="pill p-paid">${_FL('vous','you')}</span>`:''}</div><div class="msub">${esc(b.role||'—')}</div></div>${moi?`<div class="right"><button class="btn btn-ghost btn-sm" onclick="fedDoRename('${f.id}')">${_FL('Corriger mon nom','Fix my name')}</button></div>`:''}</div>`;}).join('');
   const pendHtml=pend.length?pend.map(d=>`<div class="mrow"><div class="stack"><div class="mname">${esc(d.assoc_name)} ${d.kind==='revocation'?`<span class="pill p-done">${_FL('radiation','removal')}</span>`:''}</div>${d.country?`<div class="msub">${esc(d.country)}</div>`:''}${d.geo_gap?`<div class="msub" style="color:var(--pending)">⚠ ${_FL('pays différent du pays de base','country differs from base country')}</div>`:''}</div><div class="right"><button class="btn btn-gold btn-sm" onclick="fedDoSign('${d.id}')">${_FL('Signer','Sign')}</button> <button class="btn btn-ghost btn-sm" onclick="fedDoRefuse('${d.id}')">${_FL('Refuser','Refuse')}</button></div></div>`).join('')
     :`<div class="mrow"><span class="msub">${_FL('Aucune demande en attente.','No pending application.')}</span></div>`;
   const memHtml=mem.length?mem.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.assoc_name)}</div><div class="msub">${esc(m.country||'—')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="fedDoRevoke('${f.id}','${m.user_id}')">${_FL('Radier','Remove')}</button></div></div>`).join('')
@@ -5411,7 +5428,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.73';
+const UBORA_BUILD='v7.74';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
