@@ -1971,7 +1971,7 @@ function render(){
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
   const _GATED_SOON={mandate:1,registre:1,attestation:1};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -3554,6 +3554,87 @@ function issuerBlock(){
     <div class="ai-l">${_FL('N° IDE','Swiss UID')} ${esc(I.ide)} · ${esc(I.email)}</div>
     <div class="ai-l">${esc(I.web)} · ${_FL('extension','extension')} ${esc(location.host)}</div>
   </div>`;
+}
+
+/* Les paliers. Déclarés une fois, lus par la page publique ET par le
+   tableau de bord : deux endroits ne peuvent pas se contredire.
+   On facture la TAILLE, jamais l'intégrité. Le registre, le journal, la
+   double signature et l'attestation sont dans le palier gratuit — les
+   verrouiller reviendrait à dire que le produit gratuit est moins honnête. */
+const PALIERS=[
+  {k:'fekeng', svg:()=>fekengSVG(52), nom:'Fekeng', prix:0,
+   tag:()=>_FL('gratuit','free'),
+   pitch:()=>_FL('La plante qu’on met en terre pour marquer une terre.','The plant you put in the ground to mark a place.'),
+   pour:()=>_FL('1 cercle · jusqu’à 12 membres','1 circle · up to 12 members'),
+   points:()=>[_FL('Le registre entier','The whole register'),
+               _FL('Le journal d’audit complet','The full audit journal'),
+               _FL('La double signature du bureau','The board’s double signature'),
+               _FL('1 attestation par membre et par an','1 attestation per member per year')]},
+  {k:'kwen', svg:()=>kwenSVG(52), nom:'Kwèn', prix:19,
+   tag:()=>_FL('par cercle et par mois','per circle per month'),
+   pitch:()=>_FL('Le gong double : ce cercle soutient le registre.','The double gong: this circle supports the register.'),
+   pour:()=>_FL('1 cercle · jusqu’à 30 membres','1 circle · up to 30 members'),
+   points:()=>[_FL('Tout Fekeng','Everything in Fekeng'),
+               _FL('Attestations illimitées','Unlimited attestations'),
+               _FL('Rappels d’échéance','Due-date reminders'),
+               _FL('Exports comptables','Accounting exports')]},
+  {k:'fagot', svg:()=>fagotSVG(52), nom:'Fagot', prix:49,
+   tag:()=>_FL('par association et par mois','per association per month'),
+   pitch:()=>_FL('Un bâton casse. Le fagot tient.','One stick breaks. The bundle holds.'),
+   pour:()=>_FL('jusqu’à 5 cercles · 100 membres','up to 5 circles · 100 members'),
+   points:()=>[_FL('Tout Kwèn, sur tous vos cercles','Everything in Kwèn, across all your circles'),
+               _FL('Entraide : caisses et événements','Mutual aid: funds and events'),
+               _FL('Billetterie (Europe et Amérique du Nord)','Ticketing (Europe and North America)')]},
+  {k:'baobab', svg:()=>baobabSVG(52), nom:'Baobab', prix:149,
+   tag:()=>_FL('par fédération et par mois','per federation per month'),
+   pitch:()=>_FL('Un tronc, beaucoup de branches.','One trunk, many branches.'),
+   pour:()=>_FL('cercles illimités','unlimited circles'),
+   points:()=>[_FL('Les chiffres agrégés du réseau','The network’s aggregated figures'),
+               _FL('L’attestation de fédération, vérifiable','The federation attestation, verifiable'),
+               _FL('L’annuaire et l’admission à deux signatures','The directory and two-signature admission'),
+               _FL('<b>Kwèn inclus pour vos cercles membres</b>','<b>Kwèn included for your member circles</b>')]}
+];
+
+async function tarifNotify(k){
+  const el=document.getElementById('tn-'+k);
+  const mail=el?String(el.value).trim():(state.email||'');
+  if(!mail||mail.indexOf('@')<1){ alert(_FL('Indiquez une adresse e-mail.','Enter an email address.')); return; }
+  try{ const{error}=await sb.rpc('tarif_notify',{p_palier:k,p_email:mail,p_tontine:null});
+    if(error)throw error;
+    alert(_FL('C’est noté. Vous serez prévenue dès l’ouverture de ce palier — et pas avant.',
+              'Noted. You’ll be told when this tier opens — and not before.'));
+    if(el)el.value='';
+  }catch(e){ alert(e.message||e); }
+}
+
+function viewTarifs(){
+  const cards=PALIERS.map(p=>`<div class="panel" style="flex:1;min-width:230px">
+    <div style="padding:20px 20px 22px;text-align:center">
+      <div>${p.svg()}</div>
+      <div class="mname" style="margin-top:10px;font-size:18px">${p.nom}</div>
+      <div class="msub" style="font-style:italic;margin-top:4px">${p.pitch()}</div>
+      <div style="margin:14px 0 2px;font-size:26px;color:#C9A84C">${p.prix?p.prix+' CHF':_FL('Gratuit','Free')}</div>
+      <div class="msub">${p.prix?p.tag():'—'}</div>
+      <div class="msub" style="margin-top:10px"><b>${p.pour()}</b></div>
+      <div style="text-align:left;margin-top:14px">${p.points().map(x=>`<div class="msub" style="margin-top:6px">· ${x}</div>`).join('')}</div>
+      ${p.prix?`<div class="field" style="margin-top:16px"><input id="tn-${p.k}" placeholder="${_FL('votre e-mail','your email')}" value="${esc(state.email||'')}"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="tarifNotify('${p.k}')">${_FL('M’avertir à l’ouverture','Notify me at launch')}</button>`
+        :`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`}
+    </div></div>`).join('');
+  app().innerHTML=`
+    <div class="eyebrow">${_FL('tarifs','pricing')}</div>
+    <h1 class="page-title">${_FL('Ce que coûte le registre','What the register costs')}</h1>
+    <p class="lead">${_FL('Le registre est gratuit, et il l’est entièrement : le journal, la double signature et l’attestation ne s’achètent pas. <b>On paie la taille, jamais l’intégrité.</b>','The register is free, and wholly so: the journal, the double signature and the attestation are not for sale. <b>You pay for size, never for integrity.</b>')}</p>
+    <div class="asnote">${_FL('UBORA ne prélève <b>aucune commission sur vos cotisations</b> et ne détient aucun fonds. L’abonnement rémunère le logiciel et son hébergement — rien d’autre.','UBORA takes <b>no commission on your contributions</b> and holds no funds. The subscription pays for the software and its hosting — nothing else.')}</div>
+    <div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>
+    <div class="asnote" style="margin-top:16px">${_FL('Les paliers payants ne sont pas encore ouverts : laissez votre adresse, on vous préviendra. Aucun prélèvement n’est possible aujourd’hui.','Paid tiers are not open yet: leave your address and we’ll let you know. No payment can be taken today.')}</div>
+    <h2 class="section-h">${_FL('Et après le registre ?','And beyond the register?')}</h2>
+    <div class="panel"><div style="padding:16px 20px">
+      <div class="mname">UBORA — ${_FL('la méthode','the method')}</div>
+      <div class="msub" style="margin-top:6px">${_FL('Un autre produit, payant, sur un autre site : une formation à l’investissement pour la diaspora. Le registre prouve que vous épargnez déjà ; la méthode s’adresse à ce que vous en faites ensuite. Rien ici n’oblige à y aller.','A different product, paid, on a different site: investment training for the diaspora. The register proves you already save; the method is about what you do next. Nothing here requires you to go.')}</div>
+      <div style="margin-top:12px"><a class="btn btn-ghost btn-sm" href="https://ubora.caroletchatcho.com" target="_blank" rel="noopener">${_FL('Voir UBORA la méthode','See UBORA the method')} ↗</a></div>
+    </div></div>
+    ${footer()}`;
 }
 
 function attVerifyUrl(code){ return location.origin+location.pathname+'?v='+code; }
@@ -5608,7 +5689,8 @@ function dashGov(t){
     ${dashRapprochement(t,can)}
     <div class="panel"><div class="panel-h"><h3>Journal des modifications</h3></div><div style="padding:10px 22px 16px">${audit}</div></div>
     ${isOrg?fedSharePanel(t):''}
-    ${dashPremium(t,isOrg)}`;
+    ${dashPremium(t,isOrg)}
+    ${isOrg?`<div style="text-align:center;margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="go('tarifs')">${_FL('Voir tous les paliers','See all tiers')}</button></div>`:''}`;
 }
 function dashRapprochement(t,can){
   const rd=t.rounds[t.currentRound]||{}; const cs=rd.contribs||[];
@@ -5646,10 +5728,11 @@ function exportCompta(tid){
 function dashPremium(t,isOrg){
   if(BACKEND!=='supabase')return '';
   const on=isPremium(t);
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine Premium</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine · Kwèn</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
     <div style="padding:14px 22px">
-      ${on?`<p class="msub">Merci\u00A0! Votre association soutient le registre. Rappels SMS, exports comptables et audit avanc\u00E9 sont actifs.</p>`
-        :`<p class="msub">Le registre est <b>gratuit</b> pour une tontine. <b>Tontine Premium \u2014 19\u00A0CHF/mois par association</b>\u00A0: tontines illimit\u00E9es, rappels SMS automatiques, exports comptables, bureau &amp; journal d\u2019audit avanc\u00E9s.</p>
+      ${on?`<p class="msub">Merci\u00A0! Votre cercle soutient le registre. Attestations illimit\u00E9es, rappels d\u2019\u00E9ch\u00E9ance et exports comptables sont actifs.</p>`
+        :`<p class="msub">Le registre est <b>gratuit</b>, et il l\u2019est enti\u00E8rement\u00A0: le journal d\u2019audit, la double signature du bureau et l\u2019attestation ne s\u2019ach\u00E8tent pas et ne s\u2019ach\u00E8teront jamais. <b>Kw\u00E8n \u2014 19\u00A0CHF/mois</b> ajoute la taille et le confort\u00A0: jusqu\u2019\u00E0 30 membres, attestations illimit\u00E9es, rappels d\u2019\u00E9ch\u00E9ance, exports comptables.</p>
+          <div style="text-align:center;margin:10px 0">${kwenSVG(44)}</div>
           <div class="asnote" style="margin:10px 0">UBORA ne pr\u00E9l\u00E8ve <b>aucune commission sur vos cotisations</b> et ne d\u00E9tient aucun fonds. L\u2019abonnement r\u00E9mun\u00E8re le logiciel et son h\u00E9bergement \u2014 rien d\u2019autre.</div>
           ${isOrg?`<button class="btn btn-gold btn-sm" onclick="premiumSubscribe('${t.id}')">\u2728 Passer en Tontine Premium \u2014 19 CHF/mois</button>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
     </div></div>`;
@@ -5733,11 +5816,93 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.79';
+const UBORA_BUILD='v7.80';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
    toujours la marque d'une association qui assume sa gouvernance.            */
+/* Les symboles des paliers. Même main que le Kwèn : viewBox 64, or #C9A84C,
+   traits arrondis, remplissage à 10%. Le feu ne trace aucun cercle : ce
+   sont les cinq figures qui le forment. */
+function fekengSVG(size,op){
+  const s=size||28, o=(op==null?1:op);
+  return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="fekeng">
+    <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M32 56 L 32 12" stroke-width="2.2"/>
+      <g stroke-width="1.5" fill="#C9A84C" fill-opacity="0.10">
+        <path d="M32 20 C 24 14, 18 15, 14 12 C 20 12, 27 14, 32 20 Z"/>
+        <path d="M32 20 C 40 14, 46 15, 50 12 C 44 12, 37 14, 32 20 Z"/>
+        <path d="M32 30 C 23 25, 16 27, 11 25 C 18 24, 26 25, 32 30 Z"/>
+        <path d="M32 30 C 41 25, 48 27, 53 25 C 46 24, 38 25, 32 30 Z"/>
+        <path d="M32 41 C 22 37, 15 40, 10 39 C 17 37, 26 37, 32 41 Z"/>
+        <path d="M32 41 C 42 37, 49 40, 54 39 C 47 37, 38 37, 32 41 Z"/>
+      </g>
+      <path d="M32 14 C 30 9, 32 7, 32 5 C 32 7, 34 9, 32 14 Z" stroke-width="1.5" fill="#C9A84C" fill-opacity="0.16"/>
+    </g></svg>`;
+}
+
+function fagotSVG(size,op){
+  const s=size||28, o=(op==null?1:op);
+  return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="fagot">
+    <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round">
+      <g stroke-width="1.7">
+        <path d="M10 44 L 54 24"/><path d="M11 49 L 53 30"/><path d="M12 38 L 52 19"/>
+        <path d="M14 53 L 50 36"/><path d="M9 39 L 51 15"/>
+      </g>
+      <g stroke-width="1.1" opacity=".7">
+        <path d="M13 41 L 16 39"/><path d="M47 25 L 50 23"/><path d="M20 47 L 23 45"/>
+      </g>
+      <path d="M27 42 C 22 35, 40 27, 36 21" stroke-width="2" fill="none"/>
+      <path d="M36 21 C 42 25, 25 33, 30 41" stroke-width="2" fill="none"/>
+      <path d="M31 33 L 26 30" stroke-width="1.4"/><path d="M33 31 L 38 34" stroke-width="1.4"/>
+    </g></svg>`;
+}
+
+function baobabSVG(size,op){
+  const s=size||28, o=(op==null?1:op);
+  return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="baobab">
+    <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M24 56 C 24 44, 22 34, 26 26 L 38 26 C 42 34, 40 44, 40 56 Z"
+            stroke-width="2" fill="#C9A84C" fill-opacity="0.10"/>
+      <path d="M24 56 C 28 53, 36 53, 40 56" stroke-width="1.2" opacity=".7" fill="none"/>
+      <g stroke-width="1.6" fill="none">
+        <path d="M27 26 C 22 20, 14 18, 9 13"/><path d="M29 25 C 26 17, 20 12, 17 7"/>
+        <path d="M32 25 L 32 6"/>
+        <path d="M35 25 C 38 17, 44 12, 47 7"/><path d="M37 26 C 42 20, 50 18, 55 13"/>
+      </g>
+      <g stroke-width="1" opacity=".75" fill="none">
+        <path d="M14 16 L 10 19"/><path d="M18 12 L 13 10"/><path d="M22 11 L 21 6"/>
+        <path d="M32 12 L 27 9"/><path d="M32 12 L 37 9"/>
+        <path d="M42 11 L 43 6"/><path d="M46 12 L 51 10"/><path d="M50 16 L 54 19"/>
+      </g>
+    </g></svg>`;
+}
+
+function feuSVG(size,op){
+  const s=size||28, o=(op==null?1:op);
+  return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="autour du feu">
+    <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M32 44 C 26 38, 29 33, 32 28 C 33 33, 39 34, 36 41 C 40 39, 40 34, 38 31
+               C 43 36, 43 42, 38 45 C 36 46, 34 46, 32 44 Z"
+            stroke-width="1.8" fill="#C9A84C" fill-opacity="0.18"/>
+      <g stroke-width="1.5" fill="#C9A84C" fill-opacity="0.10">
+        <circle cx="32" cy="14" r="3.2"/><circle cx="14" cy="26" r="3.2"/>
+        <circle cx="50" cy="26" r="3.2"/><circle cx="17" cy="47" r="3.2"/>
+        <circle cx="47" cy="47" r="3.2"/>
+      </g>
+      <g stroke-width="1.5" fill="none">
+        <path d="M28.5 20 C 30 17.5, 34 17.5, 35.5 20"/>
+        <path d="M10.5 32 C 12 29.5, 16 29.5, 17.5 32"/>
+        <path d="M46.5 32 C 48 29.5, 52 29.5, 53.5 32"/>
+        <path d="M13.5 53 C 15 50.5, 19 50.5, 20.5 53"/>
+        <path d="M43.5 53 C 45 50.5, 49 50.5, 50.5 53"/>
+      </g>
+      <g stroke-width="1.2" opacity=".55" fill="none">
+        <path d="M24 49 L 40 49"/><path d="M26 51.5 L 38 51.5"/>
+      </g>
+    </g></svg>`;
+}
+
 function kwenSVG(size,op){
   const s=size||28, o=(op==null?1:op);
   return `<svg viewBox="0 0 64 64" width="${s}" height="${s}" fill="none" style="opacity:${o}" aria-label="kw\u00E8n">
