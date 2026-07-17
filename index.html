@@ -43,7 +43,9 @@
      \u00E9cran vers la droite pour trouver un onglet. */
   .hbar{max-width:1280px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;
     gap:16px;flex-wrap:wrap;row-gap:10px}
-  .brand{display:flex;flex-direction:column;line-height:1.1}
+  /* « UBORA » est bien plus court que « LE REGISTRE DE CONFIANCE » : cal\u00E9 \u00E0
+     gauche, il paraissait de travers. On centre les deux lignes l'une sur l'autre. */
+  .brand{display:flex;flex-direction:column;line-height:1.1;align-items:center;text-align:center}
   .brand .b1{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.02em;color:#3A2A16}
   .brand-tri{flex:0 0 auto}
   .tri-w{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;fill:#5E3F18}
@@ -58,10 +60,16 @@
   /* Tarifs n'est pas un onglet comme les autres : c'est le seul qui demande
      quelque chose. On le sépare des autres et on l'habille en or — sans le
      rendre criard, un registre de confiance ne crie pas. */
-  #nav-tarifs{color:#8A6A2F;border-color:rgba(201,168,76,.55);background:rgba(201,168,76,.10);
-    margin-left:10px;font-weight:600;letter-spacing:.02em}
-  #nav-tarifs:hover{background:rgba(201,168,76,.20);border-color:rgba(201,168,76,.9)}
-  #nav-tarifs.on{background:rgba(201,168,76,.28);border-color:rgba(201,168,76,.95);color:#5E4428}
+  /* Un or p\u00E2le sur un fond beige, c'est un chuchotement. Le seul \u00E9l\u00E9ment
+     vraiment visible de vos pages, c'est « + Cr\u00E9er une tontine » : sombre,
+     plein, franc. On lui emprunte sa voix. */
+  #nav-tarifs{color:#E3C878;background:#2B2118;border-color:#2B2118;
+    margin-left:12px;font-weight:600;letter-spacing:.04em;
+    box-shadow:0 2px 8px rgba(43,33,24,.28)}
+  #nav-tarifs:hover{background:#3A2B1C;border-color:#C9A84C;color:#F0DFA8;
+    box-shadow:0 3px 12px rgba(43,33,24,.38)}
+  #nav-tarifs.on{background:#C9A84C;border-color:#C9A84C;color:#2B2118;box-shadow:none}
+  #nav-tarifs.on i{color:#2B2118}
   #nav-tarifs i{color:#C9A84C}
   /* Une carte de tarif qui ne bouge pas sous le doigt a l'air morte. */
   .tarif-card{transition:transform .18s, box-shadow .18s, border-color .18s; cursor:default}
@@ -5902,7 +5910,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.89';
+const UBORA_BUILD='v7.90';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
