@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
+  /* Aucun \u00E9l\u00E9ment ne doit pouvoir rendre la page plus large que l'\u00E9cran :
+     personne ne fait glisser son \u00E9cran vers la droite pour trouver un onglet. */
+  html,body{max-width:100%;overflow-x:hidden}
   :root{
     --bg:#F4ECDB; --card:#FCF8EF; --card2:#FFFDF8;
     --ink:#2A2018; --mid:#6E6457; --faint:#A79E8C;
@@ -30,15 +33,26 @@
   .wrap{max-width:960px;margin:0 auto;padding:0 24px}
 
   header{background:linear-gradient(180deg,#ECDBBC,#E4CBAE);color:#5E4428;position:sticky;top:0;z-index:20;
+    width:100%;overflow:hidden;
     border-bottom:1px solid rgba(140,95,40,.35);box-shadow:0 1px 0 rgba(140,95,40,.12)}
-  .hbar{max-width:960px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;gap:20px}
+  /* 960 px ne suffisaient plus : neuf onglets, la marque et le s\u00E9lecteur de
+     langue d\u00E9bordaient, poussaient le document plus large que l'\u00E9cran, et
+     l'habillage \u2014 peint sur l'en-t\u00EAte \u2014 s'arr\u00EAtait l\u00E0 o\u00F9 l'en-t\u00EAte finissait.
+     On \u00E9largit, ET on autorise le retour \u00E0 la ligne : une barre qui peut
+     passer \u00E0 la ligne ne peut PAS d\u00E9border. Personne ne fait glisser son
+     \u00E9cran vers la droite pour trouver un onglet. */
+  .hbar{max-width:1280px;margin:0 auto;padding:16px 26px;display:flex;align-items:center;
+    gap:16px;flex-wrap:wrap;row-gap:10px}
   .brand{display:flex;flex-direction:column;line-height:1.1}
   .brand .b1{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.02em;color:#3A2A16}
   .brand-tri{flex:0 0 auto}
   .tri-w{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;fill:#5E3F18}
   .brand .b2{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#5E3F18;font-weight:700}
-  .hnav{margin-left:auto;display:flex;gap:8px}  .hnav button{position:relative;font-family:inherit;font-size:13px;color:#5E4428;background:transparent;border:1px solid transparent;
-    padding:8px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s}
+  .hnav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-width:0}
+  .hnav button{white-space:nowrap}  .hnav button{position:relative;font-family:inherit;font-size:13px;color:#5E4428;background:transparent;border:1px solid transparent;
+    padding:8px 12px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s}
+  /* Sous 1180 px on resserre plut\u00F4t que de passer \u00E0 la ligne : m\u00EAme barre, moins d'air. */
+  @media(max-width:1180px){ .hnav{gap:3px} .hnav button{padding:7px 8px;font-size:12px} #nav-tarifs{margin-left:6px} }
   .hnav button:hover{border-color:rgba(140,95,40,.45)}
   .hnav button.on{background:rgba(140,95,40,.15);border-color:rgba(140,95,40,.45)}
   /* Tarifs n'est pas un onglet comme les autres : c'est le seul qui demande
@@ -5862,7 +5876,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.85';
+const UBORA_BUILD='v7.86';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
