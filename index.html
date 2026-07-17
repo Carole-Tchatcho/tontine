@@ -2941,7 +2941,13 @@ function privateRoomDoor(){
   return `<div class="panel click" onclick="go('udroom')" style="margin-top:18px;cursor:pointer;overflow:hidden;
       background:linear-gradient(135deg,#13151A 0%,#1E2128 60%,#2A2118 100%);border:1px solid rgba(201,168,76,${open?'.55':'.28'})">
     <div style="display:flex;align-items:center;gap:18px;padding:22px 24px">
-      <div style="flex:0 0 auto;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">${ngameSVG(52)}</div>
+      <div style="flex:0 0 auto;text-align:center;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">
+        ${ngameSVG(52)}
+        <!-- Un glyphe qu'on ne peut pas nommer ne se transmet pas : celui qui
+             le voit sans savoir son nom ne le reconnaîtra pas ailleurs. Le
+             Kwèn est nommé sur les tontines premium ; le Ngâme doit l'être ici. -->
+        <div style="margin-top:6px;letter-spacing:.16em;font-size:9.5px;color:#C9A84C;opacity:.85">NGÂME</div>
+      </div>
       <div style="flex:1;min-width:0">
         <div style="letter-spacing:.2em;font-size:10.5px;color:#C9A84C">${open?'PRIVATE ROOM \u00B7 ACC\u00C8S OUVERT':'PRIVATE ROOM \u00B7 SUR M\u00C9RITE'}</div>
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#FAFAF7;margin-top:4px;line-height:1.15">
@@ -5896,7 +5902,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.88';
+const UBORA_BUILD='v7.89';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
