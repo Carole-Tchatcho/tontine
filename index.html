@@ -553,6 +553,15 @@
   .evmap-dot.f{opacity:.45}
   .evmap-attrib{margin-top:8px;font-size:11px;color:var(--faint)}
   @media (prefers-reduced-motion:reduce){.evmap .core,.evmap .ring{animation:none}#ev-cam{transition:none}}
+
+/* Papier à en-tête. Petit, gris, en retrait : un en-tête ne se remarque pas,
+   il se trouve quand on le cherche. Même famille que le reste du document —
+   changer de police ici produirait un effet publipostage. */
+.att-issuer{ text-align:left; font-size:11px; line-height:1.5; color:var(--faint,#8a8172);
+  border-bottom:1px solid rgba(0,0,0,.12); padding-bottom:10px; margin-bottom:18px; }
+.att-issuer .ai-name{ font-weight:600; color:var(--ink,#2b2620); font-size:12px; letter-spacing:.01em; }
+.att-issuer .ai-l{ margin-top:1px; }
+@media print{ .att-issuer{ color:#555; border-bottom:1px solid #ccc; } }
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 </head>
@@ -3512,6 +3521,31 @@ function attestData(){
    déclarés par le membre et confirmés reçus par un tiers dont l'intérêt est
    contraire. C'est moins que « elle a payé », et c'est infiniment plus solide. */
 
+/* L'émetteur, déclaré UNE fois. Un document sans émetteur nommé, domicilié
+   et joignable n'est pas un document : c'est un PDF. L'IDE est le second
+   ancrage vérifiable — le premier étant le code. Le lecteur peut contrôler
+   qui émet dans le registre fédéral, et ce qui est dit sur le site. Sans
+   nous appeler, ni l'un ni l'autre. */
+const UBORA_ISSUER={
+  raison:'Imara — Carole Keutchakeu Tchatcho',
+  forme:'Entreprise individuelle · Titulaire de la plateforme UBORA',
+  rue:'Rue de la Pierre-à-Mazel 11',
+  ville:'2000 Neuchâtel, Suisse',
+  ide:'CHE-347.852.058',
+  email:'carole@caroletchatcho.com',
+  web:'ubora.caroletchatcho.com'
+};
+function issuerBlock(){
+  const I=UBORA_ISSUER;
+  return `<div class="att-issuer">
+    <div class="ai-name">${esc(I.raison)}</div>
+    <div class="ai-l">${esc(I.forme)}</div>
+    <div class="ai-l">${esc(I.rue)} · ${esc(I.ville)}</div>
+    <div class="ai-l">${_FL('N° IDE','Swiss UID')} ${esc(I.ide)} · ${esc(I.email)}</div>
+    <div class="ai-l">${esc(I.web)} · ${_FL('extension','extension')} ${esc(location.host)}</div>
+  </div>`;
+}
+
 function attVerifyUrl(code){ return location.origin+location.pathname+'?v='+code; }
 
 async function attIssue(id){
@@ -3548,6 +3582,7 @@ function attDoc(a){
   const tok=(s.sans_compte||0)>0?`<div class="msub" style="margin-top:6px">${_FL(s.sans_compte+' de ces versements ont été déclarés par lien à usage unique, sans compte identifié.',
       s.sans_compte+' of these payments were declared by single-use link, without an identified account.')}</div>`:'';
   return `<div class="attest-doc">
+    ${issuerBlock()}
     <div class="att-head">${trustSeal(tr('et_seal'))}
       <div class="eyebrow" style="margin-top:14px">${_FL('attestation','attestation')}</div>
       <h1 class="att-title">${_FL('Attestation de discipline d\'épargne','Savings discipline attestation')}</h1></div>
@@ -3618,7 +3653,8 @@ function viewVerify(){
       ${r.depuis?`<div class="asnote" style="margin-top:14px;color:var(--pending)"><b>${_FL('À savoir','Note')} :</b> ${esc(r.depuis)}</div>`:''}
       <div class="asnote" style="margin-top:14px">${esc(r.portee||'')}</div>
     </div></div>`; }
-  app().innerHTML=`<div class="eyebrow">${_FL('vérification','verification')}</div>
+  app().innerHTML=`${issuerBlock()}
+    <div class="eyebrow">${_FL('vérification','verification')}</div>
     <h1 class="page-title">${_FL('Vérifier une attestation','Verify an attestation')}</h1>
     <div class="panel" style="margin-bottom:14px"><div style="padding:14px 18px">
       <div class="field" style="margin-top:0"><label>${_FL('Code figurant sur le document','Code shown on the document')}</label>
@@ -5627,7 +5663,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.77';
+const UBORA_BUILD='v7.78';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
