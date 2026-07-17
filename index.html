@@ -5862,7 +5862,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.84';
+const UBORA_BUILD='v7.85';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6022,11 +6022,24 @@ async function uboraLogout(keepJoin){
 function showBackendBadge(err){
   try{
     var old=document.getElementById('ub-backend-badge'); if(old)old.remove();
+    /* Le badge disait « Base connect\u00E9e » en or, du m\u00EAme ton rassurant, qu\u2019on
+       soit identifi\u00E9 ou pas. Or il dit deux choses distinctes : que le SERVEUR
+       r\u00E9pond, et que VOUS \u00EAtes reconnue. Confondre les deux fait chercher une
+       panne l\u00E0 o\u00F9 il n\u2019y en a pas \u2014 on ne voit rien, on croit \u00E0 un bug, alors
+       qu\u2019on est simplement d\u00E9connect\u00E9. Deux \u00E9tats, deux couleurs. */
     var ok=(BACKEND==='supabase');
+    var moi=!!(ok&&state.uid);
     var d=document.createElement('div'); d.id='ub-backend-badge';
-    d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;display:flex;gap:10px;align-items:center;'+(ok?'background:#13151A;color:#C9A84C;border:1px solid #C9A84C':'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E');
-    var html=(ok?'\u25CF Base connect\u00E9e':'\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base')+' \u00B7 '+UBORA_BUILD;
-    if(ok&&state.email){ html+=' \u00B7 <span style="color:#FAFAF7">'+state.email+'</span> \u00B7 <a href="#" onclick="uboraLogout();return false" style="color:#D9C07E;text-decoration:underline">se d\u00E9connecter</a>'; }
+    var skin = !ok  ? 'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E'
+             : moi  ? 'background:#13151A;color:#C9A84C;border:1px solid #C9A84C'
+                    : 'background:#13151A;color:#8A8172;border:1px dashed #6E6659';
+    d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;display:flex;gap:10px;align-items:center;'+skin;
+    var etat = !ok  ? '\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base'
+             : moi  ? '\u25CF Connect\u00E9e'
+                    : '\u25CB Non connect\u00E9 \u00B7 base joignable';
+    var html=etat+' \u00B7 '+UBORA_BUILD;
+    if(moi&&state.email){ html+=' \u00B7 <span style="color:#FAFAF7">'+state.email+'</span> \u00B7 <a href="#" onclick="uboraLogout();return false" style="color:#D9C07E;text-decoration:underline">se d\u00E9connecter</a>'; }
+    else if(ok&&!moi){ html+=' \u00B7 <a href="#" onclick="go(\'auth\');return false" style="color:#D9C07E;text-decoration:underline">se connecter</a>'; }
     d.innerHTML=html;
     if(err){ d.title=String((err&&err.message)||err); }
     document.body.appendChild(d);
@@ -6117,7 +6130,10 @@ async function boot(){
 
   try{
     await initSB();
-    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ state.user=authDispName(s.user); state.uid=s.user.id; state.email=s.user.email||s.user.phone||''; } });
+    sb.auth.onAuthStateChange((_e,s)=>{ if(s&&s.user){ state.user=authDispName(s.user); state.uid=s.user.id; state.email=s.user.email||s.user.phone||''; }
+      else { state.user=null; state.uid=null; state.email=''; }
+      /* Sans ceci le badge garderait l'\u00E9tat d'avant : il faut qu'il suive la session. */
+      try{ showBackendBadge(); }catch(e){} });
 
     /* 2) Retour d'un lien de connexion : on ATTEND que la session s'établisse
           à partir de l'URL avant de décider quoi afficher (sinon on retombe à tort
