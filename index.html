@@ -1279,12 +1279,6 @@ Object.assign(I18N.en,{ap_cur_label:'Display currency',ap_capacity_h:'Your perso
 Object.assign(I18N.fr,{ap_master_note:'Devise par défaut : celle de votre pays de résidence ({c}). Vous êtes maître — choisissez celle qui vous parle.',ap_calc_note:'Votre calculateur ne gère pas encore {c} ; la simulation s\u2019ouvrira en {l}.',reg_country:'Pays de résidence',reg_country_hint:'Détermine votre devise par défaut — vous pourrez toujours en changer.'});
 Object.assign(I18N.en,{ap_master_note:'Default currency: your country of residence ({c}). You\u2019re in control — pick the one that speaks to you.',ap_calc_note:'Your calculator doesn\u2019t support {c} yet; the simulation will open in {l}.',reg_country:'Country of residence',reg_country_hint:'Sets your default currency — you can always change it.'});
 function roleLabel(r){return tr('role_'+r)||r;}
-function ledgerFingerprint(c,a,list){
-  const seed=(c.group||'')+'|'+(a.motif||'')+'|'+(a.echeance||'')+'|'+list.map(x=>x.name+':'+(x.named?'1':'0')).join(',');
-  let h=2166136261; for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619);}
-  const hex=(h>>>0).toString(16).toUpperCase().padStart(8,'0');
-  return 'UB-'+hex.slice(0,4)+'-'+hex.slice(4,8);
-}
 
 function buildRounds(places,startMonth,current,currentContribs){
   const rounds=[];
@@ -1859,6 +1853,7 @@ function backLabel(){ if(navStack.length){ try{ const v=JSON.parse(navStack[navS
 function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navStack.pop(); _navBack=true; try{const s=JSON.parse(snap); Object.assign(state,s);}catch(e){_navBack=false;} if(typeof unsubscribeActive==='function')unsubscribeActive(); render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(e){} }
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
+  if(BACKEND==='supabase'&&v==='attmine'){try{await attLoadMine();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin'||v==='entraide'||v==='caisse'||v==='caissecreate'||v==='evenements'||v==='evenement')){try{await db.fedLoad(); if(v==='fedadmin')await db.fedLoadOne(state.activeFedId);}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
@@ -1957,7 +1952,7 @@ function render(){
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
   const _GATED_SOON={mandate:1,registre:1,attestation:1};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -2151,7 +2146,7 @@ function viewSeanceReleve(){
      ${debts?`<h3 class="att-h">${tr('re_debts')}</h3><div class="att-list">${debts}</div>`:''}
      <h3 class="att-h">${tr('at_cert_h')}</h3><p class="att-cert">${tr('sr_cert')}</p>
      ${bureau?`<h3 class="att-h">${tr('at_bureau_h')}</h3><div class="att-sigs">${bureau}</div>`:''}
-     <div class="att-foot"><div><span class="att-fp">${tr('at_fingerprint')} : <b>${fp}</b></span></div><div class="att-issue">${tr('at_issued')} \u00b7 ${tr('at_on')} ${EV_TODAY}</div></div>
+     <div class="att-foot"><div></div><div class="att-issue">${tr('at_issued')} \u00b7 ${tr('at_on')} ${EV_TODAY}</div></div>
    </div>
    <div class="row-gap no-print" style="margin-top:16px"><button class="btn btn-gold btn-sm" onclick="window.print()">${tr('at_print')}</button><button class="btn btn-ghost btn-sm" onclick="downloadSeanceCSV()">${icon('dl')}${tr('vr_dl_csv')}</button></div>
    ${footer()}`;
@@ -2481,7 +2476,13 @@ function dashMe(t){
       <div style="margin-top:14px"><button class="btn btn-ghost btn-sm" style="color:var(--gold-bright);border-color:rgba(201,168,76,.5)" onclick="bridgeClick()">${tr('dm_bridge_btn')}</button></div>
     </div>` : '';
 
-  return `${complete?`<div class="reassure" style="margin-bottom:12px">${tr('dm_complete')}</div>`:''}<div class="asnote">${tr('dm_viewing_as').replace('{n}',me.name).replace('{role}',me.role==='organisateur'?tr('role_org'):tr('role_member'))}</div>
+  return `${complete?`<div class="reassure" style="margin-bottom:12px">${tr('dm_complete')}</div>`:''}
+    ${(BACKEND==='supabase'&&state.uid)?`<div class="panel" style="margin-bottom:12px"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><div class="mname">${_FL('Attestation de discipline d\'épargne','Savings discipline attestation')}</div>
+      <div class="msub">${_FL('Un document que votre banque, votre bailleur ou un consulat peut vérifier seul, sans compte et sans nous appeler.','A document your bank, landlord or a consulate can verify on their own — no account, no phone call to us.')}</div></div>
+      <button class="btn btn-gold btn-sm" onclick="attIssue('${t.id}')">${_FL('Obtenir','Get it')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="state.attCode=null;go('attmine')">${_FL('Les miennes','Mine')}</button>
+    </div></div>`:''}<div class="asnote">${tr('dm_viewing_as').replace('{n}',me.name).replace('{role}',me.role==='organisateur'?tr('role_org'):tr('role_member'))}</div>
     <div class="panel"><div class="panel-h"><h3>${tr('dm_my_situation')}${isAmb?ambBadge('shine'):''}</h3></div>
       <div style="padding:18px 20px">
         <div class="kvs">
@@ -3499,9 +3500,140 @@ function attestData(){
   const c=getC(state.regCaisse), a=c&&c.appels.find(x=>x.id===state.regAppel);
   if(!c||!a) return null;
   const list=contributorsOf(c,a), part=a.montant, total=list.length*part;
-  return {c,a,list,part,total,fp:ledgerFingerprint(c,a,list),
+  return {c,a,list,part,total,fp:'',
     today:new Date().toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{year:'numeric',month:'long',day:'numeric'})};
 }
+/* ============ ATTESTATION DE DISCIPLINE D'ÉPARGNE (v7.77) ============
+   Le serveur émet, le navigateur affiche. Rien n'est calculé ici : l'ancienne
+   empreinte l'était, et sa formule publique la rendait fabricable par tous et
+   vérifiable par personne.
+   Ce document n'atteste pas qu'un paiement a eu lieu — UBORA ne touche aucun
+   fonds et n'en sait rien. Il atteste le CONTENU DU REGISTRE : des versements
+   déclarés par le membre et confirmés reçus par un tiers dont l'intérêt est
+   contraire. C'est moins que « elle a payé », et c'est infiniment plus solide. */
+
+function attVerifyUrl(code){ return location.origin+location.pathname+'?v='+code; }
+
+async function attIssue(id){
+  const t=getT(id); if(!t)return;
+  if(!state.uid){ alert(_FL('Connectez-vous pour obtenir votre attestation.','Sign in to get your attestation.')); return; }
+  if(!confirm(_FL('Émettre une attestation pour « '+t.name+' » ?\n\nElle figera ce que dit le registre aujourd\'hui et recevra un code que n\'importe qui pourra vérifier.',
+                  'Issue an attestation for “'+t.name+'”?\n\nIt will freeze what the register says today and receive a code anyone can verify.')))return;
+  try{
+    const{data,error}=await sb.rpc('attestation_issue',{p_tontine:t.id});
+    if(error)throw error;
+    state.attCode=data; go('attmine');
+  }catch(e){ alert(e.message||e); }
+}
+
+async function attLoadMine(){
+  if(BACKEND!=='supabase'||!state.uid){ state_att=[]; return; }
+  const{data,error}=await sb.from('attestations').select('*').order('issued_at',{ascending:false});
+  if(error)throw error; state_att=data||[];
+}
+async function attRevoke(code){
+  if(!confirm(_FL('Retirer cette attestation ? Toute personne qui la vérifiera verra qu\'elle a été retirée.',
+                  'Withdraw this attestation? Anyone verifying it will see it was withdrawn.')))return;
+  try{ const{error}=await sb.rpc('attestation_revoke',{p_code:code}); if(error)throw error; go('attmine'); }
+  catch(e){ alert(e.message||e); }
+}
+function attCopy(code){
+  const u=attVerifyUrl(code);
+  try{ navigator.clipboard.writeText(u); alert(_FL('Lien de vérification copié :\n','Verification link copied:\n')+u); }
+  catch(e){ prompt(_FL('Lien de vérification :','Verification link:'),u); }
+}
+
+function attDoc(a){
+  const s=a.snapshot||{}, d=x=>x?new Date(x).toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{year:'numeric',month:'long',day:'numeric'}):'—';
+  const tok=(s.sans_compte||0)>0?`<div class="msub" style="margin-top:6px">${_FL(s.sans_compte+' de ces versements ont été déclarés par lien à usage unique, sans compte identifié.',
+      s.sans_compte+' of these payments were declared by single-use link, without an identified account.')}</div>`:'';
+  return `<div class="attest-doc">
+    <div class="att-head">${trustSeal(tr('et_seal'))}
+      <div class="eyebrow" style="margin-top:14px">${_FL('attestation','attestation')}</div>
+      <h1 class="att-title">${_FL('Attestation de discipline d\'épargne','Savings discipline attestation')}</h1></div>
+    <div class="att-meta" style="margin-top:18px">
+      <div><span class="att-k">${_FL('Concernant','Concerning')}</span><span class="att-v">${esc(s.sujet||'—')}</span></div>
+      <div><span class="att-k">${_FL('Cercle','Circle')}</span><span class="att-v">${esc(s.cercle||'—')} · ${money(s.montant||0,s.devise)} ${esc(s.frequence||'')}</span></div>
+      <div><span class="att-k">${_FL('Organisateur·trice','Organiser')}</span><span class="att-v">${esc(s.organisateur||'—')}</span></div>
+      <div><span class="att-k">${_FL('Période','Period')}</span><span class="att-v">${d(s.premier)} → ${d(s.dernier)}</span></div>
+    </div>
+    <h3 class="att-h">${_FL('Ce que le registre établit','What the register establishes')}</h3>
+    <p class="att-cert">${_FL(
+      '<b>'+(s.confirmes||0)+' versements</b> de '+money(s.montant||0,s.devise)+' ont été déclarés par '+esc(s.sujet||'')+' et <b>confirmés reçus</b> par '+esc(s.organisateur||'')+', organisateur·trice du cercle, soit un total de <b>'+money(s.total_confirme||0,s.devise)+'</b>.',
+      '<b>'+(s.confirmes||0)+' payments</b> of '+money(s.montant||0,s.devise)+' were declared by '+esc(s.sujet||'')+' and <b>confirmed received</b> by '+esc(s.organisateur||'')+', organiser of the circle, totalling <b>'+money(s.total_confirme||0,s.devise)+'</b>.')}</p>
+    ${tok}
+    <h3 class="att-h">${_FL('Portée de la présente attestation','Scope of this attestation')}</h3>
+    <p class="att-cert">${_FL(
+      'UBORA atteste le contenu de son registre : des versements déclarés par la personne concernée et confirmés reçus par l\'organisateur·trice du cercle, dont l\'intérêt est contraire. <b>UBORA ne détient aucun fonds et ne certifie pas le paiement lui-même.</b>',
+      'UBORA attests the contents of its register: payments declared by the person concerned and confirmed received by the circle\'s organiser, whose interest is opposed. <b>UBORA holds no funds and does not certify the payment itself.</b>')}</p>
+    <div class="att-foot" style="margin-top:20px">
+      <div><span class="att-fp">${_FL('Code de vérification','Verification code')} : <b>${esc(a.code)}</b></span>
+        <div class="msub">${_FL('Vérifiable par quiconque, sans compte, sur','Verifiable by anyone, without an account, at')} ${esc(attVerifyUrl(a.code))}</div></div>
+      <div class="att-issue">${_FL('Émise le','Issued on')} ${d(a.issued_at)}</div>
+    </div></div>`;
+}
+
+function viewAttMine(){
+  if(!state.uid){ app().innerHTML=`<h1 class="page-title">${_FL('Mes attestations','My attestations')}</h1>
+    <div class="asnote" style="color:var(--pending)">${_FL('Connectez-vous pour voir vos attestations.','Sign in to see your attestations.')}</div>
+    <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="go('auth')">${_FL('Se connecter','Sign in')}</button></div>${footer()}`; return; }
+  const list=state_att||[];
+  const one=state.attCode?list.find(x=>x.code===state.attCode):null;
+  const body=one?`${attDoc(one)}
+      <div class="row no-print" style="margin-top:14px;gap:10px">
+        <button class="btn btn-gold btn-sm" onclick="window.print()">${_FL('Imprimer / PDF','Print / PDF')}</button>
+        <button class="btn btn-ghost btn-sm" onclick="attCopy('${one.code}')">${_FL('Copier le lien de vérification','Copy verification link')}</button>
+        <button class="btn btn-ghost btn-sm" onclick="state.attCode=null;go('attmine')">${_FL('Toutes mes attestations','All my attestations')}</button>
+      </div>`
+    : (list.length?`<div class="panel"><div style="padding:8px 16px">${list.map(a=>`<div class="mrow"><div class="stack">
+        <div class="mname">${esc((a.snapshot||{}).cercle||'—')} ${a.revoked_at?`<span class="pill p-done">${_FL('retirée','withdrawn')}</span>`:''}</div>
+        <div class="msub">${esc(a.code)} · ${_FL('émise le','issued')} ${new Date(a.issued_at).toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR')}</div></div>
+        <div class="right"><button class="btn btn-ghost btn-sm" onclick="state.attCode='${a.code}';go('attmine')">${_FL('Voir','View')}</button>
+        ${a.revoked_at?'':`<button class="btn btn-ghost btn-sm" onclick="attRevoke('${a.code}')">${_FL('Retirer','Withdraw')}</button>`}</div></div>`).join('')}</div></div>`
+      : `<div class="empty">${_FL('Aucune attestation. Ouvrez une de vos tontines pour en émettre une.','No attestation yet. Open one of your tontines to issue one.')}</div>`);
+  app().innerHTML=`<button class="backlink no-print" onclick="go('home')">‹ ${_FL('Mes tontines','My tontines')}</button>
+    <h1 class="page-title no-print">${_FL('Mes attestations','My attestations')}</h1>${body}${footer()}`;
+}
+
+/* La page que verra un chargé de clientèle. Aucun compte, aucune inscription. */
+function viewVerify(){
+  const r=state_verify;
+  const d=x=>x?new Date(x).toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{year:'numeric',month:'long',day:'numeric'}):'—';
+  let body;
+  if(!r){ body=`<div class="empty">${_FL('Vérification en cours…','Verifying…')}</div>`; }
+  else if(!r.trouve){ body=`<div class="panel"><div style="padding:20px 22px">
+      <div class="mname" style="color:var(--pending)">${_FL('Code inconnu','Unknown code')}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Aucune attestation ne porte ce code. Vérifiez la saisie, ou méfiez-vous du document.','No attestation carries this code. Check the spelling — or be wary of the document.')}</div>
+    </div></div>`; }
+  else { const s=r.atteste||{};
+    body=`<div class="panel"><div style="padding:20px 22px">
+      <div class="mname" style="color:${r.valide?'var(--ok,#2e7d32)':'var(--pending)'}">${r.valide?_FL('✓ Attestation authentique','✓ Authentic attestation'):_FL('⚠ Attestation retirée par son porteur','⚠ Attestation withdrawn by its holder')}</div>
+      <div class="msub" style="margin-top:6px">${_FL('Émise le','Issued on')} ${d(r.emise_le)}</div>
+      <div class="att-meta" style="margin-top:16px">
+        <div><span class="att-k">${_FL('Concernant','Concerning')}</span><span class="att-v">${esc(s.sujet||'—')}</span></div>
+        <div><span class="att-k">${_FL('Cercle','Circle')}</span><span class="att-v">${esc(s.cercle||'—')}</span></div>
+        <div><span class="att-k">${_FL('Versements confirmés','Confirmed payments')}</span><span class="att-v">${s.confirmes||0} · ${money(s.total_confirme||0,s.devise)}</span></div>
+        <div><span class="att-k">${_FL('Période','Period')}</span><span class="att-v">${d(s.premier)} → ${d(s.dernier)}</span></div>
+      </div>
+      ${r.depuis?`<div class="asnote" style="margin-top:14px;color:var(--pending)"><b>${_FL('À savoir','Note')} :</b> ${esc(r.depuis)}</div>`:''}
+      <div class="asnote" style="margin-top:14px">${esc(r.portee||'')}</div>
+    </div></div>`; }
+  app().innerHTML=`<div class="eyebrow">${_FL('vérification','verification')}</div>
+    <h1 class="page-title">${_FL('Vérifier une attestation','Verify an attestation')}</h1>
+    <div class="panel" style="margin-bottom:14px"><div style="padding:14px 18px">
+      <div class="field" style="margin-top:0"><label>${_FL('Code figurant sur le document','Code shown on the document')}</label>
+        <input id="vf-code" value="${esc(state.verifyCode||'')}" placeholder="AB3D-7KM2-XQ91" style="text-transform:uppercase"></div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="attDoVerify()">${_FL('Vérifier','Verify')}</button></div>
+    </div></div>${body}${footer()}`;
+}
+async function attDoVerify(){
+  const el=document.getElementById('vf-code'); const c=el?String(el.value).trim().toUpperCase():'';
+  if(!c)return; state.verifyCode=c; state_verify=null; render();
+  try{ const{data,error}=await sb.rpc('attestation_verify',{p_code:c}); if(error)throw error; state_verify=data; }
+  catch(e){ state_verify={trouve:false}; }
+  render();
+}
+
 function viewAttestation(){
   const d=attestData(); if(!d){go('entraide');return;}
   const {c,a,list,part,total,fp,today}=d, cur=c.currency;
@@ -3526,7 +3658,7 @@ function viewAttestation(){
       <p class="att-cert">${(caisseHasCommissaire(c)&&a.certifie)?tr('at_cert_body'):tr('at_cert_body_double')}</p>
       ${bureau?`<h3 class="att-h">${tr('at_bureau_h')}</h3><div class="att-sigs">${bureau}</div>`:''}
       <div class="att-foot">
-        <div><span class="att-fp">${tr('at_fingerprint')} : <b>${fp}</b></span></div>
+        <div></div>
         <div class="att-issue">${tr('at_issued')} · ${tr('at_on')} ${today}</div>
       </div>
     </div>
@@ -3564,7 +3696,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:7px 2px;bord
 <h3>${esc(tr('at_contribs_h'))}</h3><table>${rows}</table>
 <h3>${esc(tr('at_cert_h'))}</h3><div class="cert">${(caisseHasCommissaire(c)&&a.certifie)?tr('at_cert_body'):tr('at_cert_body_double')}</div>
 ${bureau?`<h3>${esc(tr('at_bureau_h'))}</h3>${bureau}`:''}
-<div class="foot"><span class="fp">${esc(tr('at_fingerprint'))} : <b>${fp}</b></span><span>${esc(tr('at_issued'))} · ${esc(tr('at_on'))} ${esc(today)}</span></div>
+<div class="foot"><span class="fp"></span><span>${esc(tr('at_issued'))} · ${esc(tr('at_on'))} ${esc(today)}</span></div>
 </div></body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'}),el=document.createElement('a');
   el.href=URL.createObjectURL(blob);el.download='attestation-confiance.html';
@@ -4220,7 +4352,8 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
    L'appartenance à un réseau ne se déclare pas : le bureau l'accorde à deux
    signatures, et fedOk() la revérifie à chaque affichage. */
 
-let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null;
+let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null, state_att=[], state_verify=null;
+var _pendingVerify=null;
 const _FL=(fr,en)=>state.lang==='en'?en:fr;
 
 /* Un rattachement affiché doit être VÉRIFIÉ au moment de l'affichage, jamais
@@ -5494,7 +5627,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.76';
+const UBORA_BUILD='v7.77';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -5646,12 +5779,24 @@ async function boot(){
   /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
   let _pendingJoin=null;
   try{
+    const _v=((location.hash||'')+' '+(location.search||'')).match(/[?&\s]v=([A-Z0-9-]{8,20})/i);
+    if(_v){ _pendingVerify=_v[1].toUpperCase(); }
     const _m=((location.hash||'')+' '+(location.search||'')).match(/join=([A-Za-z0-9]+)/i);
     if(_m){ _pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){} }
     else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} }
   }catch(e){}
 
   if(BACKEND!=='supabase'){ loadLocal(); render(); showBackendBadge(); return; }   /* mode démo : restaure les essais locaux */
+
+  /* Un tiers arrive par ?v=CODE : il n'a pas de compte, il n'en aura jamais,
+     et il ne doit rien voir d'autre que la réponse à sa question. */
+  if(_pendingVerify){
+    try{ await initSB(); }catch(e){}
+    state.view='verify'; state.verifyCode=_pendingVerify; render(); showBackendBadge();
+    try{ const{data}=await sb.rpc('attestation_verify',{p_code:_pendingVerify}); state_verify=data||{trouve:false}; }
+    catch(e){ state_verify={trouve:false}; }
+    render(); return;
+  }
 
   try{
     await initSB();
