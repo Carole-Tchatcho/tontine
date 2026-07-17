@@ -41,6 +41,22 @@
     padding:8px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.18s}
   .hnav button:hover{border-color:rgba(140,95,40,.45)}
   .hnav button.on{background:rgba(140,95,40,.15);border-color:rgba(140,95,40,.45)}
+  /* Tarifs n'est pas un onglet comme les autres : c'est le seul qui demande
+     quelque chose. On le sépare des autres et on l'habille en or — sans le
+     rendre criard, un registre de confiance ne crie pas. */
+  #nav-tarifs{color:#8A6A2F;border-color:rgba(201,168,76,.55);background:rgba(201,168,76,.10);
+    margin-left:10px;font-weight:600;letter-spacing:.02em}
+  #nav-tarifs:hover{background:rgba(201,168,76,.20);border-color:rgba(201,168,76,.9)}
+  #nav-tarifs.on{background:rgba(201,168,76,.28);border-color:rgba(201,168,76,.95);color:#5E4428}
+  #nav-tarifs i{color:#C9A84C}
+  /* Une carte de tarif qui ne bouge pas sous le doigt a l'air morte. */
+  .tarif-card{transition:transform .18s, box-shadow .18s, border-color .18s; cursor:default}
+  .tarif-card:hover{transform:translateY(-4px); box-shadow:0 10px 28px rgba(90,60,20,.16); border-color:rgba(201,168,76,.6)}
+  .tarif-card .tc-sym{transition:transform .25s}
+  .tarif-card:hover .tc-sym{transform:scale(1.08)}
+  .tarif-card .btn{transition:.18s}
+  .brand{cursor:pointer;transition:opacity .18s}
+  .brand:hover{opacity:.72}
   .dot{display:inline-block;min-width:17px;height:17px;line-height:17px;text-align:center;font-size:10px;font-weight:600;
     background:#9A6A33;color:#F5E6C0;border-radius:9px;padding:0 4px}
   .langsw{display:inline-flex;gap:0;border:1px solid rgba(140,95,40,.4);border-radius:8px;overflow:hidden;flex:0 0 auto}
@@ -406,6 +422,7 @@
     .hnav button i{font-size:18px;line-height:1}
     .hnav button span.lbl{display:block;font-size:9.5px;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
     .hnav button.on{background:rgba(140,95,40,.16)}
+  #nav-tarifs{margin-left:0;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.5)}
     .hnav button.on i{transform:translateY(-1px)}
     .hnav .dot{position:absolute;top:2px;right:calc(50% - 20px)}
     .mrow{flex-wrap:wrap}
@@ -576,7 +593,8 @@
       <text class="tri-w" x="24" y="104" text-anchor="middle">AKILI</text>
       <text class="tri-w" x="108" y="104" text-anchor="middle">UMOJA</text>
     </svg>
-    <div class="brand"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
+    <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
+         onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
@@ -587,6 +605,7 @@
       <button id="nav-partage" onclick="go('partages')"><i>⇄</i><span class="lbl">Partage</span></button>
       <button id="nav-diffusion" onclick="openDiffuse(null)"><i>📣</i><span class="lbl">Diffusion</span></button>
       <button id="nav-notif" onclick="go('notif')"><i>⏰</i><span class="lbl">Rappels</span> <span class="dot" id="notifcount">0</span></button>
+      <button id="nav-tarifs" onclick="go('tarifs')"><i>◈</i><span class="lbl">Tarifs</span></button>
     </nav>
   </div>
 </header>
@@ -1961,6 +1980,7 @@ function render(){
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
   if(state.view==='home')$('#nav-home').classList.add('on');
+  if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
   if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate')$('#nav-partage').classList.add('on');
@@ -2376,7 +2396,7 @@ function viewDash(){
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${isPremium(t)?`<span style="vertical-align:-5px;margin-right:6px">${kwenSVG(18)}</span>`:''}${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
-        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${kwenSVG(22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">ASSOCIATION PREMIUM \u00B7 KW\u00C8N</span></div>${kwenBand()}`:''}
+        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${kwenSVG(22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE KW\u00C8N</span></div>${kwenBand()}`:''}
         ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
         ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
         <div>${trustSeal()}</div></div>
@@ -3572,7 +3592,9 @@ const PALIERS=[
                _FL('1 attestation par membre et par an','1 attestation per member per year')]},
   {k:'kwen', svg:()=>kwenSVG(52), nom:'Kwèn', prix:19,
    tag:()=>_FL('par cercle et par mois','per circle per month'),
-   pitch:()=>_FL('Le gong double : ce cercle soutient le registre.','The double gong: this circle supports the register.'),
+   /* Le gong et le palier disent la même chose : Kwèn est le palier qui
+      ajoute les rappels. L'instrument qui convoque, pour l'étage qui convoque. */
+   pitch:()=>_FL('Le double gong ne sonne que pour ce qui compte. Quand on l’entend, le cercle se rassemble.','The double gong only sounds for what matters. When it rings, the circle gathers.'),
    pour:()=>_FL('1 cercle · jusqu’à 30 membres','1 circle · up to 30 members'),
    points:()=>[_FL('Tout Fekeng','Everything in Fekeng'),
                _FL('Attestations illimitées','Unlimited attestations'),
@@ -3617,10 +3639,17 @@ async function tarifNotify(k){
   }catch(e){ alert(e.message||e); }
 }
 
+/* Le logo ramène à l'accueil : c'est un réflexe que tout le monde a dans
+   les doigts. Pour une organisatrice connectée, l'accueil ce sont SES
+   tontines — l'envoyer dix fois par semaine sur une grille de prix serait
+   une petite cruauté. Pour un visiteur, en revanche, il n'y a pas d'accueil
+   à retrouver : il découvre. Chacun atterrit là où il voulait aller. */
+function brandGo(){ go(state.uid?'home':'tarifs'); }
+
 function viewTarifs(){
-  const cards=PALIERS.map(p=>`<div class="panel" style="flex:1;min-width:230px">
+  const cards=PALIERS.map(p=>`<div class="panel tarif-card" style="flex:1;min-width:230px">
     <div style="padding:20px 20px 22px;text-align:center">
-      <div>${p.svg()}</div>
+      <div class="tc-sym">${p.svg()}</div>
       <div class="mname" style="margin-top:10px;font-size:18px">${p.nom}</div>
       <div class="msub" style="font-style:italic;margin-top:4px">${p.pitch()}</div>
       <div style="margin:14px 0 2px;font-size:26px;color:#C9A84C">${p.prix?p.prix+' CHF':_FL('Gratuit','Free')}</div>
@@ -3632,9 +3661,15 @@ function viewTarifs(){
         :`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`}
     </div></div>`).join('');
   app().innerHTML=`
-    <div class="eyebrow">${_FL('tarifs','pricing')}</div>
-    <h1 class="page-title">${_FL('Ce que coûte le registre','What the register costs')}</h1>
-    <p class="lead">${_FL('Le registre est gratuit, et il l’est entièrement : le journal, la double signature et l’attestation ne s’achètent pas. <b>On paie la taille, jamais l’intégrité.</b>','The register is free, and wholly so: the journal, the double signature and the attestation are not for sale. <b>You pay for size, never for integrity.</b>')}</p>
+    <div style="text-align:center;padding:22px 0 6px">
+      <div style="display:flex;justify-content:center;gap:22px;align-items:flex-end;margin-bottom:16px">
+        ${fekengSVG(38,.55)}${kwenSVG(44,.8)}${fagotSVG(44,.8)}${baobabSVG(50)}
+      </div>
+      <div class="eyebrow">${_FL('le registre de confiance','the register of trust')}</div>
+      <h1 class="page-title" style="margin-top:6px">${_FL('Ce que coûte le registre','What the register costs')}</h1>
+      <p class="lead" style="max-width:640px;margin:10px auto 0">${_FL('De la plante qu’on met en terre au baobab qui abrite un réseau : quatre paliers, un seul registre. <b>Le même pour tous.</b>','From the plant you put in the ground to the baobab that shelters a network: four tiers, one register. <b>The same for everyone.</b>')}</p>
+    </div>
+    <p class="lead" style="margin-top:18px">${_FL('Le registre est gratuit, et il l’est entièrement : le journal, la double signature et l’attestation ne s’achètent pas. <b>On paie la taille, jamais l’intégrité.</b>','The register is free, and wholly so: the journal, the double signature and the attestation are not for sale. <b>You pay for size, never for integrity.</b>')}</p>
     <div class="asnote">${_FL('UBORA ne prélève <b>aucune commission sur vos cotisations</b> et ne détient aucun fonds. L’abonnement rémunère le logiciel et son hébergement — rien d’autre.','UBORA takes <b>no commission on your contributions</b> and holds no funds. The subscription pays for the software and its hosting — nothing else.')}</div>
     <div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>
     <div class="asnote" style="margin-top:16px">${_FL('<b>Où que soit votre cercle</b>, le registre est le même. Ce qui change, c’est le chemin de l’argent : là où la carte bancaire existe, l’acheteur paie par carte ; ailleurs, il paie l’organisateur par Orange Money, MTN ou virement, et le déclare ici. <b>Dans les deux cas UBORA ne touche rien</b> — et le billet porte le même code vérifiable.','<b>Wherever your circle is</b>, the register is the same. What changes is the path of the money: where cards exist, the buyer pays by card; elsewhere, they pay the organiser by Orange Money, MTN or transfer, and declare it here. <b>Either way UBORA touches nothing</b> — and the ticket carries the same verifiable code.')}</div>
@@ -5827,7 +5862,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.81';
+const UBORA_BUILD='v7.84';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
