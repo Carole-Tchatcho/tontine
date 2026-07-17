@@ -327,7 +327,9 @@
   .level-strip .ls-eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600}
   .level-strip .ls-name{margin:5px 0 4px}
   .level-strip .ls-sub{font-size:12px;color:var(--mid)}
-  .level-strip .ls-cta{font-size:13px;font-weight:600;color:var(--core);white-space:nowrap}
+    .level-strip .ls-cta{font-size:13px;font-weight:600;color:var(--core);white-space:nowrap}
+  .ls-summit{transition:filter .3s, opacity .3s, transform .2s}
+  .level-strip:hover .ls-summit{filter:none!important;opacity:1!important;transform:scale(1.06)}
   .caisse-card{border-left:3px solid var(--core)}
   .pill.p-appel{background:#F3E2D2;color:#9A5A33;border:1px solid rgba(154,90,51,.32)}
   .pill.p-late{background:#F6E0DC;color:#A2452F;border:1px solid rgba(162,69,47,.3)}
@@ -2265,12 +2267,23 @@ function viewHome(){
       </div>
       <span class="ls-cta">${_FL('Voir le parcours →','See the path →')}</span></div>`;
       }
-      const L=LEVELS[myLevel()];
+      /* On montrait au visiteur son plancher ; on ne montrait au membre que
+         là où il EST, jamais où il peut aller. Un parcours qui ne montre pas
+         sa suite n'en est pas un. Le feu se tient donc à droite, pâle et
+         gris tant qu'on n'y est pas — et il s'allume le jour où l'on arrive. */
+      const i=myLevel(), L=LEVELS[i], T=LEVELS[LEVELS.length-1], auSommet=(i>=LEVELS.length-1);
       return `<div class="level-strip click" onclick="go('pyramide')">
       <div><div class="ls-eyebrow">${tr('hm_level_eyebrow')}</div>
         <div class="ls-name"><span class="level-badge" style="background:${L.bg};color:${L.color}">◆ ${L.name}</span></div>
         <div class="ls-sub">${tr('hm_level_sub')}</div></div>
-      <span class="ls-cta">${tr('hm_level_cta')}</span></div>`;})()}
+      <div style="display:flex;align-items:center;gap:16px;flex:0 0 auto">
+        <div class="ls-summit" title="${auSommet?_FL('Vous y êtes.','You are there.'):_FL('Le sommet du parcours','The summit of the path')}"
+             style="text-align:center;${auSommet?'':'filter:grayscale(.75);opacity:.5'}">
+          <div>${feuSVG(30)}</div>
+          <div style="font-size:8.5px;letter-spacing:.12em;color:var(--gold);margin-top:2px;text-transform:uppercase">${auSommet?_FL('vous y êtes','you are there'):esc(T.name)}</div>
+        </div>
+        <span class="ls-cta">${tr('hm_level_cta')}</span>
+      </div></div>`;})()}
     <div class="row" style="margin-top:20px">
       <button class="btn btn-gold" onclick="startCreate()">${tr('h_create')}</button>
       <button class="btn btn-ghost" onclick="go('join')">${icon('join')}${tr('h_join')}</button>
@@ -5910,7 +5923,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.90';
+const UBORA_BUILD='v7.91';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
