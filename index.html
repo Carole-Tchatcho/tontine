@@ -1684,6 +1684,13 @@ const db={
   async fedAsk(fedId,assoc,country){ const{data,error}=await sb.rpc('fed_request',{p_fed:fedId,p_assoc:assoc,p_country:country||null}); if(error)throw error; return data; },
   async fedSign(decId){ const{data,error}=await sb.rpc('fed_sign',{p_decision:decId}); if(error)throw error; return data; },
   async fedRefuse(decId){ const{error}=await sb.rpc('fed_reject',{p_decision:decId}); if(error)throw error; },
+  async fedShares(){ if(BACKEND!=='supabase'||!state.uid){state_shares=[];return;}
+    const{data,error}=await sb.from('federation_shares').select('fed_id,tontine_id').eq('granted_by',state.uid);
+    if(error)throw error; state_shares=data||[]; },
+  async fedShareGrant(fedId,tId){ const{error}=await sb.rpc('fed_share_grant',{p_fed:fedId,p_tontine:tId}); if(error)throw error; },
+  async fedShareRevoke(fedId,tId){ const{error}=await sb.rpc('fed_share_revoke',{p_fed:fedId,p_tontine:tId}); if(error)throw error; },
+  async fedStats(fedId){ const{data,error}=await sb.rpc('federation_stats',{p_fed:fedId}); if(error)throw error; return data; },
+  async fedAttIssue(fedId){ const{data,error}=await sb.rpc('federation_attestation_issue',{p_fed:fedId}); if(error)throw error; return data; },
   async fedRevoke(fedId,userId){ const{data,error}=await sb.rpc('fed_revoke_request',{p_fed:fedId,p_user:userId}); if(error)throw error; return data; },
   async loadEvents(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').select('data').order('created_at',{ascending:false}); if(error)throw error; state_events=(data||[]).map(r=>r.data).filter(Boolean).map(ev=>{
       /* « cameroun » saisi en texte libre redevient « Cameroun » : ni SQL, ni migration —
@@ -1863,7 +1870,10 @@ function goBack(){ if(!navStack.length){ go('home'); return; } const snap=navSta
 
 async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active=null;
   if(BACKEND==='supabase'&&v==='attmine'){try{await attLoadMine();}catch(e){console.warn(e);}}
-  if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin'||v==='entraide'||v==='caisse'||v==='caissecreate'||v==='evenements'||v==='evenement')){try{await db.fedLoad(); if(v==='fedadmin')await db.fedLoadOne(state.activeFedId);}catch(e){console.warn(e);}}
+  if(BACKEND==='supabase'&&(v==='fedhome'||v==='fedask'||v==='fedadmin'||v==='entraide'||v==='caisse'||v==='caissecreate'||v==='evenements'||v==='evenement'||v==='dash')){try{await db.fedLoad(); if(v==='dash')await db.fedShares();
+    if(v==='fedadmin'){ await db.fedLoadOne(state.activeFedId); state_fed_stats=null;
+      if((state_fed.bureau||[]).some(b=>b.fed_id===state.activeFedId)){ try{ state_fed_stats=await db.fedStats(state.activeFedId); }catch(e){ state_fed_stats=null; } } }
+  }catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&(v==='home'||v==='pyramide')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
     try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
@@ -4388,7 +4398,7 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
    L'appartenance à un réseau ne se déclare pas : le bureau l'accorde à deux
    signatures, et fedOk() la revérifie à chaque affichage. */
 
-let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null, state_att=[], state_verify=null;
+let state_fed={mine:[],bureau:[],dir:[],uid:null}, state_fed1=null, state_att=[], state_verify=null, state_shares=[], state_fed_stats=null;
 var _pendingVerify=null;
 const _FL=(fr,en)=>state.lang==='en'?en:fr;
 
@@ -4396,6 +4406,63 @@ const _FL=(fr,en)=>state.lang==='en'?en:fr;
    cru sur la foi du champ enregistré. Si l'appartenance n'est plus dans
    my_federations — radiation, ou valeur écrite hors de l'interface — le
    badge disparaît de lui-même. */
+/* ÉTAGE 3 — ce que la fédération achète : la preuve chiffrée que son réseau
+   tient. Elle ne voit JAMAIS un individu. Le seuil est appliqué dans le SQL,
+   pas ici : ce que le serveur refuse de calculer, l'écran ne peut pas le
+   révéler par accident. */
+async function fedShareToggle(fedId,tId,on){
+  try{
+    if(on){ await db.fedShareGrant(fedId,tId);
+      alert(_FL('Cercle rattaché. La fédération verra un agrégat — jamais un membre, jamais un retard nominatif.',
+                'Circle linked. The federation will see an aggregate — never a member, never a named delay.')); }
+    else { await db.fedShareRevoke(fedId,tId);
+      alert(_FL('Rattachement retiré. Les chiffres de ce cercle sortent immédiatement de l\'agrégat.',
+                'Link removed. This circle\'s figures leave the aggregate immediately.')); }
+    await db.fedShares(); render();
+  }catch(e){ alert(e.message||e); }
+}
+async function fedAttIssue(fedId){
+  if(!confirm(_FL('Émettre l\'attestation de cette fédération ? Elle figera l\'agrégat d\'aujourd\'hui et recevra un code vérifiable par quiconque.',
+                  'Issue this federation\'s attestation? It will freeze today\'s aggregate and receive a code anyone can verify.')))return;
+  try{ const code=await db.fedAttIssue(fedId); state.attCode=code; go('attmine'); }
+  catch(e){ alert(e.message||e); }
+}
+function fedSharePanel(t){
+  const mine=(state_fed.mine||[]);
+  if(!mine.length) return '';
+  const sh=state_shares||[];
+  return `<div class="panel"><div class="panel-h"><h3>${_FL('Rattacher ce cercle à une fédération','Link this circle to a federation')}</h3></div>
+    <div style="padding:10px 22px 16px">
+      <div class="msub" style="margin-bottom:10px">${_FL(
+        'La fédération ne verra qu\'un total agrégé avec les autres cercles rattachés. <b>Jamais un membre, jamais un versement, jamais un retard nominatif.</b> Un cercle de moins de 6 membres n\'entre dans aucun calcul : ses chiffres désigneraient des personnes.',
+        'The federation will only see a total aggregated with the other linked circles. <b>Never a member, never a payment, never a named delay.</b> A circle under 6 members enters no calculation: its figures would point at individuals.')}</div>
+      ${mine.map(m=>{const on=sh.some(x=>x.fed_id===m.fed_id&&x.tontine_id===t.id);
+        return `<div class="mrow"><div class="stack"><div class="mname">${esc(m.fed_name)}</div>
+          <div class="msub">${esc(m.assoc_name)}</div></div>
+          <div class="right"><button class="btn ${on?'btn-ghost':'btn-gold'} btn-sm" onclick="fedShareToggle('${m.fed_id}','${t.id}',${on?'false':'true'})">${on?_FL('Retirer','Unlink'):_FL('Rattacher','Link')}</button></div></div>`;}).join('')}
+    </div></div>`;
+}
+function fedStatsPanel(){
+  const j=state_fed_stats;
+  if(!j) return '';
+  if(!j.suffisant) return `<div class="panel"><div class="panel-h"><h3>${_FL('Chiffres du réseau','Network figures')}</h3></div>
+    <div style="padding:14px 22px 18px">
+      <div class="mname">${j.partages||j.cercles||0} ${_FL('cercle(s) rattaché(s)','circle(s) linked')} · ${j.cercles||0} ${_FL('retenu(s)','eligible')}</div>
+      <div class="msub" style="margin-top:8px;color:var(--pending)">${esc(j.motif||'')}</div>
+    </div></div>`;
+  return `<div class="panel"><div class="panel-h"><h3>${_FL('Chiffres du réseau','Network figures')}</h3></div>
+    <div style="padding:14px 22px 18px">
+      <div class="att-meta">
+        <div><span class="att-k">${_FL('Cercles','Circles')}</span><span class="att-v">${j.cercles} ${_FL('retenus sur','eligible of')} ${j.partages} ${_FL('rattachés','linked')}</span></div>
+        <div><span class="att-k">${_FL('Membres','Members')}</span><span class="att-v">${j.membres}</span></div>
+        <div><span class="att-k">${_FL('Versements confirmés','Confirmed payments')}</span><span class="att-v">${j.confirmes} / ${j.declares} · <b>${j.taux}%</b></span></div>
+        <div><span class="att-k">${_FL('Total confirmé','Confirmed total')}</span><span class="att-v">${(j.total_confirme||0).toLocaleString('fr-CH')} ${(j.devises||[]).join(' / ')}</span></div>
+        ${j.pays&&j.pays.length?`<div><span class="att-k">${_FL('Corridors','Corridors')}</span><span class="att-v">${(j.pays||[]).map(esc).join(' · ')}</span></div>`:''}
+      </div>
+      <div class="msub" style="margin-top:12px">${esc(j.portee||'')}</div>
+    </div></div>`;
+}
+
 function fedOk(name){ return !!name && (state_fed.mine||[]).some(m=>m.fed_name===name); }
 function fedTag(name){ return fedOk(name)?` · <span class="rpn-tag">${tr('net_word')} ${esc(name)}</span>`:''; }
 function fedTxt(name){ return fedOk(name)?` · ${tr('net_word')} ${esc(name)}`:''; }
@@ -4560,6 +4627,8 @@ function viewFedAdmin(){
     ${inviteHtml}
     <h2 class="section-h">${_FL('Demandes à trancher','Decisions to sign')}</h2>
     <div class="panel"><div style="padding:8px 16px">${pendHtml}</div></div>
+    ${fedStatsPanel()}
+    ${isOwner&&state_fed_stats&&state_fed_stats.suffisant?`<div style="margin:10px 0 4px"><button class="btn btn-gold btn-sm" onclick="fedAttIssue('${f.id}')">${_FL('Émettre l\'attestation de la fédération','Issue the federation\'s attestation')}</button></div>`:''}
     <h2 class="section-h">${_FL('Associations membres','Member associations')} (${mem.length})</h2>
     <div class="panel"><div style="padding:8px 16px">${memHtml}</div></div>
     ${footer()}`;
@@ -5538,6 +5607,7 @@ function dashGov(t){
       <div class="hint">Les bureaux \u00E9voluent\u00A0: chaque changement conserve la date de prise de fonction, et l\u2019historique appara\u00EEt ci-dessous.</div></div></div>
     ${dashRapprochement(t,can)}
     <div class="panel"><div class="panel-h"><h3>Journal des modifications</h3></div><div style="padding:10px 22px 16px">${audit}</div></div>
+    ${isOrg?fedSharePanel(t):''}
     ${dashPremium(t,isOrg)}`;
 }
 function dashRapprochement(t,can){
@@ -5663,7 +5733,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.78';
+const UBORA_BUILD='v7.79';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
