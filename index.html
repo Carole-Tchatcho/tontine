@@ -612,12 +612,10 @@
     <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
-      <button id="nav-pyr" onclick="go('pyramide')"><i>◆</i><span class="lbl">Niveaux</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
       <button id="nav-entraide" onclick="go('entraide')"><i>♡</i><span class="lbl">Entraide</span></button>
 <button id="nav-events" onclick="go('events')"><i>❖</i><span class="lbl">Événements</span></button>
       <button id="nav-partage" onclick="go('partages')"><i>⇄</i><span class="lbl">Partage</span></button>
-      <button id="nav-diffusion" onclick="openDiffuse(null)"><i>📣</i><span class="lbl">Diffusion</span></button>
       <button id="nav-notif" onclick="go('notif')"><i>⏰</i><span class="lbl">Rappels</span> <span class="dot" id="notifcount">0</span></button>
       <button id="nav-tarifs" onclick="go('tarifs')"><i>◈</i><span class="lbl">Tarifs</span></button>
     </nav>
@@ -1988,7 +1986,7 @@ function viewBientot(){
 function render(){
   if(_curSnap && !_navBack){ try{ if(JSON.parse(_curSnap).view!==state.view){ navStack.push(_curSnap); if(navStack.length>40)navStack.shift(); } }catch(e){} }
   document.querySelectorAll('.hnav button').forEach(b=>b.classList.remove('on'));
-  {const NAVK={'nav-home':'nav_tontines','nav-entraide':'nav_entraide','nav-events':'nav_events','nav-pyr':'nav_niveaux','nav-notif':'nav_rappels','nav-partage':'nav_partage','nav-case':'nav_case','nav-diffusion':'nav_diffusion'};
+  {const NAVK={'nav-home':'nav_tontines','nav-entraide':'nav_entraide','nav-events':'nav_events','nav-notif':'nav_rappels','nav-partage':'nav_partage','nav-case':'nav_case'};
    Object.keys(NAVK).forEach(id=>{const el=document.querySelector('#'+id+' .lbl'); if(el)el.textContent=tr(NAVK[id]);});
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
@@ -1998,9 +1996,12 @@ function render(){
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
   if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate')$('#nav-partage').classList.add('on');
-  if(state.view==='diffusion')$('#nav-diffusion').classList.add('on');
+  /* Niveaux et Diffusion ne sont plus dans la barre : le bandeau « Votre
+     niveau » de l'accueil mène déjà à la pyramide, et « Diffusion » est un
+     bouton posé à côté de ce qu'on diffuse. Deux onglets qui doublonnaient
+     ce que les pages offraient mieux — et qui empêchaient Tarifs de tenir. */
   if(state.view==='case'||state.view==='casecreate'||state.view==='casedetail')$('#nav-case').classList.add('on');
-  if(state.view==='pyramide'||state.view==='cercle'||state.view==='apex'||state.view==='reputation'||state.view==='deal'||state.view==='udroom')$('#nav-pyr').classList.add('on');
+
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
   const _GATED_SOON={mandate:1,registre:1,attestation:1};
@@ -2238,7 +2239,26 @@ function viewHome(){
     <p class="lead">${tr('h_lead')}</p>
     <div class="reassure">● ${tr('h_reassure')}</div>
     <div>${trustSeal()}</div>
-    ${(()=>{const L=LEVELS[myLevel()];return `<div class="level-strip click" onclick="go('pyramide')">
+    ${(()=>{
+      /* Un visiteur n'a pas de niveau, pas de cercle, et rien à calculer.
+         Lui annoncer « VOTRE NIVEAU · Découverte · calculé sur l'ensemble de
+         VOS cercles » énonce trois choses fausses d'un coup, et le place au
+         plus bas d'une échelle où il n'est pas encore monté. On ne donne pas
+         envie en montrant à quelqu'un le barreau zéro : on lui montre le
+         sommet, et on lui dit ce qu'il faut faire pour y aller. */
+      if(!state.uid){
+        const T=LEVELS[LEVELS.length-1];
+        return `<div class="level-strip click" onclick="go('pyramide')">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="flex:0 0 auto">${feuSVG(42)}</span>
+        <div><div class="ls-eyebrow">${_FL('où mène le registre','where the register leads')}</div>
+        <div class="ls-name"><span class="level-badge" style="background:${T.bg};color:${T.color}">◆ ${T.name}</span></div>
+        <div class="ls-sub">${_FL('Six paliers, du premier versement au sommet. On les gravit en tenant sa tontine — <b>jamais en le déclarant</b>.','Six tiers, from the first payment to the summit. You climb them by keeping your tontine — <b>never by claiming it</b>.')}</div></div>
+      </div>
+      <span class="ls-cta">${_FL('Voir le parcours →','See the path →')}</span></div>`;
+      }
+      const L=LEVELS[myLevel()];
+      return `<div class="level-strip click" onclick="go('pyramide')">
       <div><div class="ls-eyebrow">${tr('hm_level_eyebrow')}</div>
         <div class="ls-name"><span class="level-badge" style="background:${L.bg};color:${L.color}">◆ ${L.name}</span></div>
         <div class="ls-sub">${tr('hm_level_sub')}</div></div>
@@ -5876,7 +5896,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.86';
+const UBORA_BUILD='v7.88';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
