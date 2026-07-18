@@ -2465,7 +2465,7 @@ function viewDash(){
       <button class="${state.tab==='gov'?'on':''}" onclick="state.tab='gov';render()">Gouvernance</button>
     </div>`;
   const body={group:dashGroup,me:dashMe,journal:dashJournal,invite:dashInvite,gov:dashGov}[state.tab](t);
-  app().innerHTML=head+body+footer();
+  app().innerHTML=head+bandeauAbo(t)+body+footer();
 }
 
 function dashGroup(t){
@@ -5923,7 +5923,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.91';
+const UBORA_BUILD='v7.92';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6063,6 +6063,28 @@ function ngameSVG(size,op){
 }
 /* ---------- Abonnement Premium (par tontine/association) ---------- */
 function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>new Date()); }
+/* Le gel est décidé par la BASE (garde_ecriture) : c'est elle qui fait foi.
+   Ceci n'est qu'un MIROIR pour prévenir l'organisateur à l'écran avant qu'il
+   ne bute sur un refus — jamais une autorisation. La base tranche, l'écran
+   explique. */
+function estGele(t){ return !!(t && !isPremium(t) && filled(t) > 12); }
+function joursAvantEcheance(t){
+  if(!isPremium(t)) return null;
+  return Math.max(0, Math.ceil((new Date(t.premium_until)-new Date())/86400000));
+}
+function bandeauAbo(t){
+  if(estGele(t)) return `<div class="asnote" style="margin:12px 0;border-left:3px solid var(--pending);background:rgba(180,120,40,.08)">
+    <b style="color:var(--pending)">${_FL('Cercle gelé','Circle frozen')}</b> — ${_FL(
+      'l\'abonnement a expiré et ce cercle compte plus de 12 membres. Son registre, son journal et ses attestations restent intacts et consultables. Pour rouvrir (accueillir un membre, ajouter un tour, émettre une attestation), renouvelez l\'abonnement — tout revient à l\'identique.',
+      'the subscription has expired and this circle has more than 12 members. Its register, journal and attestations remain intact and readable. To reopen (add a member, add a round, issue an attestation), renew the subscription — everything returns as it was.')}
+    <div style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="go('tarifs')">${_FL('Voir les paliers','See the tiers')}</button></div></div>`;
+  const j=joursAvantEcheance(t);
+  if(j!==null && j<=7) return `<div class="asnote" style="margin:12px 0;border-left:3px solid #C9A84C;background:rgba(201,168,76,.10)">
+    ${kwenSVG(18)} <b>${_FL('Abonnement à renouveler','Subscription due')}</b> — ${_FL(
+      'il reste '+j+' jour'+(j>1?'s':'')+' avant l\'échéance. Au-delà, ce cercle repassera au palier gratuit (12 membres) tant qu\'il n\'est pas renouvelé.',
+      j+' day'+(j>1?'s':'')+' left before renewal. After that, this circle returns to the free tier (12 members) until renewed.')}</div>`;
+  return '';
+}
 async function premiumSubscribe(tid){
   try{
     const{data:{session:_s}}=await sb.auth.getSession();
