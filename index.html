@@ -3688,6 +3688,58 @@ const PALIERS=[
                _FL('<b>Kwèn inclus pour vos cercles membres</b>','<b>Kwèn included for your member circles</b>')]}
 ];
 
+/* Les 12 price_… de Stripe (mode LIVE), miroir exact de la liste blanche
+   de l'Edge Function stripe-subscribe. Palier → devise → price. Fekeng n'y
+   est pas : le gratuit n'a pas de prix. Si un prix change dans Stripe, il se
+   change ICI *et* dans stripe-subscribe. */
+const STRIPE_PRICES = {
+  kwen:   { CHF:'price_1Tsne7DOQtBEXKHLdMI7xol2', EUR:'price_1TuZ9zDOQtBEXKHL7jPWbVk5', CAD:'price_1TuZ9zDOQtBEXKHL1rQFdczY', USD:'price_1TuZ9zDOQtBEXKHLb7KldemA' },
+  fagot:  { CHF:'price_1TuZCFDOQtBEXKHLUTPGfaIb', EUR:'price_1TuZFtDOQtBEXKHLUW7qLg7b', CAD:'price_1TuZFtDOQtBEXKHLE0I4aj4X', USD:'price_1TuZFtDOQtBEXKHLnhTHQbRd' },
+  baobab: { CHF:'price_1TuZDxDOQtBEXKHL2Olz6x0j', EUR:'price_1TuZEdDOQtBEXKHLlF1hSILz', CAD:'price_1TuZEdDOQtBEXKHLkQ6XKkq9', USD:'price_1TuZEdDOQtBEXKHLJrHRdEsB' },
+};
+/* Stripe ne facture ces paliers qu'en 4 devises. Le pays donne la devise
+   d'usage ; si elle n'est pas l'une des 4 (un Camerounais en XAF, un Ivoirien
+   en XOF…), on retombe sur USD — la devise que tout le monde reconnaît — plutôt
+   que d'imposer un prix que Stripe ne peut pas présenter. L'Afrique paiera par
+   Mobile Money quand l'agrégateur existera ; ceci n'est que le repli carte. */
+function abonnementDevise(){
+  const c = homeCurrency();
+  return ['CHF','EUR','CAD','USD'].includes(c) ? c : 'USD';
+}
+/* Le cœur du branchement : abonner UN cercle à UN palier. Un abonnement
+   s'applique à un cercle précis (stripe-subscribe exige tontine_id), or la
+   page tarifs est générale. On résout ainsi :
+     · un seul cercle organisé → on l'abonne directement ;
+     · plusieurs → on demande lequel ;
+     · aucun → on invite à créer un cercle d'abord. */
+async function abonnerPalier(palier){
+  const dev = abonnementDevise();
+  const price = (STRIPE_PRICES[palier]||{})[dev];
+  if(!price){ alert(_FL('Ce palier n’est pas disponible dans votre devise pour le moment.','This tier isn’t available in your currency yet.')); return; }
+
+  // Les cercles dont je suis l'organisateur (seul l'organisateur peut abonner).
+  const miens = (state_tontines||[]).filter(t => {
+    const me = t.members && t.members[t.me];
+    return me && me.role==='organisateur';
+  });
+
+  if(miens.length===0){
+    alert(_FL('Créez d’abord un cercle : l’abonnement s’applique à un cercle que vous organisez.',
+              'Create a circle first: the subscription applies to a circle you organise.'));
+    go(state.uid?'create':'auth'); return;
+  }
+  let tid;
+  if(miens.length===1){ tid = miens[0].id; }
+  else {
+    const noms = miens.map((t,i)=>`${i+1}. ${t.name}`).join('\n');
+    const rep = prompt(_FL('Quel cercle abonner au palier '+palier+'\u00A0?\n','Which circle to subscribe to '+palier+'?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
+    const idx = parseInt(rep,10)-1;
+    if(isNaN(idx)||idx<0||idx>=miens.length) return;
+    tid = miens[idx].id;
+  }
+  premiumSubscribe(tid, price);
+}
+
 async function tarifNotify(k){
   const el=document.getElementById('tn-'+k);
   const mail=el?String(el.value).trim():(state.email||'');
@@ -3717,8 +3769,8 @@ function viewTarifs(){
       <div class="msub">${p.prix?p.tag():'—'}</div>
       <div class="msub" style="margin-top:10px"><b>${p.pour()}</b></div>
       <div style="text-align:left;margin-top:14px">${p.points().map(x=>`<div class="msub" style="margin-top:6px">· ${x}</div>`).join('')}</div>
-      ${p.prix?`<div class="field" style="margin-top:16px"><input id="tn-${p.k}" placeholder="${_FL('votre e-mail','your email')}" value="${esc(state.email||'')}"></div>
-        <button class="btn btn-gold btn-sm" style="margin-top:8px;width:100%" onclick="tarifNotify('${p.k}')">${_FL('M’avertir à l’ouverture','Notify me at launch')}</button>`
+      ${p.prix?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} · ${p.prix} ${abonnementDevise()}</button>
+        <div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement sécurisé par Stripe · sans engagement, résiliable à tout moment','Secure payment via Stripe · no commitment, cancel anytime')}</div>`
         :`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`}
     </div></div>`).join('');
   app().innerHTML=`
@@ -5923,7 +5975,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.92';
+const UBORA_BUILD='v7.93';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6085,12 +6137,12 @@ function bandeauAbo(t){
       j+' day'+(j>1?'s':'')+' left before renewal. After that, this circle returns to the free tier (12 members) until renewed.')}</div>`;
   return '';
 }
-async function premiumSubscribe(tid){
+async function premiumSubscribe(tid, price_id){
   try{
     const{data:{session:_s}}=await sb.auth.getSession();
     const _r=await fetch(SB_URL+'/functions/v1/stripe-subscribe',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
-      body:JSON.stringify({tontine_id:tid,return_url:location.origin+location.pathname})});
+      body:JSON.stringify({tontine_id:tid, price_id, return_url:location.origin+location.pathname})});
     const _j=await _r.json().catch(()=>({}));
     if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
     if(_j.url){ location.href=_j.url; return; }
