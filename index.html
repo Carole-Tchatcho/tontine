@@ -1865,12 +1865,7 @@ function rotationRing(t){
     <text x="${cx}" y="${cy-13}" text-anchor="middle" class="ring-amt countup" data-k="ring-${t.id}" data-to="${collected}" data-cur="${t.currency}">${money(collected,t.currency)}</text>
     <text x="${cx}" y="${cy+5}" text-anchor="middle" class="ring-lab">sur ${money(full,t.currency)}</text>
     <text x="${cx}" y="${cy+24}" text-anchor="middle" class="ring-name">${benName(t,r.beneficiary)}</text>
-    ${isPremium(t)?`<g transform="translate(${cx-16},${cy+32}) scale(0.5)" opacity="0.9">
-      <g stroke="#C9A84C" stroke-linejoin="round" stroke-linecap="round" fill="none">
-        <path d="M22 25 C 22 10, 42 10, 42 25" stroke-width="3.4"/>
-        <path d="M18.6 27 C 18.6 25.6, 25.4 25.6, 25.4 27 L 28.6 50 C 28.6 52.4, 15.4 52.4, 15.4 50 Z" stroke-width="2.4" fill="#C9A84C" fill-opacity="0.14"/>
-        <path d="M38.6 27 C 38.6 25.6, 45.4 25.6, 45.4 27 L 48.6 50 C 48.6 52.4, 35.4 52.4, 35.4 50 Z" stroke-width="2.4" fill="#C9A84C" fill-opacity="0.14"/>
-      </g></g>`:''}
+<g transform="translate(${cx-14},${cy+30})" opacity="0.9">${palierSVG(t,28)}</g>
   </svg>`;
 }
 
@@ -5893,13 +5888,15 @@ function exportCompta(tid){
 function dashPremium(t,isOrg){
   if(BACKEND!=='supabase')return '';
   const on=isPremium(t);
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine · Kwèn</h3>${on?`<span class="pill p-paid">actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">gratuit</span>`}</div>
+  const nom=palierNom(t);
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine \u00B7 ${on?esc(nom):'Fekeng'}</h3>${on?`<span class="pill p-paid">${esc(nom)} \u00B7 actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">palier gratuit</span>`}</div>
     <div style="padding:14px 22px">
-      ${on?`<p class="msub">Merci\u00A0! Votre cercle soutient le registre. Attestations illimit\u00E9es, rappels pr\u00EAts \u00E0 envoyer et exports comptables sont actifs.</p>`
-        :`<p class="msub">Le registre est <b>gratuit</b>, et il l\u2019est enti\u00E8rement\u00A0: le journal d\u2019audit, la double signature du bureau et l\u2019attestation ne s\u2019ach\u00E8tent pas et ne s\u2019ach\u00E8teront jamais. <b>Kw\u00E8n \u2014 19\u00A0CHF/mois</b> ajoute la taille et le confort\u00A0: jusqu\u2019\u00E0 30 membres, attestations illimit\u00E9es, rappels pr\u00EAts \u00E0 envoyer, exports comptables.</p>
-          <div style="text-align:center;margin:10px 0">${kwenSVG(44)}</div>
+      <div style="text-align:center;margin:6px 0 10px">${palierSVG(t,46)}</div>
+      ${on?`<p class="msub">Merci\u00A0! Votre cercle est au palier <b>${esc(nom)}</b>\u00A0: attestations illimit\u00E9es, rappels pr\u00EAts \u00E0 envoyer et exports comptables sont actifs.</p>`
+        :`<p class="msub">Ce cercle est au palier <b>Fekeng</b> (gratuit), et le registre l\u2019est enti\u00E8rement\u00A0: le journal d\u2019audit, la double signature du bureau et l\u2019attestation ne s\u2019ach\u00E8tent pas et ne s\u2019ach\u00E8teront jamais. Un palier payant ajoute la taille et le confort.</p>
           <div class="asnote" style="margin:10px 0">UBORA ne pr\u00E9l\u00E8ve <b>aucune commission sur vos cotisations</b> et ne d\u00E9tient aucun fonds. L\u2019abonnement r\u00E9mun\u00E8re le logiciel et son h\u00E9bergement \u2014 rien d\u2019autre.</div>
-          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="premiumSubscribe('${t.id}')">\u2728 Passer en Tontine Premium \u2014 19 CHF/mois</button>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
+          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="abonnerPalier('kwen')">\u2728 ${_FL('Passer en Kw\u00E8n','Upgrade to Kw\u00E8n')} \u2014 19 ${abonnementDevise()}/${_FL('mois','mo')}</button>
+          <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="go('tarifs')">${_FL('Voir tous les paliers','See all tiers')}</button></div>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
     </div></div>`;
 }
 async function govSetJour(tid,v){ try{ const{error}=await sb.rpc('set_jour_echeance',{p_tontine:tid,p_jour:v?+v:null}); if(error)throw error; await refresh(tid); }catch(e){ alert(e.message||e); } }
@@ -5981,7 +5978,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.95';
+const UBORA_BUILD='v7.96';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6121,6 +6118,21 @@ function ngameSVG(size,op){
 }
 /* ---------- Abonnement Premium (par tontine/association) ---------- */
 function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>new Date()); }
+/* Le palier réel d'un cercle et son symbole. La base ne distingue pour l'instant
+   que gratuit/payé ; quand l'agrégateur écrira le produit souscrit, ce point
+   unique livrera Fagot/Baobab sans toucher au reste. */
+function palierDe(t){ return isPremium(t) ? 'kwen' : 'fekeng'; }
+function palierSVG(t, size){
+  const p = palierDe(t);
+  if(p==='kwen')   return kwenSVG(size||44);
+  if(p==='fagot')  return fagotSVG(size||44);
+  if(p==='baobab') return baobabSVG(size||44);
+  return fekengSVG(size||44);
+}
+function palierNom(t){
+  const p = palierDe(t);
+  return p==='kwen'?'Kwèn':p==='fagot'?'Fagot':p==='baobab'?'Baobab':'Fekeng';
+}
 /* Le gel est décidé par la BASE (garde_ecriture) : c'est elle qui fait foi.
    Ceci n'est qu'un MIROIR pour prévenir l'organisateur à l'écran avant qu'il
    ne bute sur un refus — jamais une autorisation. La base tranche, l'écran
