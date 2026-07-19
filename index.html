@@ -2308,6 +2308,12 @@ function viewHome(){
 /* ---------- création : squelette seulement ---------- */
 function startCreate(){draft={name:'',amount:'',currency:'CHF',frequency:'mensuelle',places:6,jourEcheance:null,oName:'',oContact:'',oCountry:state.homeCountry,oMk:false,renforced:false};go('create');}
 function viewCreate(){
+  /* draft peut être null (arrivée directe par « Commencer », sans import
+     préalable qui le remplirait). On garantit un brouillon vierge et cohérent
+     avant de lire ses champs — sinon draft.name plante au rendu. */
+  if(!draft) draft={ name:'', amount:'', currency:(state.homeCountry&&COUNTRY_CUR[state.homeCountry])||'CHF',
+                     frequency:'mensuelle', places:12, oName:state.user||'', oContact:'',
+                     oCountry:state.homeCountry||'', oMk:false, renforced:false, roster:[], firstBenIdx:0 };
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="eyebrow">${tr('cr_eyebrow')}</div>
@@ -2354,7 +2360,7 @@ function viewCreate(){
 
     <div class="row" style="margin-top:20px">
       ${(draft.roster&&draft.roster.length)?`<div class="reassure" style="margin-bottom:10px">${tr('cr_imported').replace('{n}',draft.roster.length)}</div>`:''}
-      ${(draft.roster&&draft.roster.length)?`<div class="field"><label>${tr('cr_first_ben')}</label><select onchange="draft.firstBenIdx=+this.value"><option value="0" ${!draft.firstBenIdx?'selected':''}>${esc(state.user)} (${tr('role_org')})</option>${draft.roster.map((m,i)=>`<option value="${i+1}" ${draft.firstBenIdx===i+1?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>`:''}
+      ${(draft.roster&&draft.roster.length)?`<div class="field"><label>${tr('cr_first_ben')}</label><select onchange="draft.firstBenIdx=+this.value"><option value="0" ${!draft.firstBenIdx?'selected':''}>${esc(state.user)} (${tr('role_org')})</option>${draft.roster.map((m,i)=> m ? `<option value="${i+1}" ${draft.firstBenIdx===i+1?'selected':''}>${esc(m.name||('Membre '+(i+1)))}</option>` : '').join('')}</select></div>`:''}
       <button class="btn btn-gold" onclick="createTontine()">${tr('cr_create_btn')}</button>
       <button class="btn btn-ghost" onclick="go('home')">${tr('cancel')}</button>
     </div>${footer()}`;
@@ -5975,7 +5981,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.93';
+const UBORA_BUILD='v7.95';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
