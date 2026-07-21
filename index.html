@@ -5979,7 +5979,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.98';
+const UBORA_BUILD='v7.99';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6155,7 +6155,7 @@ function bandeauAbo(t){
     <div style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="go('tarifs')">${_FL('Voir les paliers','See the tiers')}</button></div></div>`;
   const j=joursAvantEcheance(t);
   if(j!==null && j<=7) return `<div class="asnote" style="margin:12px 0;border-left:3px solid #C9A84C;background:rgba(201,168,76,.10)">
-    ${kwenSVG(18)} <b>${_FL('Abonnement à renouveler','Subscription due')}</b> — ${_FL(
+    ${palierSVG(t,18)} <b>${_FL('Abonnement à renouveler','Subscription due')}</b> — ${_FL(
       'il reste '+j+' jour'+(j>1?'s':'')+' avant l\'échéance. Au-delà, ce cercle repassera au palier gratuit (12 membres) tant qu\'il n\'est pas renouvelé.',
       j+' day'+(j>1?'s':'')+' left before renewal. After that, this circle returns to the free tier (12 members) until renewed.')}</div>`;
   return '';
