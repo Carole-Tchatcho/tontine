@@ -1685,7 +1685,7 @@ async function sbGetTontine(id,uid){
   const ids=(rd||[]).map(r=>r.id); let co=[];
   if(ids.length){const{data}=await sb.from('contributions').select('*').in('round_id',ids);co=data||[];}
   const loc=assembleSB(t,mem||[],rd||[],co,uid);
-  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null;
+  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null; loc.palier=t.palier||null;
     try{ const[{data:_bu},{data:_au}]=await Promise.all([
       sb.from('tontine_bureau').select('*').eq('tontine_id',id).is('jusqua',null),
       sb.from('tontine_audit').select('*').eq('tontine_id',id).order('created_at',{ascending:false}).limit(25)]);
@@ -5979,7 +5979,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.99';
+const UBORA_BUILD='v8.00';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
