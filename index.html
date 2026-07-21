@@ -2451,8 +2451,8 @@ function viewDash(){
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
-        <div class="t-meta">${isPremium(t)?`<span style="vertical-align:-5px;margin-right:6px">${kwenSVG(18)}</span>`:''}${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
-        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${kwenSVG(22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE KW\u00C8N</span></div>${kwenBand()}`:''}
+        <div class="t-meta">${isPremium(t)?`<span style="vertical-align:-5px;margin-right:6px">${palierSVG(t,18)}</span>`:''}${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
+        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${palierSVG(t,22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE ${palierNom(t).toUpperCase()}</span></div>${kwenBand()}`:''}
         ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
         ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
         <div>${trustSeal()}</div></div>
@@ -5979,7 +5979,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.97';
+const UBORA_BUILD='v7.98';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6122,7 +6122,11 @@ function isPremium(t){ return !!(t&&t.premium_until&&new Date(t.premium_until)>n
 /* Le palier réel d'un cercle et son symbole. La base ne distingue pour l'instant
    que gratuit/payé ; quand l'agrégateur écrira le produit souscrit, ce point
    unique livrera Fagot/Baobab sans toucher au reste. */
-function palierDe(t){ return isPremium(t) ? 'kwen' : 'fekeng'; }
+function palierDe(t){
+  if(!isPremium(t)) return 'fekeng';
+  const p = (t && t.palier) ? String(t.palier).toLowerCase() : 'kwen';
+  return (p==='fagot' || p==='baobab' || p==='kwen') ? p : 'kwen';
+}
 function palierSVG(t, size){
   const p = palierDe(t);
   if(p==='kwen')   return kwenSVG(size||44);
