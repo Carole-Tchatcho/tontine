@@ -1207,7 +1207,7 @@ Object.assign(I18N.fr,{
   au_lead:'Sans mot de passe. Un lien par e-mail, ou un code par SMS / WhatsApp.',
   au_email:'E-mail',au_email_ph:'vous@exemple.com',au_get_link:'Recevoir le lien',
   au_or_phone:'Ou par téléphone',au_phone_ph:'+41 …',au_get_code:'Recevoir le code',
-  au_code_ph:'Code reçu',au_validate:'Valider',al_au_sent:'Lien envoyé — vérifiez votre boîte e-mail.',
+  au_code_ph:'Code reçu',au_validate:'Valider',al_au_sent:'Lien envoyé — vérifiez votre boîte e-mail.',au_spam_hint:'Pas de mail dans les 2 minutes ? Regardez dans vos courriers indésirables / spam, ouvrez le message et cliquez sur « Non, ce n’est pas un spam ». Vos prochains e-mails arriveront directement en boîte de réception.',
   cel_eyebrow:'UBORA · FÉLICITATIONS',cel_title:'Vous voilà {n}.',cel_fast_t:'Vous montez vite.',cel_fast_d:'Si un jour vous souhaitez faire fructifier ce que vous recevez, la méthode UBORA est là — sans engagement, à votre rythme.',cel_discover:'Découvrir la méthode'
 });
 Object.assign(I18N.en,{
@@ -1220,7 +1220,7 @@ Object.assign(I18N.en,{
   au_lead:'No password. A link by email, or a code by SMS / WhatsApp.',
   au_email:'Email',au_email_ph:'you@example.com',au_get_link:'Get the link',
   au_or_phone:'Or by phone',au_phone_ph:'+41 …',au_get_code:'Get the code',
-  au_code_ph:'Code received',au_validate:'Verify',al_au_sent:'Link sent — check your inbox.',
+  au_code_ph:'Code received',au_validate:'Verify',al_au_sent:'Link sent — check your inbox.',au_spam_hint:'No email within 2 minutes? Check your junk / spam folder, open the message and click “Not spam”. Your future emails will land straight in your inbox.',
   cel_eyebrow:'UBORA · CONGRATULATIONS',cel_title:'You\u2019re now {n}.',cel_fast_t:'You\u2019re rising fast.',cel_fast_d:'If one day you want to grow what you receive, the UBORA method is here — no commitment, at your own pace.',cel_discover:'Discover the method'
 });
 /* --- i18n : modération / signalement du fil d'événements --- */
@@ -5731,6 +5731,7 @@ function viewAuth(){
       <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="authEmail()">${tr('au_get_link')}</button></div>
       <div id="au-eotp" style="display:none;margin-top:12px">
         <div class="hint">${tr('au_email_code_hint')}</div>
+        <div class="hint" style="margin-top:8px">${tr('au_spam_hint')}</div>
         <input type="text" id="au-etoken" placeholder="123456" inputmode="numeric" autocomplete="one-time-code">
         <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authVerifyEmail()">${tr('au_validate')}</button></div>
       </div>
@@ -5978,7 +5979,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v7.96';
+const UBORA_BUILD='v7.97';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
