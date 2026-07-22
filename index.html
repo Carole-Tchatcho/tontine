@@ -1686,6 +1686,7 @@ async function sbGetTontine(id,uid){
   if(ids.length){const{data}=await sb.from('contributions').select('*').in('round_id',ids);co=data||[];}
   const loc=assembleSB(t,mem||[],rd||[],co,uid);
   if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null; loc.palier=t.palier||null;
+    try{ const{data:_et}=await sb.rpc('cercle_etat',{p_tontine:id}); if(_et){ loc.premium_until=_et.premium_until||null; loc.palier=_et.abonne?'kwen':null; loc.premiumSource=_et.source||null; } }catch(_e){}
     try{ const[{data:_bu},{data:_au}]=await Promise.all([
       sb.from('tontine_bureau').select('*').eq('tontine_id',id).is('jusqua',null),
       sb.from('tontine_audit').select('*').eq('tontine_id',id).order('created_at',{ascending:false}).limit(25)]);
@@ -2314,6 +2315,29 @@ function viewCreate(){
     <div class="eyebrow">${tr('cr_eyebrow')}</div>
     <h1 class="page-title">${tr('cr_title')}</h1>
     <p class="lead">${tr('cr_lead')}</p>
+
+    <div class="panel" style="margin-bottom:16px;background:linear-gradient(180deg,#fbf7ec,#f7f0dd);border:1px solid #e6dcc0"><div style="padding:18px 22px">
+      <div style="font-family:Georgia,serif;font-size:16px;color:#1E2128;margin-bottom:3px">${_FL('Que voulez-vous créer ?','What do you want to create?')}</div>
+      <div style="color:#6b6960;font-size:13px;margin-bottom:14px">${_FL('Trois façons de vous organiser sur UBORA.','Three ways to organize on UBORA.')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">◇ ${_FL('UNE TONTINE','A TONTINE')}</div>
+          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('L\u2019épargne qui tourne','Rotating savings')}</div>
+          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Chacun cotise, chacun reçoit à son tour. Jusqu\u2019à 30 membres. C\u2019est l\u2019outil pour faire circuler l\u2019argent d\u2019un groupe ou entre proches.','Everyone contributes, everyone receives in turn. Up to 30 members. The tool to move a group\u2019s money — or money between close ones.')}</div>
+        </div>
+        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">△ ${_FL('UNE RÉUNION / ASSOCIATION','A GROUP / ASSOCIATION')}</div>
+          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Votre groupe — appelez-le comme chez vous','Your group — name it your way')}</div>
+          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Réunion, association, amicale, groupe d\u2019entraide\u2026 Le foyer qui rassemble vos membres et peut porter plusieurs tontines, une caisse, des événements.','Meeting, association, mutual-aid circle\u2026 The home that gathers your members and can hold several tontines, a fund, events.')}</div>
+        </div>
+        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">⬡ ${_FL('UNE FÉDÉRATION','A FEDERATION')}</div>
+          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Le réseau qui relie plusieurs groupes','The network linking several groups')}</div>
+          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Pour coordonner plusieurs réunions ou associations : chiffres agrégés du réseau, attestation commune, annuaire.','To coordinate several groups: aggregated network figures, a shared attestation, a directory.')}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;color:#8a8779;font-size:12px;font-style:italic;border-top:1px dashed #e6dcc0;padding-top:10px">${_FL('Un doute ? La tontine fait circuler l\u2019argent. La réunion/association rassemble les gens. La fédération relie les groupes.','Not sure? The tontine moves money. The group gathers people. The federation links groups.')}</div>
+    </div></div>
 
     <div class="panel"><div style="padding:20px 22px">
       <div class="field name-field" style="margin-top:0">
@@ -5979,7 +6003,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.00';
+const UBORA_BUILD='v8.02';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
