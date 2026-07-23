@@ -3743,6 +3743,33 @@ async function abonnerPalier(palier){
   const price = (STRIPE_PRICES[palier]||{})[dev];
   if(!price){ alert(_FL('Ce palier n’est pas disponible dans votre devise pour le moment.','This tier isn’t available in your currency yet.')); return; }
 
+  /* Fagot et Baobab s'abonnent sur un GROUPE (réunion / association / fédération),
+     jamais sur un cercle : c'est le groupe qui porte l'abonnement, et ses cercles
+     membres héritent de Kwèn. Kwèn, lui, reste sur le cercle. */
+  if(palier==='fagot' || palier==='baobab'){
+    if(!state.uid){ go('auth'); return; }
+    try{ if(!state_fed || !state_fed.dir) await db.fedLoad(); }catch(_e){}
+    const dir=(state_fed&&state_fed.dir)||[];
+    const uid=(state_fed&&state_fed.uid)||state.uid;
+    const ids=new Set(((state_fed&&state_fed.bureau)||[]).map(b=>b.fed_id));
+    const miens=dir.filter(f=>ids.has(f.id)||f.owner===uid);
+    if(miens.length===0){
+      alert(_FL('Créez d’abord votre groupe : Fagot et Baobab s’abonnent sur une réunion, une association ou une fédération — pas sur un cercle seul.',
+                'Create your group first: Fagot and Baobab apply to a group — not to a single circle.'));
+      go('fedhome'); return;
+    }
+    let fid;
+    if(miens.length===1){ fid = miens[0].id; }
+    else {
+      const noms = miens.map((f,i)=>`${i+1}. ${f.name}`).join('\n');
+      const rep = prompt(_FL('Quel groupe abonner au palier '+palier+'\u00A0?\n','Which group to subscribe to '+palier+'?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
+      const idx = parseInt(rep,10)-1;
+      if(isNaN(idx)||idx<0||idx>=miens.length) return;
+      fid = miens[idx].id;
+    }
+    groupeSubscribe(fid, price); return;
+  }
+
   // Les cercles dont je suis l'organisateur (seul l'organisateur peut abonner).
   const miens = (state_tontines||[]).filter(t => {
     const me = t.members && t.members[t.me];
@@ -6005,7 +6032,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.05';
+const UBORA_BUILD='v8.06';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
