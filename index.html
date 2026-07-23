@@ -1702,7 +1702,7 @@ const db={
     const uid=await db.fedUid();
     const [mine,dir,bur]=await Promise.all([
       sb.from('my_federations').select('*'),
-      sb.from('federations').select('id,name,region,owner').order('name'),
+      sb.from('federations').select('id,name,region,owner,palier,premium_until').order('name'),
       uid?sb.from('federation_bureau').select('fed_id,role').eq('user_id',uid):Promise.resolve({data:[]})
     ]);
     if(mine.error)throw mine.error; if(dir.error)throw dir.error;
@@ -4889,6 +4889,7 @@ function viewFedAdmin(){
     ${warn}
     <h2 class="section-h">${_FL('Le bureau','The board')} (${bur.length})</h2>
     <div class="panel"><div style="padding:8px 16px">${burHtml}</div></div>
+    ${fedAbonnementPanel(f)}
     ${inviteHtml}
     <h2 class="section-h">${_FL('Demandes à trancher','Decisions to sign')}</h2>
     <div class="panel"><div style="padding:8px 16px">${pendHtml}</div></div>
@@ -6003,7 +6004,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.02';
+const UBORA_BUILD='v8.03';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6195,6 +6196,40 @@ async function premiumSubscribe(tid, price_id){
     if(_j.url){ location.href=_j.url; return; }
     throw new Error('R\u00E9ponse inattendue.');
   }catch(e){ alert('Abonnement indisponible\u00A0: '+(e.message||e)); }
+}
+/* Abonner un GROUPE (fédération) à Fagot ou Baobab. Même Edge Function que pour
+   un cercle, mais on envoie federation_id : stripe-subscribe (SUB-v4) bascule
+   alors sur le chemin groupe et vérifie que vous êtes du bureau. */
+async function groupeSubscribe(fedId, price_id){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-subscribe',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({federation_id:fedId, price_id, return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert('Abonnement indisponible\u00A0: '+(e.message||e)); }
+}
+/* Le panneau d'abonnement d'un groupe : état actuel + boutons Fagot / Baobab. */
+function fedAbonnementPanel(f){
+  if(!f) return '';
+  const dev=abonnementDevise();
+  const actif=!!(f.premium_until && new Date(f.premium_until)>new Date());
+  const pal=actif?String(f.palier||'').toLowerCase():'';
+  const nom=pal==='baobab'?'Baobab':(pal==='fagot'?'Fagot':'');
+  const svg=pal==='baobab'?baobabSVG(22):(pal==='fagot'?fagotSVG(22):'');
+  const etat=actif
+    ? `<div class="mrow"><div class="stack"><div class="mname">${svg} ${_FL('Groupe abonné','Group subscribed')} · <b>${nom}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(f.premium_until).toLocaleDateString()} · ${_FL('vos cercles membres bénéficient de Kwèn','your member circles get Kwèn')}</div></div></div>`
+    : `<div class="mrow"><span class="msub">${_FL('Ce groupe n\'est pas abonné. Ses cercles restent au palier gratuit.','This group is not subscribed. Its circles stay on the free tier.')}</span></div>`;
+  const btns=`<div class="row-gap" style="margin-top:10px">
+      <button class="btn btn-ghost btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>
+      <button class="btn btn-gold btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.baobab[dev]}')">${_FL('S\'abonner · Baobab','Subscribe · Baobab')} (${dev})</button>
+    </div>
+    <div class="msub" style="margin-top:8px">${_FL('Fagot : jusqu\'à 5 cercles. Baobab : cercles illimités. Paiement sécurisé par Stripe, résiliable à tout moment.','Fagot: up to 5 circles. Baobab: unlimited circles. Secure payment by Stripe, cancel anytime.')}</div>`;
+  return `<h2 class="section-h">${_FL('Abonnement du groupe','Group subscription')}</h2>
+    <div class="panel"><div style="padding:8px 16px 14px">${etat}${btns}</div></div>`;
 }
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
