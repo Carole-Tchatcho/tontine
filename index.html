@@ -1710,14 +1710,15 @@ const db={
   },
   async fedLoadOne(fedId){
     if(BACKEND!=='supabase'||!fedId){ state_fed1=null; return; }
-    const [bur,dec,mem]=await Promise.all([
+    const [bur,dec,mem,shr]=await Promise.all([
       sb.from('federation_bureau').select('fed_id,user_id,role,added_at,display_name').eq('fed_id',fedId),
       sb.from('federation_decisions').select('*').eq('fed_id',fedId).order('created_at',{ascending:false}),
-      sb.from('federation_members').select('*').eq('fed_id',fedId)
+      sb.from('federation_members').select('*').eq('fed_id',fedId),
+      sb.from('federation_shares').select('tontine_id').eq('fed_id',fedId)
     ]);
     if(bur.error)throw bur.error;
     const f=(state_fed.dir||[]).find(x=>x.id===fedId)||null;
-    state_fed1={ fed:f, bureau:bur.data||[], decisions:dec.data||[], members:mem.data||[] };
+    state_fed1={ fed:f, bureau:bur.data||[], decisions:dec.data||[], members:mem.data||[], shares:(shr&&shr.data)||[] };
   },
   async fedCreate(name,region,disp){ const{data,error}=await sb.rpc('fed_create',{p_name:name,p_region:region||null,p_display:disp||null}); if(error)throw error; return data; },
   async fedInvite(fedId,role){ const{data,error}=await sb.rpc('fed_bureau_invite',{p_fed:fedId,p_role:role||null}); if(error)throw error; return data; },
@@ -6004,7 +6005,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.04';
+const UBORA_BUILD='v8.05';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6223,15 +6224,23 @@ function fedAbonnementPanel(f){
   const etat=actif
     ? `<div class="mrow"><div class="stack"><div class="mname">${svg} ${_FL('Groupe abonné','Group subscribed')} · <b>${nom}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(f.premium_until).toLocaleDateString()} · ${_FL('vos cercles membres bénéficient de Kwèn','your member circles get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Ce groupe n\'est pas abonné. Ses cercles restent au palier gratuit.','This group is not subscribed. Its circles stay on the free tier.')}</span></div>`;
+  const nbCercles=((state_fed1&&state_fed1.shares)||[]).length;
+  const fagotBloque=(nbCercles>5);
   const btnPalier=(cle,label,cls)=>{
     if(actif && pal===cle) return `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${label} · ${_FL('palier actuel','current tier')}</button>`;
+    if(cle==='fagot' && fagotBloque) return `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${label} · ${_FL('indisponible','unavailable')}</button>`;
     const verbe = actif ? _FL('Passer à','Switch to') : _FL('S\'abonner ·','Subscribe ·');
     return `<button class="${cls}" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES[cle][dev]}')">${verbe} ${label} (${dev})</button>`;
   };
+  const noteFagot = fagotBloque
+    ? `<div class="asnote" style="margin-top:10px">${_FL(
+        'Ce groupe compte <b>'+nbCercles+' cercles</b>. Le palier Fagot est limité à 5 : y redescendre laisserait des cercles bénéficier de Kwèn sans être couverts. Retirez des cercles pour y revenir, ou restez sur Baobab — cercles illimités.',
+        'This group has <b>'+nbCercles+' circles</b>. Fagot is limited to 5: switching down would leave circles on Kwèn without cover. Remove circles to go back, or stay on Baobab — unlimited circles.')}</div>`
+    : '';
   const btns=`<div class="row-gap" style="margin-top:10px">
       ${btnPalier('fagot','Fagot','btn btn-ghost btn-sm')}
       ${btnPalier('baobab','Baobab','btn btn-gold btn-sm')}
-    </div>
+    </div>${noteFagot}
     <div class="msub" style="margin-top:8px">${actif
       ?_FL('Changer de palier remplace l\'abonnement en cours : l\'ancien est annulé automatiquement — un seul abonnement vivant par groupe.','Switching tiers replaces the current subscription: the old one is cancelled automatically — one live subscription per group.')
       :_FL('Fagot : jusqu\'à 5 cercles. Baobab : cercles illimités. Paiement sécurisé par Stripe, résiliable à tout moment.','Fagot: up to 5 circles. Baobab: unlimited circles. Secure payment by Stripe, cancel anytime.')}</div>`;
