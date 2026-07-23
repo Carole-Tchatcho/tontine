@@ -6004,7 +6004,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.03';
+const UBORA_BUILD='v8.04';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6223,11 +6223,18 @@ function fedAbonnementPanel(f){
   const etat=actif
     ? `<div class="mrow"><div class="stack"><div class="mname">${svg} ${_FL('Groupe abonné','Group subscribed')} · <b>${nom}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(f.premium_until).toLocaleDateString()} · ${_FL('vos cercles membres bénéficient de Kwèn','your member circles get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Ce groupe n\'est pas abonné. Ses cercles restent au palier gratuit.','This group is not subscribed. Its circles stay on the free tier.')}</span></div>`;
+  const btnPalier=(cle,label,cls)=>{
+    if(actif && pal===cle) return `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${label} · ${_FL('palier actuel','current tier')}</button>`;
+    const verbe = actif ? _FL('Passer à','Switch to') : _FL('S\'abonner ·','Subscribe ·');
+    return `<button class="${cls}" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES[cle][dev]}')">${verbe} ${label} (${dev})</button>`;
+  };
   const btns=`<div class="row-gap" style="margin-top:10px">
-      <button class="btn btn-ghost btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>
-      <button class="btn btn-gold btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.baobab[dev]}')">${_FL('S\'abonner · Baobab','Subscribe · Baobab')} (${dev})</button>
+      ${btnPalier('fagot','Fagot','btn btn-ghost btn-sm')}
+      ${btnPalier('baobab','Baobab','btn btn-gold btn-sm')}
     </div>
-    <div class="msub" style="margin-top:8px">${_FL('Fagot : jusqu\'à 5 cercles. Baobab : cercles illimités. Paiement sécurisé par Stripe, résiliable à tout moment.','Fagot: up to 5 circles. Baobab: unlimited circles. Secure payment by Stripe, cancel anytime.')}</div>`;
+    <div class="msub" style="margin-top:8px">${actif
+      ?_FL('Changer de palier remplace l\'abonnement en cours : l\'ancien est annulé automatiquement — un seul abonnement vivant par groupe.','Switching tiers replaces the current subscription: the old one is cancelled automatically — one live subscription per group.')
+      :_FL('Fagot : jusqu\'à 5 cercles. Baobab : cercles illimités. Paiement sécurisé par Stripe, résiliable à tout moment.','Fagot: up to 5 circles. Baobab: unlimited circles. Secure payment by Stripe, cancel anytime.')}</div>`;
   return `<h2 class="section-h">${_FL('Abonnement du groupe','Group subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}${btns}</div></div>`;
 }
