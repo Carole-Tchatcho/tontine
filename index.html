@@ -6061,7 +6061,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.10';
+const UBORA_BUILD='v8.11';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6315,7 +6315,7 @@ function caseAbonnementPanel(c){
   const btn=actif
     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`
     : `<button class="btn btn-gold btn-sm" onclick="caseSubscribe('${c.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>`;
-  const nomTontine=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.nom):'\u2014'; };
+  const nomTontine=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.name):'\u2014'; };
   const lignes=((c.shares)||[]).map(id=>
     `<div class="mrow"><div class="stack"><div class="mname">${nomTontine(id)}</div><div class="msub">${actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseShareRevoke('${c.id}','${id}')">${_FL('Retirer','Remove')}</button></div></div>`
   ).join('') || `<div class="mrow"><span class="msub">${_FL('Aucune tontine abritée pour l\'instant.','No hosted tontine yet.')}</span></div>`;
@@ -6351,10 +6351,10 @@ async function caseShareGrant(caseId){
   }
   let tid;
   if(miens.length===1){
-    if(!confirm(_FL('Abriter «\u00A0'+miens[0].nom+'\u00A0» dans cette Case ?','Host “'+miens[0].nom+'” in this Case?'))) return;
+    if(!confirm(_FL('Abriter «\u00A0'+miens[0].name+'\u00A0» dans cette Case ?','Host “'+miens[0].name+'” in this Case?'))) return;
     tid=miens[0].id;
   } else {
-    const noms=miens.map((t,i)=>`${i+1}. ${t.nom}`).join('\n');
+    const noms=miens.map((t,i)=>`${i+1}. ${t.name}`).join('\n');
     const rep=prompt(_FL('Quelle tontine abriter dans cette Case\u00A0?\n','Which tontine to host in this Case?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
     const idx=parseInt(rep,10)-1;
     if(isNaN(idx)||idx<0||idx>=miens.length) return;
@@ -6370,8 +6370,8 @@ async function caseShareGrant(caseId){
    son registre, il cesse simplement d'être couvert par l'abonnement de la Case. */
 async function caseShareRevoke(caseId, tontineId){
   const t=(state_tontines||[]).find(x=>x.id===tontineId);
-  if(!confirm(_FL('Retirer «\u00A0'+((t&&t.nom)||'ce cercle')+'\u00A0» de cette Case ?\nSon registre reste intact ; il repassera simplement au palier gratuit s\'il n\'a pas d\'abonnement propre.',
-                  'Remove “'+((t&&t.nom)||'this circle')+'” from this Case?\nIts ledger stays intact; it will simply return to the free tier unless it has its own subscription.'))) return;
+  if(!confirm(_FL('Retirer «\u00A0'+((t&&t.name)||'ce cercle')+'\u00A0» de cette Case ?\nSon registre reste intact ; il repassera simplement au palier gratuit s\'il n\'a pas d\'abonnement propre.',
+                  'Remove “'+((t&&t.name)||'this circle')+'” from this Case?\nIts ledger stays intact; it will simply return to the free tier unless it has its own subscription.'))) return;
   try{
     const{error}=await sb.rpc('case_share_revoke',{p_case:caseId,p_tontine:tontineId});
     if(error)throw error;
