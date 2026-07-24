@@ -1790,8 +1790,12 @@ const db={
     const clean=Object.assign({},c); delete clean.palier; delete clean.premium_until; delete clean.shares;
     const row={id:c.id,creator_id:uid,is_public:true,data:clean}; const{error}=await sb.from('cases').upsert(row); if(error)throw error; },
   async deleteCase(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
-  async loadReunions(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').select('data').order('created_at',{ascending:false}); if(error)throw error; state_reunions=(data||[]).map(r=>r.data).filter(Boolean); },
-  async saveReunion(r){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:r.id,creator_id:uid,is_public:false,data:r}; const{error}=await sb.from('reunions').upsert(row); if(error)throw error; },
+  async loadReunions(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').select('id,data,palier,premium_until').order('created_at',{ascending:false}); if(error)throw error;
+    state_reunions=(data||[]).map(x=>{ const r=x.data; if(!r)return null; r.palier=x.palier||null; r.premium_until=x.premium_until||null; return r; }).filter(Boolean); },
+  async saveReunion(r){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
+    /* palier / premium_until viennent de Stripe : jamais recopiés dans `data`. */
+    const clean=Object.assign({},r); delete clean.palier; delete clean.premium_until;
+    const row={id:r.id,creator_id:uid,is_public:false,data:clean}; const{error}=await sb.from('reunions').upsert(row); if(error)throw error; },
   async deleteReunion(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadList(){ if(BACKEND!=='supabase')return; const uid=await sbUid();
     const{data:tons}=await sb.from('tontines').select('*');
@@ -2200,6 +2204,7 @@ function viewReunion(){
     <div style="margin-top:14px">${cur}</div>
     ${open?`<div class="row" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="reuNewSeance()">${tr('re_new_seance')}</button></div>`:''}
     ${closed.length?`<h2 class="section-h">${tr('re_history')}</h2><div class="panel"><div style="padding:6px 14px">${hist}</div></div>`:''}
+    ${reunionAbonnementPanel(r)}
     <h2 class="section-h">${tr('re_members')}</h2><div class="panel"><div style="padding:6px 14px">${mems}<div class="row-gap" style="margin-top:8px;padding:6px 0"><input id="reu-mem-name" placeholder="${tr('re_member_name')}" style="flex:1;min-width:110px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px"><input id="reu-mem-contact" placeholder="${tr('re_member_contact')}" style="flex:1;min-width:110px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px"><button class="btn btn-ghost btn-sm" onclick="reuAddMember()">${tr('re_add_member')}</button></div></div></div>
     ${footer()}`;
 }
@@ -6074,7 +6079,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.14';
+const UBORA_BUILD='v8.15';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6390,6 +6395,39 @@ async function caseShareRevoke(caseId, tontineId){
     if(error)throw error;
     await db.loadCases(); render();
   }catch(e){ alert(e.message||e); }
+}
+/* Abonner une RÉUNION au palier Kwèn. Même prix qu'une tontine : les deux sont
+   à l'étage 1. On envoie reunion_id, SUB-v7 reconnaît l'objet visé. */
+async function reunionSubscribe(reunionId, price_id){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-subscribe',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({reunion_id:reunionId, price_id, return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert('Abonnement indisponible\u00A0: '+(e.message||e)); }
+}
+/* Panneau d'abonnement d'une réunion : mêmes paliers que la tontine. */
+function reunionAbonnementPanel(r){
+  if(!r) return '';
+  const dev=abonnementDevise();
+  const actif=!!(r.premium_until && new Date(r.premium_until)>new Date());
+  const nb=((r.members)||[]).length;
+  const max=actif?30:12;
+  const etat=actif
+    ? `<div class="mrow"><div class="stack"><div class="mname">${kwenSVG(22)} ${_FL('Réunion abonnée','Subscribed')} \u00b7 <b>Kw\u00e8n</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(r.premium_until).toLocaleDateString()} \u00b7 ${nb}/${max} ${_FL('membres','members')}</div></div></div>`
+    : `<div class="mrow"><div class="stack"><div class="mname">${fekengSVG(22)} ${_FL('Palier gratuit','Free tier')} \u00b7 <b>Fekeng</b></div><div class="msub">${nb}/${max} ${_FL('membres','members')}</div></div></div>`;
+  const btn=actif
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Kw\u00e8n \u00b7 ${_FL('palier actuel','current tier')}</button>`
+    : `<button class="btn btn-gold btn-sm" onclick="reunionSubscribe('${r.id}','${STRIPE_PRICES.kwen[dev]}')">${_FL('S\'abonner \u00b7 Kw\u00e8n','Subscribe \u00b7 Kw\u00e8n')} (${dev})</button>`;
+  return `<h2 class="section-h">${_FL('Abonnement de la réunion','Réunion subscription')}</h2>
+    <div class="panel"><div style="padding:8px 16px 14px">${etat}
+      <div class="row-gap" style="margin-top:10px">${btn}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Une réunion est un cercle de l\'étage 1, comme une tontine : Fekeng jusqu\'à 12 membres, Kw\u00e8n jusqu\'à 30. Paiement sécurisé par Stripe, résiliable à tout moment.','A réunion is a floor-1 circle, like a tontine: Fekeng up to 12 members, Kw\u00e8n up to 30. Secure payment by Stripe, cancel anytime.')}</div>
+    </div></div>`;
 }
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
