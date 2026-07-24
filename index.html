@@ -2308,6 +2308,7 @@ function viewHome(){
       <button class="btn btn-ghost" onclick="openImport()">${tr('h_import')}</button>
       <button class="btn btn-ghost" onclick="startReunion()">${tr('h_new_reunion')}</button>
     </div>
+    <div class="asnote" style="margin:-4px 0 14px">${_FL('Deux façons de tenir un cercle. Une <b>tontine</b> : montant fixe, échéance régulière, chacun reçoit à son tour. Une <b>réunion</b> : montants variables, on se retrouve en séances, et le pot du jour va au bénéficiaire désigné.','Two ways to run a circle. A <b>tontine</b>: fixed amount, regular due date, each receives in turn. A <b>réunion</b>: variable amounts, you meet in sessions, and the day\'s pot goes to the chosen beneficiary.')}</div>
     <div class="cards">${cards||`<div class="empty">${tr('h_empty_t')}</div>`}</div>
     <h2 class="section-h">${tr('h_reunions')}</h2>
     <p class="lead" style="margin-top:2px">${tr('h_reunions_lead')}</p>
@@ -6073,7 +6074,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.13';
+const UBORA_BUILD='v8.14';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
