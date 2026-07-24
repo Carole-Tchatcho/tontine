@@ -6061,7 +6061,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.09';
+const UBORA_BUILD='v8.10';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6315,12 +6315,68 @@ function caseAbonnementPanel(c){
   const btn=actif
     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`
     : `<button class="btn btn-gold btn-sm" onclick="caseSubscribe('${c.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>`;
+  const nomTontine=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.nom):'\u2014'; };
+  const lignes=((c.shares)||[]).map(id=>
+    `<div class="mrow"><div class="stack"><div class="mname">${nomTontine(id)}</div><div class="msub">${actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseShareRevoke('${c.id}','${id}')">${_FL('Retirer','Remove')}</button></div></div>`
+  ).join('') || `<div class="mrow"><span class="msub">${_FL('Aucune tontine abritée pour l\'instant.','No hosted tontine yet.')}</span></div>`;
+  const plein = nb>=5;
+  const btnAbriter = plein
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${_FL('5 tontines abritées · maximum atteint','5 hosted tontines · limit reached')}</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="caseShareGrant('${c.id}')">${_FL('Abriter une tontine','Host a tontine')}</button>`;
+  const bloc = `<h2 class="section-h">${_FL('Tontines abritées','Hosted tontines')} (${nb}/5)</h2>
+    <div class="panel"><div style="padding:8px 16px 14px">${lignes}
+      <div class="row-gap" style="margin-top:10px">${btnAbriter}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Vous ne pouvez abriter que les cercles que vous organisez. Retirer un cercle ne supprime rien : son registre reste intact.','You can only host circles you organise. Removing a circle deletes nothing: its ledger stays intact.')}</div>
+    </div></div>`;
   return `<h2 class="section-h">${_FL('Abonnement de la Case','Case subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}
       <div class="row-gap" style="margin-top:10px">${btn}</div>
-      <div class="msub" style="margin-top:8px">${_FL('Fagot : jusqu\'à 5 tontines abritées et 100 membres, entraide (caisses et événements) et billetterie. Actuellement '+nb+' tontine(s) abritée(s).','Fagot: up to 5 hosted tontines and 100 members, mutual aid (funds and events) and ticketing. Currently '+nb+' hosted tontine(s).')}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Fagot : jusqu\'à 5 tontines abritées et 100 membres, entraide (caisses et événements) et billetterie.','Fagot: up to 5 hosted tontines and 100 members, mutual aid (funds and events) and ticketing.')}</div>
       <div class="asnote" style="margin-top:10px">${_FL('Une <b>tontine</b> fait circuler l\'argent. Une <b>Case</b> rassemble des personnes — et peut abriter ses tontines. Une <b>fédération</b> relie des groupes.','A <b>tontine</b> moves money. A <b>Case</b> gathers people — and can host its tontines. A <b>federation</b> links groups.')}</div>
-    </div></div>`;
+    </div></div>${bloc}`;
+}
+/* Abriter une tontine dans une Case (max 5, garde en base). Seuls les cercles
+   que J'ORGANISE peuvent être abrités : on ne rattache pas le cercle d'autrui. */
+async function caseShareGrant(caseId){
+  const c=(state_cases||[]).find(x=>x.id===caseId); if(!c) return;
+  const deja=new Set(c.shares||[]);
+  const miens=(state_tontines||[]).filter(t=>{
+    const me=t.members&&t.members[t.me];
+    return me && me.role==='organisateur' && !deja.has(t.id);
+  });
+  if(miens.length===0){
+    alert(_FL('Aucun cercle disponible : vous devez en organiser un qui ne soit pas déjà abrité ici.',
+              'No circle available: you must organise one that is not already hosted here.'));
+    return;
+  }
+  let tid;
+  if(miens.length===1){
+    if(!confirm(_FL('Abriter «\u00A0'+miens[0].nom+'\u00A0» dans cette Case ?','Host “'+miens[0].nom+'” in this Case?'))) return;
+    tid=miens[0].id;
+  } else {
+    const noms=miens.map((t,i)=>`${i+1}. ${t.nom}`).join('\n');
+    const rep=prompt(_FL('Quelle tontine abriter dans cette Case\u00A0?\n','Which tontine to host in this Case?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
+    const idx=parseInt(rep,10)-1;
+    if(isNaN(idx)||idx<0||idx>=miens.length) return;
+    tid=miens[idx].id;
+  }
+  try{
+    const{error}=await sb.rpc('case_share_grant',{p_case:caseId,p_tontine:tid});
+    if(error)throw error;
+    await db.loadCases(); render();
+  }catch(e){ alert(e.message||e); }
+}
+/* Retirer une tontine d'une Case. Rien n'est supprimé : le cercle garde tout
+   son registre, il cesse simplement d'être couvert par l'abonnement de la Case. */
+async function caseShareRevoke(caseId, tontineId){
+  const t=(state_tontines||[]).find(x=>x.id===tontineId);
+  if(!confirm(_FL('Retirer «\u00A0'+((t&&t.nom)||'ce cercle')+'\u00A0» de cette Case ?\nSon registre reste intact ; il repassera simplement au palier gratuit s\'il n\'a pas d\'abonnement propre.',
+                  'Remove “'+((t&&t.nom)||'this circle')+'” from this Case?\nIts ledger stays intact; it will simply return to the free tier unless it has its own subscription.'))) return;
+  try{
+    const{error}=await sb.rpc('case_share_revoke',{p_case:caseId,p_tontine:tontineId});
+    if(error)throw error;
+    await db.loadCases(); render();
+  }catch(e){ alert(e.message||e); }
 }
 async function uboraLogout(keepJoin){
   if(!keepJoin){ try{ localStorage.removeItem('ubora_join'); }catch(e){} }
