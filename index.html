@@ -1634,7 +1634,7 @@ let state_partages=[
    ],
    settlements:[]}
 ];
-function uid(pre){return pre+Math.random().toString(36).slice(2,8);}
+function uid(pre){return newId(pre);}  /* renforcé : voir newId ci-dessous */
 function ctTargetable(c){return !!c.announce && !c.bereavement;}             /* annonce : consentement requis, jamais les deuils */
 function ctEligibleNews(c){return !!c.news && !c.bereavement && !c.introSent;} /* newsletter : consenti, hors deuil, une seule fois */
 function ctReasonExcluded(c){ if(c.bereavement)return tr('df_exc_deuil'); if(c.introSent)return tr('df_exc_already'); if(!c.news)return tr('df_exc_noconsent'); return ''; }
@@ -1654,6 +1654,18 @@ async function initSB(){ if(sb) return sb;
   const m=await import('https://esm.sh/@supabase/supabase-js@2'); sb=m.createClient(SB_URL,SB_ANON,{auth:{flowType:'implicit',detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}}); return sb; }
 
 const ST_DB2UI={termine:'done',en_cours:'now',a_venir:'soon'};
+/* Identifiants d'objets locaux (Case, caisse, événement, séance…).
+   ATTENTION — ne jamais revenir à un identifiant horodaté du type
+   'cs'+Date.now() : deux créations dans la même milliseconde produiraient
+   le MÊME identifiant, et l'enregistrement se faisant en upsert, la seconde
+   écraserait la première. Une Case porte un abonnement payant : une telle
+   collision effacerait un client. On tire donc du hasard, pas l'heure. */
+function newId(prefix){
+  try{ if(crypto&&crypto.randomUUID) return prefix+crypto.randomUUID().replace(/-/g,''); }catch(_e){}
+  try{ const a=new Uint8Array(16); crypto.getRandomValues(a);
+       return prefix+Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }catch(_e){}
+  return prefix+Date.now().toString(36)+Math.random().toString(36).slice(2,12);
+}
 function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s;}
 function genLabels(places,frequency){const out=[],base=new Date();
   for(let i=0;i<places;i++){const d=new Date(base);
@@ -1802,7 +1814,7 @@ const db={
     if(BACKEND==='memory'){ const members=new Array(places).fill(null);
       members[0]={name:d.oName.trim(),contact:d.oContact.trim()||'—',role:'organisateur',mk:!!d.oMk};
       if(Array.isArray(d.roster)){for(let k=0;k<d.roster.length&&k+1<places;k++){members[k+1]={name:d.roster[k].name,contact:d.roster[k].contact||'—',role:'membre',mk:false};}}
-      const t={id:'t'+Date.now(),code:genCode(),name:d.name.trim(),amount:Number(d.amount)||0,currency:d.currency,
+      const t={id:newId('t'),code:genCode(),name:d.name.trim(),amount:Number(d.amount)||0,currency:d.currency,
         frequency:d.frequency,places,startMonth:new Date().getMonth(),currentRound:0,me:0,members,renforced:!!d.renforced,tresorierIdx:0,commissaireIdx:null,
         rounds:buildRounds(places,new Date().getMonth(),0,new Array(places).fill('none'))};
       if(d.firstBenIdx&&d.firstBenIdx>0&&d.firstBenIdx<places){const _b0=t.rounds[0].beneficiary;t.rounds[0].beneficiary=t.rounds[d.firstBenIdx].beneficiary;t.rounds[d.firstBenIdx].beneficiary=_b0;}
@@ -2154,10 +2166,10 @@ function reuSetBen(idx){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.be
 function reuSetCaisse(v){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.caisseReturn=impParseAmount(v)||0;reuPersist(r);render();}
 function reuAddDebt(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;const n=document.getElementById('reu-debt-name'),a=document.getElementById('reu-debt-amt');const nm=n?String(n.value).trim():'',am=a?impParseAmount(a.value):null;if(!nm)return;s.debts=s.debts||[];s.debts.push({name:nm,amount:am||0,note:''});reuPersist(r);render();}
 function reuCloseSeance(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.open=false;reuPersist(r);render();}
-function reuNewSeance(){const r=reuActive();if(!r)return;if(reuOpenSeance(r)){alert(tr('re_one_open'));return;}const n=r.seances.length+1;r.seances.unshift({id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',n),open:true,beneficiaryIdx:0,contribs:r.members.map(()=>({tontine:0,cc:r.ccAmount||0,status:'none'})),caisseReturn:0,debts:[]});reuPersist(r);render();}
+function reuNewSeance(){const r=reuActive();if(!r)return;if(reuOpenSeance(r)){alert(tr('re_one_open'));return;}const n=r.seances.length+1;r.seances.unshift({id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',n),open:true,beneficiaryIdx:0,contribs:r.members.map(()=>({tontine:0,cc:r.ccAmount||0,status:'none'})),caisseReturn:0,debts:[]});reuPersist(r);render();}
 function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getElementById('reu-mem-name'),c=document.getElementById('reu-mem-contact');const nm=n?String(n.value).trim():'';if(!nm)return;r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});reuPersist(r);render();}
-function startReunion(){const nm=state.user||'Moi';const r={id:'r'+Date.now(),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:'s'+Date.now(),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
-function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:'r'+Date.now(),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:'s'+Date.now(),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
+function startReunion(){const nm=state.user||'Moi';const r={id:newId('r'),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
+function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:newId('r'),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:newId('s'),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
 function viewReunion(){
   const r=reuActive(); if(!r)return go('home');
   const open=reuOpenSeance(r); const closed=r.seances.filter(s=>!s.open);
@@ -3236,7 +3248,7 @@ function cSave(){cRead();
   }
   const creator=cDraft.pres.trim()||state.user||tr('cc_you');
   state_caisses.unshift({
-    id:'c'+Date.now(), group:cDraft.group.trim(), name, type:cDraft.type, currency:cDraft.currency,
+    id:newId('c'), group:cDraft.group.trim(), name, type:cDraft.type, currency:cDraft.currency,
     federation: (cDraft.federation||'').trim()||null,
     cotisation:{montant:Number(cDraft.cot)||0, frequence:cDraft.freq}, fonds:0,
     bureau:[{name:creator,role:'president'},{name:cDraft.tres.trim()||'—',role:'tresorier'},{name:cDraft.comm.trim()||'—',role:'commissaire'}],
@@ -3480,7 +3492,7 @@ function caisseCreateAppel(cId){const c=getC(cId);
   const motif=($('#ap-motif').value||'').trim(); if(!motif){alert(tr('al_cap_motif'));return;}
   const benef=($('#ap-benef').value||'').trim()||'—';
   const montant=Number($('#ap-montant').value)||0;
-  c.appels.unshift({id:'a'+Date.now(),motif,beneficiaire:benef,sousType:$('#ap-type').value,montant,
+  c.appels.unshift({id:newId('a'),motif,beneficiaire:benef,sousType:$('#ap-type').value,montant,
     ouvertLe:tr('cj_today'),echeance:($('#ap-echeance').value||'').trim()||'—',statut:'ouvert',remis:false,certifie:false,
     versements:new Array(c.foyers.length).fill('none')});
   state.caisseNew=false; cPersist(cId); render();}
@@ -4170,7 +4182,7 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
     if(BACKEND==='supabase'){db.saveCase(state_cases.find(x=>x.id===eid)).then(()=>openCase(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
     openCase(eid);return;
   }
-  const nc={id:'cs'+Date.now(),name,type,mission,country,city};
+  const nc={id:newId('cs'),name,type,mission,country,city};
   state_cases.unshift(nc);caseDraft=null;
   if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
   go('case');}
@@ -4432,7 +4444,7 @@ function pSave(){
   }
   const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean);
   const members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur})));
-  const id='p'+Date.now();
+  const id=newId('p');
   state_partages.unshift({id,title,face,cur,members,me:0,expenses:[],settlements:[]});
   pDraft=null;
   if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
@@ -4530,7 +4542,7 @@ function pAddExp(pid){
   const split={mode:x.mode};
   if(x.mode==='egal')split.with=(x.with&&x.with.length)?x.with.slice():p.members.map((m,i)=>i);
   if(x.mode==='parts'||x.mode==='exact'){split.with=p.members.map((m,i)=>i);split.shares=Object.assign({},x.shares);}
-  p.expenses.unshift({id:'e'+Date.now(),label:x.label||'',note:x.note||'',cat:x.cat||'other',payer:x.payer||0,amount:+x.amount,cur:x.cur||p.cur,split,month:pMonthNow()});
+  p.expenses.unshift({id:newId('e'),label:x.label||'',note:x.note||'',cat:x.cat||'other',payer:x.payer||0,amount:+x.amount,cur:x.cur||p.cur,split,month:pMonthNow()});
   state.partageNew=false; pExp=null; pPersist(pid); render();
 }
 function pBalancesView(p){
@@ -5026,7 +5038,7 @@ async function eSave(){eRead();
     if(BACKEND==='supabase'&&ev){ db.saveEvent(ev).then(()=>openEvent(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
     saveLocal(); openEvent(id); return;
   }
-  const _newEv={id:'e'+Date.now(),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
+  const _newEv={id:newId('e'),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
     date:_dispDate,lieu:eDraft.lieu.trim()||'—',currency:eDraft.currency,
     objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',billets:tiers};
   const _g=await evGeocode(_extra.city,_extra.country);
@@ -6061,7 +6073,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.11';
+const UBORA_BUILD='v8.13';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
