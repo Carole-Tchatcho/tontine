@@ -1780,10 +1780,13 @@ const db={
     if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante ou contenu li\u00E9). Installer la commande SQL delete_tontine.'); },
   async loadCases(){ if(BACKEND!=='supabase')return;
     const{data,error}=await sb.from('cases').select('id,data,palier,premium_until').order('created_at',{ascending:false}); if(error)throw error;
-    let shr=[]; try{ const r=await sb.from('case_shares').select('case_id,tontine_id'); shr=r.data||[]; }catch(_e){}
+    let shr=[],rsh=[];
+    try{ const r=await sb.from('case_shares').select('case_id,tontine_id'); shr=r.data||[]; }catch(_e){}
+    try{ const r=await sb.from('case_reunions').select('case_id,reunion_id'); rsh=r.data||[]; }catch(_e){}
     state_cases=(data||[]).map(r=>{ const c=r.data; if(!c)return null;
       c.palier=r.palier||null; c.premium_until=r.premium_until||null;
-      c.shares=shr.filter(s=>s.case_id===r.id).map(s=>s.tontine_id); return c; }).filter(Boolean); },
+      c.shares=shr.filter(s=>s.case_id===r.id).map(s=>s.tontine_id);
+      c.reunionShares=rsh.filter(s=>s.case_id===r.id).map(s=>s.reunion_id); return c; }).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
     /* palier / premium_until / shares sont gérés par Stripe et la base : on ne
        les recopie jamais dans le champ `data`, que l'utilisateur peut écrire. */
@@ -6090,7 +6093,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.16';
+const UBORA_BUILD='v8.17';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6337,25 +6340,29 @@ function caseAbonnementPanel(c){
   if(!c) return '';
   const dev=abonnementDevise();
   const actif=!!(c.premium_until && new Date(c.premium_until)>new Date());
-  const nb=((c.shares)||[]).length;
+  const nb=((c.shares)||[]).length + ((c.reunionShares)||[]).length;
   const etat=actif
     ? `<div class="mrow"><div class="stack"><div class="mname">${fagotSVG(22)} ${_FL('Case abonnée','Case subscribed')} · <b>Fagot</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(c.premium_until).toLocaleDateString()} · ${_FL('ses tontines abritées bénéficient de Kwèn','its hosted tontines get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Cette Case n\'est pas abonnée. Ses tontines restent au palier gratuit.','This Case is not subscribed. Its tontines stay on the free tier.')}</span></div>`;
   const btn=actif
     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`
     : `<button class="btn btn-gold btn-sm" onclick="caseSubscribe('${c.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>`;
-  const nomTontine=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.name):'\u2014'; };
-  const lignes=((c.shares)||[]).map(id=>
-    `<div class="mrow"><div class="stack"><div class="mname">${nomTontine(id)}</div><div class="msub">${actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseShareRevoke('${c.id}','${id}')">${_FL('Retirer','Remove')}</button></div></div>`
-  ).join('') || `<div class="mrow"><span class="msub">${_FL('Aucune tontine abritée pour l\'instant.','No hosted tontine yet.')}</span></div>`;
+  const etatLigne = actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed');
+  const nomT=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.name):'\u2014'; };
+  const nomR=(id)=>{ const r=(state_reunions||[]).find(x=>x.id===id); return r?esc(r.name):'\u2014'; };
+  const ligT=((c.shares)||[]).map(id=>
+    `<div class="mrow"><div class="stack"><div class="mname">${nomT(id)}</div><div class="msub">${_FL('tontine','tontine')} \u00b7 ${etatLigne}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseShareRevoke('${c.id}','${id}')">${_FL('Retirer','Remove')}</button></div></div>`).join('');
+  const ligR=((c.reunionShares)||[]).map(id=>
+    `<div class="mrow"><div class="stack"><div class="mname">${nomR(id)}</div><div class="msub">${_FL('réunion','réunion')} \u00b7 ${etatLigne}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseReunionRevoke('${c.id}','${id}')">${_FL('Retirer','Remove')}</button></div></div>`).join('');
+  const lignes=(ligT+ligR) || `<div class="mrow"><span class="msub">${_FL('Aucun cercle abrité pour l\'instant.','No hosted circle yet.')}</span></div>`;
   const plein = nb>=5;
   const btnAbriter = plein
-    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${_FL('5 tontines abritées · maximum atteint','5 hosted tontines · limit reached')}</button>`
-    : `<button class="btn btn-ghost btn-sm" onclick="caseShareGrant('${c.id}')">${_FL('Abriter une tontine','Host a tontine')}</button>`;
-  const bloc = `<h2 class="section-h">${_FL('Tontines abritées','Hosted tontines')} (${nb}/5)</h2>
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${_FL('5 cercles abrités · maximum atteint','5 hosted circles · limit reached')}</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="caseShareGrant('${c.id}')">${_FL('Abriter un cercle','Host a circle')}</button>`;
+  const bloc = `<h2 class="section-h">${_FL('Cercles abrités','Hosted circles')} (${nb}/5)</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${lignes}
       <div class="row-gap" style="margin-top:10px">${btnAbriter}</div>
-      <div class="msub" style="margin-top:8px">${_FL('Vous ne pouvez abriter que les cercles que vous organisez. Retirer un cercle ne supprime rien : son registre reste intact.','You can only host circles you organise. Removing a circle deletes nothing: its ledger stays intact.')}</div>
+      <div class="msub" style="margin-top:8px">${_FL('Tontines et réunions comptent ensemble : Fagot en couvre 5 au total. Vous ne pouvez abriter que les cercles que vous organisez. Retirer un cercle ne supprime rien : son registre reste intact.','Tontines and réunions count together: Fagot covers 5 in total. You can only host circles you run. Removing a circle deletes nothing: its ledger stays intact.')}</div>
     </div></div>`;
   return `<h2 class="section-h">${_FL('Abonnement de la Case','Case subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}
@@ -6368,29 +6375,46 @@ function caseAbonnementPanel(c){
    que J'ORGANISE peuvent être abrités : on ne rattache pas le cercle d'autrui. */
 async function caseShareGrant(caseId){
   const c=(state_cases||[]).find(x=>x.id===caseId); if(!c) return;
-  const deja=new Set(c.shares||[]);
-  const miens=(state_tontines||[]).filter(t=>{
+  try{ if(!state_reunions || !state_reunions.length) await db.loadReunions(); }catch(_e){}
+  const dejaT=new Set(c.shares||[]), dejaR=new Set(c.reunionShares||[]);
+  const opts=[];
+  (state_tontines||[]).forEach(t=>{
     const me=t.members&&t.members[t.me];
-    return me && me.role==='organisateur' && !deja.has(t.id);
+    if(me && me.role==='organisateur' && !dejaT.has(t.id)) opts.push({kind:'t',id:t.id,nom:t.name});
   });
-  if(miens.length===0){
-    alert(_FL('Aucun cercle disponible : vous devez en organiser un qui ne soit pas déjà abrité ici.',
-              'No circle available: you must organise one that is not already hosted here.'));
+  (state_reunions||[]).forEach(r=>{ if(!dejaR.has(r.id)) opts.push({kind:'r',id:r.id,nom:r.name}); });
+  if(opts.length===0){
+    alert(_FL('Aucun cercle disponible : vous devez organiser une tontine ou une réunion qui ne soit pas déjà abritée ici.',
+              'No circle available: you must run a tontine or réunion not already hosted here.'));
     return;
   }
-  let tid;
-  if(miens.length===1){
-    if(!confirm(_FL('Abriter «\u00A0'+miens[0].name+'\u00A0» dans cette Case ?','Host “'+miens[0].name+'” in this Case?'))) return;
-    tid=miens[0].id;
+  let ch;
+  if(opts.length===1){
+    const lbl=(opts[0].kind==='r'?_FL('la réunion','the réunion'):_FL('la tontine','the tontine'));
+    if(!confirm(_FL('Abriter '+lbl+' «\u00A0'+opts[0].nom+'\u00A0» dans cette Case ?','Host '+lbl+' \u201C'+opts[0].nom+'\u201D in this Case?'))) return;
+    ch=opts[0];
   } else {
-    const noms=miens.map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-    const rep=prompt(_FL('Quelle tontine abriter dans cette Case\u00A0?\n','Which tontine to host in this Case?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
+    const noms=opts.map((o,i)=>`${i+1}. ${o.nom}${o.kind==='r'?' ('+_FL('réunion','réunion')+')':''}`).join('\n');
+    const rep=prompt(_FL('Quel cercle abriter dans cette Case\u00A0?\n','Which circle to host in this Case?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
     const idx=parseInt(rep,10)-1;
-    if(isNaN(idx)||idx<0||idx>=miens.length) return;
-    tid=miens[idx].id;
+    if(isNaN(idx)||idx<0||idx>=opts.length) return;
+    ch=opts[idx];
   }
   try{
-    const{error}=await sb.rpc('case_share_grant',{p_case:caseId,p_tontine:tid});
+    const{error}= ch.kind==='r'
+      ? await sb.rpc('case_reunion_grant',{p_case:caseId,p_reunion:ch.id})
+      : await sb.rpc('case_share_grant',{p_case:caseId,p_tontine:ch.id});
+    if(error)throw error;
+    await db.loadCases(); render();
+  }catch(e){ alert(e.message||e); }
+}
+/* Retirer une réunion abritée. */
+async function caseReunionRevoke(caseId, reunionId){
+  const r=(state_reunions||[]).find(x=>x.id===reunionId);
+  if(!confirm(_FL('Retirer «\u00A0'+((r&&r.name)||'cette réunion')+'\u00A0» de cette Case ?\nSon registre et ses séances restent intacts ; elle repassera au palier gratuit si elle n\'a pas d\'abonnement propre.',
+                  'Remove \u201C'+((r&&r.name)||'this réunion')+'\u201D from this Case?\nIts ledger and sessions stay intact; it returns to the free tier unless it has its own subscription.'))) return;
+  try{
+    const{error}=await sb.rpc('case_reunion_revoke',{p_case:caseId,p_reunion:reunionId});
     if(error)throw error;
     await db.loadCases(); render();
   }catch(e){ alert(e.message||e); }
