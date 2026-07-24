@@ -2171,7 +2171,18 @@ function reuSetCaisse(v){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.c
 function reuAddDebt(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;const n=document.getElementById('reu-debt-name'),a=document.getElementById('reu-debt-amt');const nm=n?String(n.value).trim():'',am=a?impParseAmount(a.value):null;if(!nm)return;s.debts=s.debts||[];s.debts.push({name:nm,amount:am||0,note:''});reuPersist(r);render();}
 function reuCloseSeance(){const r=reuActive(),s=reuOpenSeance(r);if(!s)return;s.open=false;reuPersist(r);render();}
 function reuNewSeance(){const r=reuActive();if(!r)return;if(reuOpenSeance(r)){alert(tr('re_one_open'));return;}const n=r.seances.length+1;r.seances.unshift({id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',n),open:true,beneficiaryIdx:0,contribs:r.members.map(()=>({tontine:0,cc:r.ccAmount||0,status:'none'})),caisseReturn:0,debts:[]});reuPersist(r);render();}
-function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getElementById('reu-mem-name'),c=document.getElementById('reu-mem-contact');const nm=n?String(n.value).trim():'';if(!nm)return;r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});reuPersist(r);render();}
+function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getElementById('reu-mem-name'),c=document.getElementById('reu-mem-contact');const nm=n?String(n.value).trim():'';if(!nm)return;
+  /* Politesse : on prévient AVANT d'écrire. La vraie garde est en base
+     (trigger reunion_cap_membres) — l'écran peut être contourné, pas elle. */
+  const _actif=!!(r.premium_until && new Date(r.premium_until)>new Date());
+  const _max=_actif?30:12;
+  if((r.members||[]).length>=_max){
+    alert(_actif
+      ? _FL('Le palier Kw\u00e8n couvre 30 membres. Pour aller au-del\u00e0, cr\u00e9ez une seconde r\u00e9union, ou une Case (Fagot) qui les abrite.','The Kw\u00e8n tier covers 30 members. Beyond that, create a second r\u00e9union, or a Case (Fagot) to host them.')
+      : _FL('Le palier gratuit Fekeng couvre 12 membres. Passez \u00e0 Kw\u00e8n pour aller jusqu\u2019\u00e0 30 \u2014 votre registre et vos s\u00e9ances restent intacts.','The free Fekeng tier covers 12 members. Move to Kw\u00e8n for up to 30 \u2014 your ledger and sessions stay intact.'));
+    return;
+  }
+r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});reuPersist(r);render();}
 function startReunion(){const nm=state.user||'Moi';const r={id:newId('r'),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
 function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:newId('r'),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:newId('s'),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
 function viewReunion(){
@@ -6079,7 +6090,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.15';
+const UBORA_BUILD='v8.16';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
