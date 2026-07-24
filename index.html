@@ -4232,6 +4232,16 @@ function caseMemberAdd(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
   const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
   const name=g('cm-name'); if(!name){alert('Indiquez au moins le nom.');return;}
+  /* Politesse : on prévient AVANT d'écrire. La vraie garde est en base
+     (trigger case_cap_membres) — l'écran peut être contourné, pas elle. */
+  const _actif=!!(c.premium_until && new Date(c.premium_until)>new Date());
+  const _max=_actif?100:30;
+  if(((c.members)||[]).length>=_max){
+    alert(_actif
+      ? _FL('Le palier Fagot couvre 100 membres. Pour un r\u00e9seau plus large, cr\u00e9ez une f\u00e9d\u00e9ration (Baobab) qui relie plusieurs Cases.','The Fagot tier covers 100 members. For a wider network, create a federation (Baobab) linking several Cases.')
+      : _FL('La Case gratuite couvre 30 membres. Passez \u00e0 Fagot pour aller jusqu\u2019\u00e0 100 \u2014 votre registre, vos cotisations et votre cagnotte restent intacts.','The free Case covers 30 members. Move to Fagot for up to 100 \u2014 your ledger, contributions and fund stay intact.'));
+    return;
+  }
   c.members=c.members||[]; c.members.push({name,contact:g('cm-contact'),role:g('cm-role')});
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
   render();
@@ -6093,7 +6103,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.17';
+const UBORA_BUILD='v8.18';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6367,7 +6377,7 @@ function caseAbonnementPanel(c){
   return `<h2 class="section-h">${_FL('Abonnement de la Case','Case subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}
       <div class="row-gap" style="margin-top:10px">${btn}</div>
-      <div class="msub" style="margin-top:8px">${_FL('Fagot : jusqu\'à 5 tontines abritées et 100 membres, entraide (caisses et événements) et billetterie.','Fagot: up to 5 hosted tontines and 100 members, mutual aid (funds and events) and ticketing.')}</div>
+      <div class="msub" style="margin-top:8px">${((c.members)||[]).length} / ${actif?100:30} ${_FL('membres inscrits à la Case','members on the Case roster')} \u00b7 ${_FL('Fagot : 100 membres, 5 cercles abrités, entraide (caisses et événements) et billetterie. Sans abonnement : 30 membres.','Fagot: 100 members, 5 hosted circles, mutual aid (funds and events) and ticketing. Without subscription: 30 members.')}</div>
       <div class="asnote" style="margin-top:10px">${_FL('Une <b>tontine</b> fait circuler l\'argent. Une <b>Case</b> rassemble des personnes — et peut abriter ses tontines. Une <b>fédération</b> relie des groupes.','A <b>tontine</b> moves money. A <b>Case</b> gathers people — and can host its tontines. A <b>federation</b> links groups.')}</div>
     </div></div>${bloc}`;
 }
