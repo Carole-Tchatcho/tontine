@@ -1714,7 +1714,7 @@ const db={
     const uid=await db.fedUid();
     const [mine,dir,bur]=await Promise.all([
       sb.from('my_federations').select('*'),
-      sb.from('federations').select('id,name,region,owner,palier,premium_until').order('name'),
+      sb.from('federations').select('id,name,region,owner,palier,premium_until,libelle').order('name'),
       uid?sb.from('federation_bureau').select('fed_id,role').eq('user_id',uid):Promise.resolve({data:[]})
     ]);
     if(mine.error)throw mine.error; if(dir.error)throw dir.error;
@@ -1733,6 +1733,7 @@ const db={
     state_fed1={ fed:f, bureau:bur.data||[], decisions:dec.data||[], members:mem.data||[], shares:(shr&&shr.data)||[] };
   },
   async fedCreate(name,region,disp){ const{data,error}=await sb.rpc('fed_create',{p_name:name,p_region:region||null,p_display:disp||null}); if(error)throw error; return data; },
+  async fedSetLibelle(fedId,libelle){ const{error}=await sb.rpc('fed_set_libelle',{p_fed:fedId,p_libelle:libelle||null}); if(error)throw error; },
   async fedInvite(fedId,role){ const{data,error}=await sb.rpc('fed_bureau_invite',{p_fed:fedId,p_role:role||null}); if(error)throw error; return data; },
   async fedAccept(code,name){ const{data,error}=await sb.rpc('fed_bureau_accept',{p_code:code,p_name:name||null}); if(error)throw error; return data; },
   async fedRename(fedId,name){ const{error}=await sb.rpc('fed_bureau_rename',{p_fed:fedId,p_name:name}); if(error)throw error; },
@@ -4838,9 +4839,11 @@ async function fedDoCreate(){
   const name=n?String(n.value).trim():'', region=r?String(r.value).trim():'', disp=d?String(d.value).trim():'';
   if(!name){ alert(_FL('Donnez un nom à la fédération.','Please name the federation.')); return; }
   if(!disp){ alert(_FL('Indiquez votre nom : c\'est lui qui figurera au bureau.','Enter your name: it is what will appear on the board.')); return; }
+  const _lb=document.getElementById('nf-libelle'); const _libelle=_lb?String(_lb.value).trim():'';
   try{ const id=await db.fedCreate(name,region,disp);
-    alert(_FL('Fédération créée. Vous êtes seule au bureau : invitez une deuxième personne, sinon aucune admission ne pourra être signée.',
-              'Federation created. You are alone on the board: invite a second person, otherwise no admission can be signed.'));
+    if(_libelle){ try{ await db.fedSetLibelle(id,_libelle); }catch(_e){} }
+    alert(_FL((_libelle||'Groupe')+' créé·e. Vous êtes seule au bureau : invitez une deuxième personne, sinon aucune admission ne pourra être signée.',
+              (_libelle||'Group')+' created. You are alone on the board: invite a second person, otherwise no admission can be signed.'));
     state.activeFedId=id; go('fedadmin');
   }catch(e){ alert(e.message||e); }
 }
@@ -4918,7 +4921,7 @@ function viewFedHome(){
     <h2 class="section-h">${_FL('Créer une fédération','Create a federation')}</h2>
     <div class="panel"><div style="padding:14px 18px">
       <div class="row-gap">
-        <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Nom','Name')}</label><input id="nf-name" placeholder="${_FL('ex. RPN','e.g. RPN')}"></div>
+        <div class="field" style="flex:1;min-width:150px;margin-top:0"><label>${_FL('Comment l\'appeler','What to call it')}</label><select id="nf-libelle"><option>${_FL('Fédération','Federation')}</option><option>${_FL('Association','Association')}</option><option>${_FL('Réseau','Network')}</option><option>${_FL('Amicale','Society')}</option><option>${_FL('Collectif','Collective')}</option><option>${_FL('Mutuelle','Mutual')}</option></select></div><div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Nom','Name')}</label><input id="nf-name" placeholder="${_FL('ex. RPN','e.g. RPN')}"></div>
         <div class="field" style="flex:1;min-width:140px;margin-top:0"><label>${_FL('Pays de base','Base country')}</label><input id="nf-region" placeholder="${_FL('ex. Canada','e.g. Canada')}"></div>
         <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="nf-disp" value="${esc(state.user||'')}"></div>
       </div>
@@ -4982,7 +4985,7 @@ function viewFedAdmin(){
     </div></div>`:'';
   app().innerHTML=`
     <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
-    <div class="eyebrow">${_FL('fédération','federation')}</div>
+    <div class="eyebrow">${esc(f.libelle||_FL('fédération','federation'))}</div>
     <h1 class="page-title">${esc(f.name)}</h1>
     <p class="lead">${esc(f.region||'')}</p>
     ${warn}
@@ -6103,7 +6106,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.18';
+const UBORA_BUILD='v8.19';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
