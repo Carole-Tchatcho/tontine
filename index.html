@@ -451,6 +451,17 @@
     .hnav .dot{position:absolute;top:2px;right:calc(50% - 20px)}
     .mrow{flex-wrap:wrap}
     .mrow .right{margin-left:49px;width:100%}
+    /* Sur téléphone, la navbar passe en barre fixe EN BAS. Le badge de statut
+       (« Connectée ») est lui aussi fixé en bas : sans précaution il recouvre la
+       barre et donne l'illusion qu'il n'y a pas de menu. On le remonte au-dessus
+       de la barre, et on réserve la place pour que rien ne soit masqué. */
+    body{padding-bottom:112px}
+    #ub-backend-badge{
+      bottom:calc(64px + env(safe-area-inset-bottom))!important;
+      left:8px!important; right:8px!important;
+      justify-content:center; font-size:10.5px!important; padding:5px 10px!important;
+      opacity:.97}
+    .hnav{z-index:60}
   }
   /* attestation de confiance */
   .attest-doc{background:linear-gradient(180deg,#FFFDF7,#F7EFDC);border:1px solid #D9C79F;border-radius:16px;padding:28px 30px;margin-top:8px;box-shadow:0 6px 24px rgba(120,90,40,.12)}
@@ -6106,7 +6117,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.19';
+const UBORA_BUILD='v8.20';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
