@@ -435,7 +435,13 @@
   .perk .pk{font-size:13.5px;color:var(--mid);margin-top:7px;line-height:1.55} .perk .pk b{color:var(--ink)}
   .perk .pkrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 
-  @media(max-width:560px){
+  /* Seuil élargi à 900 px : sur certains téléphones (grands iPhone, zoom
+     d'affichage iOS) la largeur CSS dépasse 560 px, et la navbar du haut,
+     coincée entre la marque et le bord, devenait invisible. En dessous de
+     900 px on bascule donc en BARRE FIXE EN BAS — robuste sur tous les
+     téléphones et les tablettes en portrait. Ordinateur et tablette paysage
+     gardent la barre du haut. */
+  @media(max-width:900px){
     .page-title{font-size:28px}
     .grid2,.grid3{grid-template-columns:1fr}
     body{padding-bottom:78px}
@@ -6117,7 +6123,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.20';
+const UBORA_BUILD='v8.21';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
