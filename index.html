@@ -5829,7 +5829,7 @@ function activateMandate(){
   go('entraide');
 }
 
-const UBORA_ADMINS=['carole@caroletchatcho.com','milly.tchatcho@gmail.com','my.tchatch@gmail.com'];
+const UBORA_ADMINS=['carole@caroletchatcho.com'];
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
 function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
@@ -6125,7 +6125,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.23';
+const UBORA_BUILD='v8.24';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
