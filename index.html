@@ -1735,7 +1735,9 @@ const db={
       uid?sb.from('federation_bureau').select('fed_id,role').eq('user_id',uid):Promise.resolve({data:[]})
     ]);
     if(mine.error)throw mine.error; if(dir.error)throw dir.error;
-    state_fed={ uid, mine:mine.data||[], dir:dir.data||[], bureau:(bur.data||[]) };
+    let _dir=dir.data||[];
+    if(isUboraAdmin()){ _dir=_dir.map(f=>{ if(f.owner===uid){ f.premium_until='2099-12-31T00:00:00.000Z'; f.palier='baobab'; } return f; }); }
+    state_fed={ uid, mine:mine.data||[], dir:_dir, bureau:(bur.data||[]) };
   },
   async fedLoadOne(fedId){
     if(BACKEND!=='supabase'||!fedId){ state_fed1=null; return; }
@@ -1804,7 +1806,7 @@ const db={
     state_cases=(data||[]).map(r=>{ const c=r.data; if(!c)return null;
       c.palier=r.palier||null; c.premium_until=r.premium_until||null;
       c.shares=shr.filter(s=>s.case_id===r.id).map(s=>s.tontine_id);
-      c.reunionShares=rsh.filter(s=>s.case_id===r.id).map(s=>s.reunion_id); return c; }).filter(Boolean); },
+      c.reunionShares=rsh.filter(s=>s.case_id===r.id).map(s=>s.reunion_id); if(isUboraAdmin()){ c.premium_until='2099-12-31T00:00:00.000Z'; c.palier='fagot'; } return c; }).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
     /* palier / premium_until / shares sont gérés par Stripe et la base : on ne
        les recopie jamais dans le champ `data`, que l'utilisateur peut écrire. */
@@ -1812,7 +1814,7 @@ const db={
     const row={id:c.id,creator_id:uid,is_public:true,data:clean}; const{error}=await sb.from('cases').upsert(row); if(error)throw error; },
   async deleteCase(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('cases').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadReunions(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('reunions').select('id,data,palier,premium_until').order('created_at',{ascending:false}); if(error)throw error;
-    state_reunions=(data||[]).map(x=>{ const r=x.data; if(!r)return null; r.palier=x.palier||null; r.premium_until=x.premium_until||null; return r; }).filter(Boolean); },
+    state_reunions=(data||[]).map(x=>{ const r=x.data; if(!r)return null; r.palier=x.palier||null; r.premium_until=x.premium_until||null; if(isUboraAdmin()){ r.premium_until='2099-12-31T00:00:00.000Z'; r.palier='kwen'; } return r; }).filter(Boolean); },
   async saveReunion(r){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
     /* palier / premium_until viennent de Stripe : jamais recopiés dans `data`. */
     const clean=Object.assign({},r); delete clean.palier; delete clean.premium_until;
@@ -6123,7 +6125,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.22';
+const UBORA_BUILD='v8.23';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
