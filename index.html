@@ -2059,7 +2059,11 @@ function render(){
 
   if(state.view==='notif')$('#nav-notif').classList.add('on');
   {const _nc=$('#notifcount'); if(_nc){let _n=0;try{_n=notifFeed().filter(n=>n.type==='g').length;}catch(e){} _nc.textContent=_n?_n:''; _nc.style.display=_n?'':'none';}}
-  const _GATED_SOON={mandate:1,registre:1,attestation:1};
+  /* Les écrans mandat / registre / attestation sont complets et font partie du
+     parcours Entraide vendu dans le palier Fagot. La barrière « Bientôt
+     disponible » était un reliquat d'avant leur achèvement — on l'ouvre.
+     Pour refermer une section un jour : remettre son nom ici, ex. {mandate:1}. */
+  const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
   else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
@@ -6125,7 +6129,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.24';
+const UBORA_BUILD='v8.25';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
