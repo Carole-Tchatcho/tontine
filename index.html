@@ -2063,9 +2063,13 @@ function render(){
      parcours Entraide vendu dans le palier Fagot. La barrière « Bientôt
      disponible » était un reliquat d'avant leur achèvement — on l'ouvre.
      Pour refermer une section un jour : remettre son nom ici, ex. {mandate:1}. */
+  /* Barrière conditions : uniquement quand on SAIT que ce n'est pas accepté
+     (cgvOk===false). Tant que la vérification n'a pas répondu, on n'affiche
+     rien de bloquant — pas de clignotement au démarrage. */
+  if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -5861,8 +5865,105 @@ function uboraChoisir(titre, options, sousTitre){
     ov.addEventListener('click',function(e){ if(e.target===ov) close(null); });
   });
 }
+/* ---------- CONDITIONS D'ABONNEMENT ----------
+   CGV_VERSION est la clé de tout : le jour où le texte change, on incrémente
+   cette date et chaque personne est réinvitée à accepter. Les acceptations
+   passées restent en base — on n'efface jamais une trace de consentement. */
+const CGV_VERSION='2026-07-28';
+
+async function cgvCheck(){
+  if(BACKEND!=='supabase' || !state.uid){ state.cgvOk=true; return; }
+  try{
+    const{data,error}=await sb.rpc('cgv_version_acceptee');
+    if(error)throw error;
+    state.cgvOk = (String(data||'')===CGV_VERSION);
+  }catch(e){
+    /* En cas de panne on ne bloque PAS l'accès : mieux vaut une personne qui
+       entre sans barrière qu'une personne enfermée dehors par une erreur. */
+    console.warn('cgvCheck', e); state.cgvOk=true;
+  }
+}
+async function cgvAccepter(){
+  const b=document.getElementById('cgv-ok'); if(b){ b.disabled=true; b.textContent=_FL('Enregistrement\u2026','Saving\u2026'); }
+  try{
+    const{error}=await sb.rpc('cgv_accepter',{p_version:CGV_VERSION});
+    if(error)throw error;
+    state.cgvOk=true; render(); window.scrollTo(0,0);
+  }catch(e){
+    alert(_FL('Enregistrement impossible\u00A0: ','Could not save: ')+((e&&e.message)||e));
+    if(b){ b.disabled=false; b.textContent=_FL('J\u2019accepte les conditions','I accept the terms'); }
+  }
+}
+
+/* Le texte intégral, consultable à tout moment depuis le pied de page. */
+function cgvTexte(){
+  return `
+  <h2 class="section-h">1. Qui vous fournit le service</h2>
+  <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
+
+  <h2 class="section-h">2. Ce que fait UBORA — et ce qu'il ne fait pas</h2>
+  <p class="lead">UBORA-Tontine est un <b>registre</b> : il tient le compte des versements, des confirmations et des tours. <b>UBORA ne détient jamais vos fonds</b>, ne les transporte pas, ne les place pas et ne prélève <b>aucune commission sur vos cotisations</b>. L'argent circule directement entre les membres, par les moyens qu'ils choisissent.</p>
+  <p class="lead">UBORA n'est ni une banque, ni un établissement de paiement, ni un gestionnaire de fortune. Il n'est pas enregistré auprès de la FINMA et ne fournit aucun conseil en placement. Les contenus relatifs à l'investissement sont <b>éducatifs</b>.</p>
+
+  <h2 class="section-h">3. Votre compte</h2>
+  <p class="lead">L'accès se fait par lien de connexion envoyé à votre adresse e-mail. Vous êtes responsable de l'exactitude des informations que vous saisissez et de l'usage fait de votre boîte e-mail. Vous vous engagez à n'inscrire des données concernant d'autres personnes que si vous êtes en droit de le faire.</p>
+
+  <h2 class="section-h">4. Abonnements et paiement</h2>
+  <p class="lead">Le registre est utilisable <b>gratuitement</b> (palier Fekeng). Les paliers payants — Kwèn, Fagot, Baobab — s'appliquent respectivement à un cercle, à une Case et à une fédération, aux prix affichés lors de la souscription.</p>
+  <p class="lead">Les abonnements sont <b>mensuels et se renouvellent automatiquement</b> jusqu'à résiliation. Le paiement est traité par <b>Stripe</b> ; UBORA ne conserve aucune donnée de carte. Les prix peuvent être modifiés ; toute modification vous est annoncée avant qu'elle ne s'applique à votre abonnement.</p>
+
+  <h2 class="section-h">5. Résiliation</h2>
+  <p class="lead">Vous pouvez résilier <b>à tout moment</b>, sans motif ni préavis. La résiliation prend effet à la fin de la période déjà payée : vous conservez l'accès jusqu'à cette date, puis le cercle ou le groupe revient au palier gratuit. Les périodes entamées ne sont pas remboursées au prorata, sauf disposition légale contraire.</p>
+  <p class="lead"><b>Rien n'est supprimé :</b> votre registre, votre journal et vos écritures restent intacts après le retour au palier gratuit. Seules les fonctions liées au palier payant cessent d'être disponibles.</p>
+
+  <h2 class="section-h">6. Vos obligations</h2>
+  <p class="lead">Vous vous engagez à utiliser UBORA de manière licite, à ne pas vous en servir pour organiser une activité illégale, ni pour collecter des fonds sous un prétexte trompeur. Vous restez seul responsable des relations financières au sein de votre cercle.</p>
+
+  <h2 class="section-h">7. Responsabilité</h2>
+  <p class="lead">UBORA fournit un outil de tenue de registre. Il ne garantit pas qu'un membre versera sa part, ne recouvre aucune créance et n'intervient dans aucun litige entre membres. UBORA s'efforce d'assurer la disponibilité du service sans pouvoir garantir un fonctionnement ininterrompu. Sa responsabilité est limitée aux montants d'abonnement que vous avez effectivement versés au cours des douze derniers mois.</p>
+
+  <h2 class="section-h">8. Données personnelles</h2>
+  <p class="lead">Le traitement de vos données est décrit dans la page <b>Confidentialité</b>. Le registre d'un cercle n'est visible que par ses membres : aucun autre cercle n'y a accès.</p>
+
+  <h2 class="section-h">9. Modification des présentes conditions</h2>
+  <p class="lead">Ces conditions peuvent évoluer. Une nouvelle version vous sera présentée à votre prochaine connexion et devra être acceptée pour continuer à utiliser le service. La date de version figure en bas de cette page.</p>
+
+  <h2 class="section-h">10. Droit applicable</h2>
+  <p class="lead">Les présentes conditions sont soumises au <b>droit suisse</b>. Le for est au siège d'Imara, en Suisse, sous réserve des dispositions impératives protégeant les consommateurs.</p>
+
+  <p class="msub" style="margin-top:18px">Version du ${CGV_VERSION}.</p>`;
+}
+
+function viewCGV(){
+  app().innerHTML=`
+    <a class="backlink" href="#" onclick="go('home');return false">\u2039 ${_FL('Retour','Back')}</a>
+    <div class="kicker">${_FL('REGISTRE DE CONFIANCE','LEDGER OF TRUST')}</div>
+    <h1 class="page-title">${_FL('Conditions d\u2019abonnement','Subscription terms')}</h1>
+    <div class="panel"><div style="padding:6px 22px 18px">${cgvTexte()}</div></div>
+    ${footer()}`;
+}
+
+/* La barrière : bloquante, mais honnête — on peut lire le texte entier et,
+   si l'on refuse, se déconnecter. On n'enferme personne. */
+function viewCGVGate(){
+  app().innerHTML=`
+    <div class="kicker">${_FL('AVANT DE COMMENCER','BEFORE YOU START')}</div>
+    <h1 class="page-title">${_FL('Les conditions d\u2019abonnement','The subscription terms')}</h1>
+    <p class="lead">${_FL('Elles tiennent en trois idées, et le texte complet est juste en dessous.','Three ideas, and the full text is right below.')}</p>
+    <div class="panel"><div style="padding:14px 22px 18px">
+      <div class="mrow"><div class="stack"><div class="mname">${_FL('UBORA ne touche jamais à votre argent','UBORA never touches your money')}</div><div class="msub">${_FL('Le registre tient le compte\u00A0; les fonds circulent entre vous, sans commission.','The ledger keeps the record; funds move between you, with no commission.')}</div></div></div>
+      <div class="mrow"><div class="stack"><div class="mname">${_FL('Résiliable à tout moment','Cancel anytime')}</div><div class="msub">${_FL('L\u2019abonnement est mensuel et se renouvelle seul jusqu\u2019à ce que vous l\u2019arrêtiez.','The subscription is monthly and renews until you stop it.')}</div></div></div>
+      <div class="mrow"><div class="stack"><div class="mname">${_FL('Rien n\u2019est jamais supprimé','Nothing is ever deleted')}</div><div class="msub">${_FL('Même sans abonnement, votre registre et votre journal restent intacts.','Even without a subscription, your ledger and journal stay intact.')}</div></div></div>
+      <div class="row-gap" style="margin-top:16px">
+        <button class="btn btn-gold" id="cgv-ok" onclick="cgvAccepter()">${_FL('J\u2019accepte les conditions','I accept the terms')}</button>
+        <button class="btn btn-ghost btn-sm" onclick="uboraLogout()">${_FL('Refuser et se déconnecter','Decline and sign out')}</button>
+      </div>
+      <div class="msub" style="margin-top:10px">${_FL('En acceptant, vous confirmez avoir lu le texte ci-dessous. Votre acceptation est enregistrée avec la date.','By accepting, you confirm you have read the text below. Your acceptance is recorded with the date.')}</div>
+    </div></div>
+    <div class="panel" style="margin-top:14px"><div style="padding:6px 22px 18px">${cgvTexte()}</div></div>`;
+}
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
-function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
 function viewPrivacy(){
   return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
@@ -6156,7 +6257,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.28';
+const UBORA_BUILD='v8.29';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6680,6 +6781,7 @@ async function boot(){
       state.view='join'; render(); showBackendBadge(); return;
     }
     try{await db.loadContacts();}catch(e){}
+    await cgvCheck();          /* la barrière ne s'ouvre qu'après cette réponse */
     sendWelcomeIfNew();
     state.view='home'; render(); showBackendBadge();
   }catch(e){
