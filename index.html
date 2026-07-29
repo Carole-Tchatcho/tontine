@@ -3822,10 +3822,10 @@ async function abonnerPalier(palier){
     let cid;
     if(miennes.length===1){ cid = miennes[0].id; }
     else {
-      const noms = miennes.map((x,i)=>`${i+1}. ${x.name}`).join('\n');
-      const rep = prompt(_FL('Quelle Case abonner au palier Fagot\u00A0?\n','Which Case to subscribe to Fagot?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
-      const idx = parseInt(rep,10)-1;
-      if(isNaN(idx)||idx<0||idx>=miennes.length) return;
+      const idx = await uboraChoisir(
+        _FL('Quelle Case abonner au palier Fagot\u00A0?','Which Case to subscribe to Fagot?'),
+        miennes.map(x=>({label:x.name})));
+      if(idx==null) return;
       cid = miennes[idx].id;
     }
     caseSubscribe(cid, price); return;
@@ -3845,10 +3845,10 @@ async function abonnerPalier(palier){
     let fid;
     if(miens.length===1){ fid = miens[0].id; }
     else {
-      const noms = miens.map((f,i)=>`${i+1}. ${f.name}`).join('\n');
-      const rep = prompt(_FL('Quelle fédération abonner au palier Baobab\u00A0?\n','Which federation to subscribe to Baobab?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
-      const idx = parseInt(rep,10)-1;
-      if(isNaN(idx)||idx<0||idx>=miens.length) return;
+      const idx = await uboraChoisir(
+        _FL('Quel groupe abonner au palier Baobab\u00A0?','Which group to subscribe to Baobab?'),
+        miens.map(f=>({label:f.name, sub:f.libelle||''})));
+      if(idx==null) return;
       fid = miens[idx].id;
     }
     groupeSubscribe(fid, price); return;
@@ -3868,10 +3868,10 @@ async function abonnerPalier(palier){
   let tid;
   if(miens.length===1){ tid = miens[0].id; }
   else {
-    const noms = miens.map((t,i)=>`${i+1}. ${t.name}`).join('\n');
-    const rep = prompt(_FL('Quel cercle abonner au palier '+palier+'\u00A0?\n','Which circle to subscribe to '+palier+'?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
-    const idx = parseInt(rep,10)-1;
-    if(isNaN(idx)||idx<0||idx>=miens.length) return;
+    const idx = await uboraChoisir(
+      _FL('Quel cercle abonner au palier Kw\u00E8n\u00A0?','Which circle to subscribe to Kw\u00E8n?'),
+      miens.map(t=>({label:t.name})));
+    if(idx==null) return;
     tid = miens[idx].id;
   }
   premiumSubscribe(tid, price);
@@ -5834,6 +5834,33 @@ function activateMandate(){
 }
 
 const UBORA_ADMINS=['carole@caroletchatcho.com'];
+/* Sélecteur cliquable — remplace les « tapez le numéro » des boîtes de dialogue.
+   Sur téléphone, taper un chiffre juste avant de payer, c'est de la friction :
+   ici on touche l'élément voulu. Renvoie l'index choisi, ou null si annulé. */
+function uboraChoisir(titre, options, sousTitre){
+  return new Promise(function(resolve){
+    const ov=document.createElement('div'); ov.className='cel-overlay';
+    const items=options.map(function(o,i){
+      return '<button type="button" class="btn btn-ghost" data-i="'+i+'" style="display:block;width:100%;text-align:left;margin:6px 0;padding:11px 14px">'
+        + '<span style="font-weight:600">'+esc(o.label)+'</span>'
+        + (o.sub?'<span class="msub" style="display:block;margin-top:2px">'+esc(o.sub)+'</span>':'')
+        + '</button>';
+    }).join('');
+    ov.innerHTML='<div class="cel-card" style="max-width:460px;width:100%;padding:22px 22px 16px;text-align:left">'
+      + '<div style="font-family:Georgia,serif;font-size:19px;color:#1E2128">'+esc(titre)+'</div>'
+      + (sousTitre?'<div class="msub" style="margin-top:4px">'+esc(sousTitre)+'</div>':'')
+      + '<div id="ub-choix" style="margin-top:12px">'+items+'</div>'
+      + '<div style="text-align:right;margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" id="ub-choix-annuler">'+_FL('Annuler','Cancel')+'</button></div>'
+      + '</div>';
+    document.body.appendChild(ov);
+    function close(v){ try{ov.remove();}catch(_e){} resolve(v); }
+    ov.querySelector('#ub-choix').addEventListener('click',function(e){
+      const b=e.target.closest('button[data-i]'); if(!b)return; close(parseInt(b.getAttribute('data-i'),10));
+    });
+    ov.querySelector('#ub-choix-annuler').onclick=function(){ close(null); };
+    ov.addEventListener('click',function(e){ if(e.target===ov) close(null); });
+  });
+}
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
 function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
@@ -6129,7 +6156,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.25';
+const UBORA_BUILD='v8.26';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6430,10 +6457,10 @@ async function caseShareGrant(caseId){
     if(!confirm(_FL('Abriter '+lbl+' «\u00A0'+opts[0].nom+'\u00A0» dans cette Case ?','Host '+lbl+' \u201C'+opts[0].nom+'\u201D in this Case?'))) return;
     ch=opts[0];
   } else {
-    const noms=opts.map((o,i)=>`${i+1}. ${o.nom}${o.kind==='r'?' ('+_FL('réunion','réunion')+')':''}`).join('\n');
-    const rep=prompt(_FL('Quel cercle abriter dans cette Case\u00A0?\n','Which circle to host in this Case?\n')+noms+'\n\n'+_FL('Tapez le numéro :','Type the number:'));
-    const idx=parseInt(rep,10)-1;
-    if(isNaN(idx)||idx<0||idx>=opts.length) return;
+    const idx=await uboraChoisir(
+      _FL('Quel cercle abriter dans cette Case\u00A0?','Which circle to host in this Case?'),
+      opts.map(o=>({label:o.nom, sub:(o.kind==='r'?_FL('réunion','réunion'):_FL('tontine','tontine'))})));
+    if(idx==null) return;
     ch=opts[idx];
   }
   try{
