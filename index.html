@@ -441,6 +441,8 @@
      900 px on bascule donc en BARRE FIXE EN BAS — robuste sur tous les
      téléphones et les tablettes en portrait. Ordinateur et tablette paysage
      gardent la barre du haut. */
+  /* Les conditions se lisent comme un document : texte justifié, césure douce. */
+  .cgv-just p{text-align:justify;text-justify:inter-word;hyphens:auto;-webkit-hyphens:auto}
   @media(max-width:900px){
     .page-title{font-size:28px}
     .grid2,.grid3{grid-template-columns:1fr}
@@ -2546,7 +2548,12 @@ function viewDash(){
     <div class="between" style="flex-wrap:wrap;gap:14px">
       <div><h1 class="page-title">${t.name}</h1>
         <div class="t-meta">${isPremium(t)?`<span style="vertical-align:-5px;margin-right:6px">${palierSVG(t,18)}</span>`:''}${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
-        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${palierSVG(t,22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE ${palierNom(t).toUpperCase()}</span></div>${kwenBand()}`:''}
+        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${palierSVG(t,22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE ${palierNom(t).toUpperCase()}</span>${(function(){
+          const _me=t.members&&t.members[t.me];
+          const _org=_me&&_me.role==='organisateur';
+          const _propre=(t.premiumSource!=='groupe'&&t.premiumSource!=='admin');
+          return (_org&&_propre)?` <a href="#" onclick="gererAbonnement('cercle','${t.id}');return false" style="color:#C9A84C;text-decoration:underline;font-size:12px">${_FL('gérer','manage')}</a>`:'';
+        })()}</div>${kwenBand()}`:''}
         ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
         ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
         <div>${trustSeal()}</div></div>
@@ -5865,6 +5872,24 @@ function uboraChoisir(titre, options, sousTitre){
     ov.addEventListener('click',function(e){ if(e.target===ov) close(null); });
   });
 }
+/* Ouvre le portail client Stripe : changer de carte, voir ses factures,
+   RÉSILIER soi-même. Un abonné qui ne trouve pas comment arrêter finit par
+   appeler sa banque — ce bouton évite les contestations de paiement. */
+async function gererAbonnement(kind, id){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-portal',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({kind, id, return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert(_FL('Gestion indisponible\u00A0: ','Management unavailable: ')+((e&&e.message)||e)); }
+}
+function btnGerer(kind, id){
+  return `<button class="btn btn-ghost btn-sm" onclick="gererAbonnement('${kind}','${id}')">${_FL('G\u00E9rer / r\u00E9silier','Manage / cancel')}</button>`;
+}
 /* ---------- CONDITIONS D'ABONNEMENT ----------
    CGV_VERSION est la clé de tout : le jour où le texte change, on incrémente
    cette date et chaque personne est réinvitée à accepter. Les acceptations
@@ -5897,7 +5922,7 @@ async function cgvAccepter(){
 
 /* Le texte intégral, consultable à tout moment depuis le pied de page. */
 function cgvTexte(){
-  return `
+  return `<div class="cgv-just">
   <h2 class="section-h">1. Qui vous fournit le service</h2>
   <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
 
@@ -5931,7 +5956,7 @@ function cgvTexte(){
   <h2 class="section-h">10. Droit applicable</h2>
   <p class="lead">Les présentes conditions sont soumises au <b>droit suisse</b>. Le for est au siège d'Imara, en Suisse, sous réserve des dispositions impératives protégeant les consommateurs.</p>
 
-  <p class="msub" style="margin-top:18px">Version du ${CGV_VERSION}.</p>`;
+  <p class="msub" style="margin-top:18px">Version du ${CGV_VERSION}.</p></div>`;
 }
 
 function viewCGV(){
@@ -6257,7 +6282,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.29';
+const UBORA_BUILD='v8.30';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -6477,7 +6502,7 @@ function fedAbonnementPanel(f){
     ? `<div class="mrow"><div class="stack"><div class="mname">${svg} ${_FL('Groupe abonné','Group subscribed')} · <b>${nom}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(f.premium_until).toLocaleDateString()} · ${_FL('vos cercles membres bénéficient de Kwèn','your member circles get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Ce groupe n\'est pas abonné. Ses cercles restent au palier gratuit.','This group is not subscribed. Its circles stay on the free tier.')}</span></div>`;
   const btnB = (actif && pal==='baobab')
-    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Baobab · ${_FL('palier actuel','current tier')}</button>`
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Baobab · ${_FL('palier actuel','current tier')}</button>`+btnGerer('federation',f.id)
     : `<button class="btn btn-gold btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.baobab[dev]}')">${_FL('S\'abonner · Baobab','Subscribe · Baobab')} (${dev})</button>`;
   const btns=`<div class="row-gap" style="margin-top:10px">${btnB}</div>
     <div class="msub" style="margin-top:8px">${_FL('Baobab : cercles illimités, chiffres agrégés du réseau, attestation de fédération, annuaire. Paiement sécurisé par Stripe, résiliable à tout moment.','Baobab: unlimited circles, aggregated network figures, federation attestation, directory. Secure payment by Stripe, cancel anytime.')}</div>
@@ -6509,7 +6534,7 @@ function caseAbonnementPanel(c){
     ? `<div class="mrow"><div class="stack"><div class="mname">${fagotSVG(22)} ${_FL('Case abonnée','Case subscribed')} · <b>Fagot</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(c.premium_until).toLocaleDateString()} · ${_FL('ses tontines abritées bénéficient de Kwèn','its hosted tontines get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Cette Case n\'est pas abonnée. Ses tontines restent au palier gratuit.','This Case is not subscribed. Its tontines stay on the free tier.')}</span></div>`;
   const btn=actif
-    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`+btnGerer('case',c.id)
     : `<button class="btn btn-gold btn-sm" onclick="caseSubscribe('${c.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>`;
   const etatLigne = actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed');
   const nomT=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.name):'\u2014'; };
@@ -6620,7 +6645,7 @@ function reunionAbonnementPanel(r){
     ? `<div class="mrow"><div class="stack"><div class="mname">${kwenSVG(22)} ${_FL('Réunion abonnée','Subscribed')} \u00b7 <b>Kw\u00e8n</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(r.premium_until).toLocaleDateString()} \u00b7 ${nb}/${max} ${_FL('membres','members')}</div></div></div>`
     : `<div class="mrow"><div class="stack"><div class="mname">${fekengSVG(22)} ${_FL('Palier gratuit','Free tier')} \u00b7 <b>Fekeng</b></div><div class="msub">${nb}/${max} ${_FL('membres','members')}</div></div></div>`;
   const btn=actif
-    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Kw\u00e8n \u00b7 ${_FL('palier actuel','current tier')}</button>`
+    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Kw\u00e8n \u00b7 ${_FL('palier actuel','current tier')}</button>`+btnGerer('reunion',r.id)
     : `<button class="btn btn-gold btn-sm" onclick="reunionSubscribe('${r.id}','${STRIPE_PRICES.kwen[dev]}')">${_FL('S\'abonner \u00b7 Kw\u00e8n','Subscribe \u00b7 Kw\u00e8n')} (${dev})</button>`;
   return `<h2 class="section-h">${_FL('Abonnement de la réunion','Réunion subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}
