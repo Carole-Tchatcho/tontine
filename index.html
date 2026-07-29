@@ -1025,9 +1025,9 @@ Object.assign(I18N.fr,{
   cf_5:'Sur cooptation par les membres du Cercle (nombre plafonné)',
   lu_0:'Vous tenez votre tontine — bienvenue.',lu_1:'Relevé exportable et badge de régularité.',
   lu_2:'Badge Ambassadeur visible, 2 semaines de contenu Premium offertes, accès anticipé aux nouveautés.',
-  lu_3:'La porte vers l\u2019investissement collectif.',
+  lu_3:'La porte vers la méthode UBORA d\u2019investissement.',
   lu_4:'Le cercle le plus avancé de la méthode UBORA — l\u2019accès à des opérations d\u2019envergure se construira sous cadre réglementaire.',
-  lu_5:'Le cercle le plus restreint, sur cooptation — l\u2019investissement collectif UBORA (sous licence).'
+  lu_5:'Le cercle le plus restreint, sur cooptation — l\u2019accès complet à la méthode UBORA.'
 });
 Object.assign(I18N.en,{
   role_org:'organizer',role_member:'member',
@@ -1081,7 +1081,7 @@ Object.assign(I18N.en,{
   py_lead:'You don\u2019t buy a tier — you qualify for it. Tap a tier to see its conditions and work toward it.',
   py_sim:'✦ Simulate a level-up (demo)',py_cap:'Tap a tier for its conditions · The Circle, at the summit, to discover it.',py_seal_cap:'Imara · Akili · Umoja — the seal of the house',
   ce_eyebrow:'THE SUMMIT · BY INVITATION',ce_title:'The Circle',
-  ce_sub:'UBORA collective investing — where the trust built in your tontine can, if you wish, become capital.',
+  ce_sub:'UBORA investing — where the trust built in your tontine will be able, within a regulatory framework, to become capital.',
   ce_how_h:'How you get in',
   ce_how_p:'The Circle isn\u2019t climbed, bought, or requested. No tier, no posted criteria, no application. You enter by <b>the founder\u2019s personal invitation</b>, at her sole discretion. Its scarcity and discretion are its value \u2014 and, unlike Ubora-Deal, no member can suggest a name.',
   ce_what_h:'What it is',
@@ -1094,9 +1094,9 @@ Object.assign(I18N.en,{
   cf_5:'By co-optation from Circle members (capped number)',
   lu_0:'You\u2019re running your tontine — welcome.',lu_1:'Exportable statement and a reliability badge.',
   lu_2:'Visible Ambassador badge, 2 weeks of Premium content free, early access to new features.',
-  lu_3:'The door to collective investing.',
+  lu_3:'The door to the UBORA investing method.',
   lu_4:'Invest collectively in larger deals — progressive capital cap (under licence).',
-  lu_5:'The most restricted circle, by co-optation — UBORA collective investing (under licence).'
+  lu_5:'The most restricted circle, by co-optation — full access to the UBORA method.'
 });
 /* --- i18n : caisse d'entraide complète + relevé --- */
 Object.assign(I18N.fr,{
@@ -1370,9 +1370,9 @@ const LEVELS=[
  {name:'Découverte',color:'#C8B187',bg:'#F3E8D4',unlock:'Vous tenez votre tontine — bienvenue.'},
  {name:'Bâtisseur',color:'#BFA158',bg:'#F4ECD8',unlock:'Relevé exportable et badge de régularité.'},
  {name:'Ambassadeur',color:'#A9842F',bg:'#F3E7C6',unlock:'Badge Ambassadeur visible, 2 semaines de contenu Premium offertes, accès anticipé aux nouveautés.'},
- {name:'Tontine Elite',color:'#C9A84C',bg:'#23306E',dark:true,unlock:'La porte vers l’investissement collectif.'},
+ {name:'Tontine Elite',color:'#C9A84C',bg:'#23306E',dark:true,unlock:'La porte vers la méthode UBORA d’investissement.'},
  {name:'Ubora Deal',color:'#E3C878',bg:'#161B3D',dark:true,locked:true,unlock:'Le cercle le plus avancé de la méthode UBORA — l’accès à des opérations d’envergure se construira sous cadre réglementaire.'},
- {name:'Le Cercle',color:'#C9A84C',bg:'#0A0E22',dark:true,locked:true,unlock:'Le cercle le plus restreint, sur cooptation — l’investissement collectif UBORA (sous licence).'},
+ {name:'Le Cercle',color:'#C9A84C',bg:'#0A0E22',dark:true,locked:true,unlock:'Le cercle le plus restreint, sur cooptation — l’accès complet à la méthode UBORA.'},
 ];
 function memberStats(t,idx){
   const done=t.rounds.filter(rd=>rd.status==='done');
@@ -6156,7 +6156,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.27';
+const UBORA_BUILD='v8.28';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
