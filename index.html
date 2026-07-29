@@ -5911,7 +5911,7 @@ async function cgvCheck(){
 async function cgvAccepter(){
   const b=document.getElementById('cgv-ok'); if(b){ b.disabled=true; b.textContent=_FL('Enregistrement\u2026','Saving\u2026'); }
   try{
-    const{error}=await sb.rpc('cgv_accepter',{p_version:CGV_VERSION});
+    const{error}=await sb.rpc('cgv_accepter',{p_version:CGV_VERSION,p_langue:cgvLangue()});
     if(error)throw error;
     state.cgvOk=true; render(); window.scrollTo(0,0);
   }catch(e){
@@ -5921,13 +5921,60 @@ async function cgvAccepter(){
 }
 
 /* Le texte intégral, consultable à tout moment depuis le pied de page. */
+/* Langue de lecture des conditions : indépendante de la langue de l'interface,
+   pour qu'on puisse lire le contrat dans la langue où on le comprend le mieux. */
+function cgvLangue(){ return state.cgvLang || state.lang || 'fr'; }
+function cgvSetLangue(l){ state.cgvLang=l; render(); window.scrollTo(0,0); }
+function cgvBascule(){
+  const L=cgvLangue();
+  const b=(k,t)=>`<button class="btn ${L===k?'btn-gold':'btn-ghost'} btn-sm" onclick="cgvSetLangue('${k}')">${t}</button>`;
+  return `<div class="row-gap" style="margin-bottom:12px">${b('fr','Français')}${b('en','English')}</div>`;
+}
+
 function cgvTexte(){
+  if(cgvLangue()==='en') return `<div class="cgv-just">
+  <h2 class="section-h">1. Who provides the service</h2>
+  <p class="lead">UBORA-Tontine is published by <b>Imara</b>, sole proprietorship of Carole Keutchakeu Tchatcho, in Switzerland. Contact: <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
+
+  <h2 class="section-h">2. What UBORA does — and does not do</h2>
+  <p class="lead">UBORA-Tontine is a <b>ledger</b>: it records payments, confirmations and turns. <b>UBORA never holds your funds</b>, does not move them, does not invest them, and takes <b>no commission on your contributions</b>. Money circulates directly between members, by whatever means they choose.</p>
+  <p class="lead">UBORA is neither a bank, nor a payment institution, nor an asset manager. It is not registered with FINMA and provides no investment advice. Any content about investing is <b>educational</b>.</p>
+
+  <h2 class="section-h">3. Your account</h2>
+  <p class="lead">Access is by sign-in link sent to your email address. You are responsible for the accuracy of the information you enter and for the use made of your mailbox. You undertake to record data about other people only where you are entitled to do so.</p>
+
+  <h2 class="section-h">4. Subscriptions and payment</h2>
+  <p class="lead">The ledger is usable <b>free of charge</b> (Fekeng tier). The paid tiers — Kwèn, Fagot, Baobab — apply respectively to a circle, a Case and a federation, at the prices shown at the time of subscription.</p>
+  <p class="lead">Subscriptions are <b>monthly and renew automatically</b> until cancelled. They are paid <b>by bank card, through Stripe</b>, wherever that means is available. UBORA stores no card data. <b>If bank cards are not available in your country</b>, write to us: another arrangement may be considered. No subscription is ever charged without your prior consent.</p>
+  <p class="lead"><b>Not to be confused:</b> your tontine contributions never pass through UBORA or Stripe. They move directly between members, by the means of their choice — cash, bank transfer, Orange Money, MTN, Wave, or any other local method — and are simply <b>declared</b> in the ledger. The same applies to event ticketing: where cards exist, a buyer may pay online; elsewhere, the buyer pays the organiser directly and the payment is declared in the app. In every case, UBORA takes nothing from the funds of the members.</p>
+
+  <h2 class="section-h">5. Cancellation</h2>
+  <p class="lead">You may cancel <b>at any time</b>, without reason or notice, from the management area of your subscription. Cancellation takes effect at the end of the period already paid for: you keep access until that date, after which the circle or group returns to the free tier. Started periods are not refunded pro rata, save where the law provides otherwise.</p>
+  <p class="lead"><b>Nothing is deleted:</b> your ledger, your journal and your entries remain intact after returning to the free tier. Only the features tied to the paid tier cease to be available.</p>
+
+  <h2 class="section-h">6. Your obligations</h2>
+  <p class="lead">You undertake to use UBORA lawfully, and not to use it to organise an illegal activity or to collect funds under a misleading pretext. You remain solely responsible for the financial relationships within your circle.</p>
+
+  <h2 class="section-h">7. Liability</h2>
+  <p class="lead">UBORA provides a record-keeping tool. It does not guarantee that a member will pay their share, does not recover any debt and does not intervene in disputes between members. UBORA endeavours to keep the service available without being able to guarantee uninterrupted operation. Its liability is limited to the subscription amounts you have actually paid over the last twelve months.</p>
+
+  <h2 class="section-h">8. Personal data</h2>
+  <p class="lead">The processing of your data is described in the <b>Privacy</b> page. A circle's ledger is visible only to its members: no other circle has access to it.</p>
+
+  <h2 class="section-h">9. Changes to these terms</h2>
+  <p class="lead">These terms may change. A new version will be presented at your next sign-in and must be accepted in order to continue using the service. The version date appears at the foot of this page.</p>
+
+  <h2 class="section-h">10. Governing law</h2>
+  <p class="lead">These terms are governed by <b>Swiss law</b>. Jurisdiction lies at Imara's registered seat, in Switzerland, subject to mandatory consumer-protection provisions.</p>
+
+  <p class="msub" style="margin-top:18px">Version of ${CGV_VERSION}. This English text is a translation provided for convenience; the French version prevails.</p></div>`;
+
   return `<div class="cgv-just">
   <h2 class="section-h">1. Qui vous fournit le service</h2>
-  <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
+  <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
 
   <h2 class="section-h">2. Ce que fait UBORA — et ce qu'il ne fait pas</h2>
-  <p class="lead">UBORA-Tontine est un <b>registre</b> : il tient le compte des versements, des confirmations et des tours. <b>UBORA ne détient jamais vos fonds</b>, ne les transporte pas, ne les place pas et ne prélève <b>aucune commission sur vos cotisations</b>. L'argent circule directement entre les membres, par les moyens qu'ils choisissent.</p>
+  <p class="lead">UBORA-Tontine est un <b>registre</b> : il tient le compte des versements, des confirmations et des tours. <b>UBORA ne détient jamais vos fonds</b>, ne les transporte pas, ne les place pas et ne prélève <b>aucune commission sur vos cotisations</b>. L'argent circule directement entre les membres, par les moyens qu'ils choisissent.</p>
   <p class="lead">UBORA n'est ni une banque, ni un établissement de paiement, ni un gestionnaire de fortune. Il n'est pas enregistré auprès de la FINMA et ne fournit aucun conseil en placement. Les contenus relatifs à l'investissement sont <b>éducatifs</b>.</p>
 
   <h2 class="section-h">3. Votre compte</h2>
@@ -5935,11 +5982,12 @@ function cgvTexte(){
 
   <h2 class="section-h">4. Abonnements et paiement</h2>
   <p class="lead">Le registre est utilisable <b>gratuitement</b> (palier Fekeng). Les paliers payants — Kwèn, Fagot, Baobab — s'appliquent respectivement à un cercle, à une Case et à une fédération, aux prix affichés lors de la souscription.</p>
-  <p class="lead">Les abonnements sont <b>mensuels et se renouvellent automatiquement</b> jusqu'à résiliation. Le paiement est traité par <b>Stripe</b> ; UBORA ne conserve aucune donnée de carte. Les prix peuvent être modifiés ; toute modification vous est annoncée avant qu'elle ne s'applique à votre abonnement.</p>
+  <p class="lead">Les abonnements sont <b>mensuels et se renouvellent automatiquement</b> jusqu'à résiliation. Ils se règlent <b>par carte bancaire, via Stripe</b>, là où ce moyen est disponible. UBORA ne conserve aucune donnée de carte. <b>Si la carte bancaire n'est pas disponible dans votre pays</b>, écrivez-nous : un autre arrangement peut être étudié. Aucun abonnement n'est jamais prélevé sans votre accord préalable.</p>
+  <p class="lead"><b>À ne pas confondre :</b> les cotisations de votre tontine ne transitent jamais par UBORA ni par Stripe. Elles circulent directement entre membres, par le moyen de leur choix — espèces, virement, Orange Money, MTN, Wave, ou tout autre moyen local — et sont simplement <b>déclarées</b> dans le registre. Il en va de même pour la billetterie d'un événement : là où la carte existe, l'acheteur peut payer en ligne ; ailleurs, il règle l'organisateur directement et le paiement est déclaré dans l'application. Dans tous les cas, UBORA ne prélève rien sur les fonds des membres.</p>
 
   <h2 class="section-h">5. Résiliation</h2>
-  <p class="lead">Vous pouvez résilier <b>à tout moment</b>, sans motif ni préavis. La résiliation prend effet à la fin de la période déjà payée : vous conservez l'accès jusqu'à cette date, puis le cercle ou le groupe revient au palier gratuit. Les périodes entamées ne sont pas remboursées au prorata, sauf disposition légale contraire.</p>
-  <p class="lead"><b>Rien n'est supprimé :</b> votre registre, votre journal et vos écritures restent intacts après le retour au palier gratuit. Seules les fonctions liées au palier payant cessent d'être disponibles.</p>
+  <p class="lead">Vous pouvez résilier <b>à tout moment</b>, sans motif ni préavis, depuis l'espace de gestion de votre abonnement. La résiliation prend effet à la fin de la période déjà payée : vous conservez l'accès jusqu'à cette date, puis le cercle ou le groupe revient au palier gratuit. Les périodes entamées ne sont pas remboursées au prorata, sauf disposition légale contraire.</p>
+  <p class="lead"><b>Rien n'est supprimé :</b> votre registre, votre journal et vos écritures restent intacts après le retour au palier gratuit. Seules les fonctions liées au palier payant cessent d'être disponibles.</p>
 
   <h2 class="section-h">6. Vos obligations</h2>
   <p class="lead">Vous vous engagez à utiliser UBORA de manière licite, à ne pas vous en servir pour organiser une activité illégale, ni pour collecter des fonds sous un prétexte trompeur. Vous restez seul responsable des relations financières au sein de votre cercle.</p>
@@ -5948,7 +5996,7 @@ function cgvTexte(){
   <p class="lead">UBORA fournit un outil de tenue de registre. Il ne garantit pas qu'un membre versera sa part, ne recouvre aucune créance et n'intervient dans aucun litige entre membres. UBORA s'efforce d'assurer la disponibilité du service sans pouvoir garantir un fonctionnement ininterrompu. Sa responsabilité est limitée aux montants d'abonnement que vous avez effectivement versés au cours des douze derniers mois.</p>
 
   <h2 class="section-h">8. Données personnelles</h2>
-  <p class="lead">Le traitement de vos données est décrit dans la page <b>Confidentialité</b>. Le registre d'un cercle n'est visible que par ses membres : aucun autre cercle n'y a accès.</p>
+  <p class="lead">Le traitement de vos données est décrit dans la page <b>Confidentialité</b>. Le registre d'un cercle n'est visible que par ses membres : aucun autre cercle n'y a accès.</p>
 
   <h2 class="section-h">9. Modification des présentes conditions</h2>
   <p class="lead">Ces conditions peuvent évoluer. Une nouvelle version vous sera présentée à votre prochaine connexion et devra être acceptée pour continuer à utiliser le service. La date de version figure en bas de cette page.</p>
@@ -5956,7 +6004,7 @@ function cgvTexte(){
   <h2 class="section-h">10. Droit applicable</h2>
   <p class="lead">Les présentes conditions sont soumises au <b>droit suisse</b>. Le for est au siège d'Imara, en Suisse, sous réserve des dispositions impératives protégeant les consommateurs.</p>
 
-  <p class="msub" style="margin-top:18px">Version du ${CGV_VERSION}.</p></div>`;
+  <p class="msub" style="margin-top:18px">Version du ${CGV_VERSION}. La version française fait foi.</p></div>`;
 }
 
 function viewCGV(){
@@ -5964,7 +6012,7 @@ function viewCGV(){
     <a class="backlink" href="#" onclick="go('home');return false">\u2039 ${_FL('Retour','Back')}</a>
     <div class="kicker">${_FL('REGISTRE DE CONFIANCE','LEDGER OF TRUST')}</div>
     <h1 class="page-title">${_FL('Conditions d\u2019abonnement','Subscription terms')}</h1>
-    <div class="panel"><div style="padding:6px 22px 18px">${cgvTexte()}</div></div>
+    <div class="panel"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>
     ${footer()}`;
 }
 
@@ -5985,7 +6033,7 @@ function viewCGVGate(){
       </div>
       <div class="msub" style="margin-top:10px">${_FL('En acceptant, vous confirmez avoir lu le texte ci-dessous. Votre acceptation est enregistrée avec la date.','By accepting, you confirm you have read the text below. Your acceptance is recorded with the date.')}</div>
     </div></div>
-    <div class="panel" style="margin-top:14px"><div style="padding:6px 22px 18px">${cgvTexte()}</div></div>`;
+    <div class="panel" style="margin-top:14px"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>`;
 }
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
 function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
@@ -6282,7 +6330,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.30';
+const UBORA_BUILD='v8.31';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
