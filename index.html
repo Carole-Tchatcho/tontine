@@ -2142,7 +2142,7 @@ const REP_I18N={
     ing_where:'Où verser ces reprises ?',ing_new:'Nouvelle Case',ing_existing:'Case existante',ing_casename:'Nom de la Case',ing_pickcase:'— Choisir une Case —',
     ing_btn:'Reprendre {n} personne(s)',ing_working:'Reprise en cours…',ing_result_ok:'{x} membre(s) repris dans « {c} ».',
     ing_result_dup:'{d} déjà présent(s), non dupliqué(s).',ing_result_pending:'{y} en attente : le palier actuel couvre {max} membres. Passez à Fagot pour reprendre le reste — rien n’est perdu.',
-    ing_err:'Reprise échouée : {e}',rep_into:'Reprise dans',open_case:'Ouvrir la Case',
+    ing_err:'Reprise échouée : {e}',rep_into:'Reprise dans',open_case:'Ouvrir la Case',ing_name_required:'Indiquez le nom de votre réunion ou association avant de reprendre.',ing_name_hint:'Ce nom devient le titre de la Case — mettez celui de votre réunion / association.',
     cot_h:'Reprendre des cotisations (non vérifiées)',
     cot_intro:'Ces montants sont chargés depuis votre fichier. Ils sont conservés comme mémoire de l’association, marqués « non vérifiés », et n’entrent PAS dans la réputation. Cochez la ou les colonnes de montant à additionner.',
     cot_cols:'Colonnes de montant à additionner',cot_cur:'Devise',cot_btn:'Reprendre « {s} »',cot_working:'Reprise…',
@@ -2166,7 +2166,7 @@ const REP_I18N={
     ing_where:'Where to add these imports?',ing_new:'New Case',ing_existing:'Existing Case',ing_casename:'Case name',ing_pickcase:'— Choose a Case —',
     ing_btn:'Bring in {n} person(s)',ing_working:'Working…',ing_result_ok:'{x} member(s) brought into “{c}”.',
     ing_result_dup:'{d} already present, not duplicated.',ing_result_pending:'{y} pending: the current tier covers {max} members. Move to Fagot to bring the rest — nothing is lost.',
-    ing_err:'Import failed: {e}',rep_into:'Bringing into',open_case:'Open the Case',
+    ing_err:'Import failed: {e}',rep_into:'Bringing into',open_case:'Open the Case',ing_name_required:'Enter your meeting or association name before importing.',ing_name_hint:'This name becomes the Case title — use your meeting / association name.',
     cot_h:'Bring in contributions (unverified)',
     cot_intro:'These amounts come from your file. They are kept as the association’s memory, marked “unverified”, and do NOT count toward reputation. Tick the amount column(s) to sum.',
     cot_cols:'Amount columns to sum',cot_cur:'Currency',cot_btn:'Bring in “{s}”',cot_working:'Working…',
@@ -2296,7 +2296,8 @@ function repResolveCase(){
   const r=state.reprise,ing=r.ingest;
   if(ing.targetId){const c=state_cases.find(function(x){return x.id===ing.targetId;});if(c)return c;}
   if(ing.mode==='existing')throw new Error(rt('ing_pickcase'));
-  const nm=((ing.caseName||r.group||'Groupe')+'').trim();
+  const nm=((ing.caseName||r.group||'')+'').trim();
+  if(!nm)throw new Error(rt('ing_name_required'));
   const c={id:newId('cs'),name:nm,type:'autre',mission:rt('ing_h'),country:(state.homeCountry||''),city:''};
   state_cases.unshift(c);ing.targetId=c.id;return c;
 }
@@ -2447,7 +2448,7 @@ function viewReprise(){
       ?`<div class="panel"><div style="padding:12px 18px" class="msub">${rt('rep_into')} : <b>${esc(resolved.name)}</b></div></div>`
       :`<div class="panel"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:6px">${rt('ing_where')}</div>
           <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='new'?'checked':''} onchange="repSetIngestMode('new')"> ${rt('ing_new')}</label>
-          ${ing.mode==='new'?`<input value="${esc(ing.caseName||'')}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">`:''}
+          ${ing.mode==='new'?`<input value="${esc(ing.caseName||'')}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;margin:2px 0 4px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><div class="hint" style="margin:0 0 10px">${rt('ing_name_hint')}</div>`:''}
           <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='existing'?'checked':''} onchange="repSetIngestMode('existing')"> ${rt('ing_existing')}</label>
           ${ing.mode==='existing'?`<select onchange="repSetIngestTarget(this.value)" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><option value="">${esc(rt('ing_pickcase'))}</option>${caseOpts}</select>`:''}
         </div></div>`;
@@ -6696,7 +6697,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.36';
+const UBORA_BUILD='v8.37';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
