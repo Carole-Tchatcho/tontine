@@ -2740,12 +2740,10 @@ function viewReprise(){
    ============================================================================ */
 const REP_SEUIL_PLANCHER=500;   /* en dessous : message qualitatif */
 const REP_SEUIL_PUBLIC=1000;    /* au-dessus : gros chiffres */
-const REP_ADMIN_EMAILS=['carole@caroletchatcho.com','milly.tchatcho@gmail.com'];
 async function repLoadStats(){
   if(typeof sb==='undefined'||!sb||!sb.rpc){state.repStats={};return;}
   if(state.repStatsLoading)return;state.repStatsLoading=true;
   try{
-    try{const em=await sb.auth.getUser();state.repEmail=(em&&em.data&&em.data.user&&em.data.user.email||'').toLowerCase();}catch(e){}
     try{const k='ubora_visit_day';const today=new Date().toISOString().slice(0,10);if(typeof localStorage!=='undefined'&&localStorage.getItem(k)!==today){await sb.rpc('bump_visit');localStorage.setItem(k,today);}}catch(e){}
     const res=await sb.rpc('public_stats');
     state.repStats=(res&&!res.error&&res.data)?res.data:{};
@@ -2756,7 +2754,7 @@ function repFmtNum(n){try{return (Number(n)||0).toLocaleString((state&&state.lan
 function repStatsBand(){
   const s=state.repStats;if(!s)return '';
   const isVisitor=!state.uid;
-  const isAdmin=state.repEmail&&REP_ADMIN_EMAILS.indexOf((state.repEmail||'').toLowerCase())>=0;
+  const isAdmin=(typeof isUboraAdmin==='function')?isUboraAdmin():false;
   if(!isVisitor&&!isAdmin)return '';
   const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
   /* admin connecté : toujours les vrais chiffres, discret */
@@ -6991,7 +6989,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.41';
+const UBORA_BUILD='v8.42';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
