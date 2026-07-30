@@ -2495,7 +2495,7 @@ function repHistTontines(){
 
 /* ---------- champ nom (rendu très visible) ---------- */
 function repNeedName(){const r=state.reprise;if(!r||!r.ingest)return false;const ing=r.ingest;return ing.mode==='new'&&!((ing.caseName||r.group||'').trim());}
-function repNameBox(){const r=state.reprise;const v=esc((r.ingest&&r.ingest.caseName)||r.group||'');return `<div style="border:2px solid var(--gold,#C9A84C);background:rgba(201,168,76,.10);border-radius:11px;padding:13px 15px;margin:8px 0"><label style="display:block;font-weight:700;margin-bottom:6px">${rt('name_label')}</label><input value="${v}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;padding:11px 12px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit;font-size:16px"><div class="hint" style="margin-top:6px">${rt('ing_name_hint')}</div></div>`;}
+function repNameBox(){const r=state.reprise;const v=esc((r.ingest&&r.ingest.caseName)||r.group||'');return `<div style="border:2px solid var(--gold,#C9A84C);background:rgba(201,168,76,.10);border-radius:11px;padding:13px 15px;margin:8px 0"><label style="display:block;font-weight:700;margin-bottom:6px">${rt('name_label')}</label><input value="${v}" oninput="repSetCaseName(this.value)" onchange="render()" placeholder="${esc(rt('ing_casename'))}" style="width:100%;padding:11px 12px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit;font-size:16px"><div class="hint" style="margin-top:6px">${rt('ing_name_hint')}</div></div>`;}
 
 /* ---------- ingestion : emprunts -> historique non vérifié ---------- */
 function repExcelDate(v){const n=repToNum(v);if(n>=30000&&n<=60000){try{const d=new Date(Math.round((n-25569)*86400*1000));if(!isNaN(d))return d.toISOString().slice(0,10);}catch(e){}}return String(v||'').trim();}
@@ -2667,7 +2667,7 @@ function viewReprise(){
     let membersHtml='';
     if(mEntry){
       if(ing.membersDone){membersHtml=`<div class="panel"><div style="padding:12px 18px"><p style="margin:0">${esc(ing.membersResult||'')}</p></div></div>`;}
-      else membersHtml=`<h2 class="section-h">${rt('ing_h')}</h2><div class="panel"><div style="padding:14px 18px"><p style="margin:0 0 10px">${rt('ing_found').replace('{n}',nMembers)}</p>${ing.membersResult?`<div style="margin:6px 0;color:#b23">${esc(ing.membersResult)}</div>`:''}<div class="row"><button class="btn btn-gold" ${ing.saving?'disabled style="opacity:.5"':''} onclick="repIngestMembers()">${ing.saving?rt('ing_working'):rt('ing_btn').replace('{n}',nMembers)}</button></div></div></div>`;
+      else membersHtml=`<h2 class="section-h">${rt('ing_h')}</h2><div class="panel"><div style="padding:14px 18px"><p style="margin:0 0 10px">${rt('ing_found').replace('{n}',nMembers)}</p>${ing.membersResult?`<div style="margin:6px 0;color:#b23">${esc(ing.membersResult)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(ing.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestMembers()">${ing.saving?rt('ing_working'):rt('ing_btn').replace('{n}',nMembers)}</button></div></div></div>`;
     }
     const cotEntries=repCotSheets();let cotHtml='';
     if(cotEntries.length){
@@ -2676,7 +2676,7 @@ function viewReprise(){
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> — ${esc(cfg.result)}</p></div></div>`;
         const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repCotToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
         const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
-        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('cot_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repCotSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestCot('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('cot_working'):rt('cot_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('cot_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repCotSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(cfg.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestCot('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('cot_working'):rt('cot_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
     const tontEntries=repTontineSheets();let tontHtml='';
@@ -2687,7 +2687,7 @@ function viewReprise(){
         const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repTontToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
         const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
         const first=!state.reprise.ingest.liveTontineId;
-        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tont_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTontSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestTontine('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tont_working'):(first?rt('tont_btn_first'):rt('tont_btn').replace('{s}',esc(e.name)))}</button></div></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tont_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTontSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(cfg.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestTontine('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tont_working'):(first?rt('tont_btn_first'):rt('tont_btn').replace('{s}',esc(e.name)))}</button></div></div></div>`;
       }).join('');
     }
     const empEntries=repEmpruntSheets();let empHtml='';
@@ -2696,7 +2696,7 @@ function viewReprise(){
       empHtml+=empEntries.map(function(e){const cfg=repEmpCfg(e.name);
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
         const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
-        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repEmpSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestEmprunts('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('emp_working'):rt('emp_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repEmpSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(cfg.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestEmprunts('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('emp_working'):rt('emp_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
     const aideEntries=repAideSheets();let aideHtml='';
@@ -2704,7 +2704,7 @@ function viewReprise(){
       aideHtml=`<h2 class="section-h">${rt('aide_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('aide_intro')}</div>${repNeedName()?repNameBox():''}`;
       aideHtml+=aideEntries.map(function(e){const cfg=repAideCfg(e.name);
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
-        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestAides('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('aide_working'):rt('aide_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(cfg.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestAides('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('aide_working'):rt('aide_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
     const treEntries=repTreSheets();let treHtml='';
@@ -2714,7 +2714,7 @@ function viewReprise(){
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
         const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repTreToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
         const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
-        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tre_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTreSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestTre('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tre_working'):rt('tre_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tre_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTreSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(cfg.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestTre('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tre_working'):rt('tre_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
     const openBtn=resolved?`<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(resolved.id)}')">${rt('open_case')}</button></div>`:'';
@@ -2751,25 +2751,33 @@ async function repLoadStats(){
   state.repStatsLoading=false;render();
 }
 function repFmtNum(n){try{return (Number(n)||0).toLocaleString((state&&state.lang==='en')?'en-US':'fr-FR');}catch(e){return String(n);}}
+function repBandBig(people,groups,visits){
+  return `<style>@keyframes repPulse{0%{box-shadow:0 0 0 0 rgba(126,209,126,.6)}70%{box-shadow:0 0 0 9px rgba(126,209,126,0)}100%{box-shadow:0 0 0 0 rgba(126,209,126,0)}}</style>`
+  +`<div style="margin:16px 0;padding:20px 24px;border-radius:16px;background:linear-gradient(135deg,#2b2620,#3c352b);color:#f4ead0;box-shadow:0 8px 26px rgba(0,0,0,.14);display:flex;gap:30px;flex-wrap:wrap;align-items:center">`
+  +`<div><div style="font-size:36px;font-weight:800;color:#E9C96A;line-height:1.02">${repFmtNum(people)}</div><div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;opacity:.82;margin-top:3px">${_FL('personnes suivies dans le registre','people tracked in the register')}</div></div>`
+  +`<div style="width:1px;height:38px;background:rgba(244,234,208,.18)"></div>`
+  +`<div><div style="font-size:23px;font-weight:700">${repFmtNum(groups)}</div><div style="font-size:12px;opacity:.8;margin-top:2px">${_FL('groupes &amp; associations','groups &amp; associations')}</div></div>`
+  +`<div style="margin-left:auto;text-align:right"><div style="font-size:15px;font-weight:600"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7ED17E;margin-right:7px;animation:repPulse 2s infinite;vertical-align:middle"></span>${repFmtNum(visits)}</div><div style="font-size:12px;opacity:.8;margin-top:2px">${_FL('visites aujourd’hui','visits today')}</div></div>`
+  +`</div>`;
+}
+function repBandQual(){
+  return `<div style="margin:16px 0;padding:17px 24px;border-radius:16px;background:linear-gradient(135deg,#2b2620,#3c352b);color:#f4ead0;font-size:16px;box-shadow:0 8px 26px rgba(0,0,0,.14)"><span style="color:#E9C96A;font-weight:700;margin-right:6px">\u2726</span>${_FL('Rejoignez les <b style="color:#E9C96A">premi\u00e8res</b> associations de la diaspora qui font confiance \u00e0 UBORA.','Join the <b style="color:#E9C96A">first</b> diaspora associations that trust UBORA.')}</div>`;
+}
 function repStatsBand(){
   const s=state.repStats;if(!s)return '';
   const isVisitor=!state.uid;
   const isAdmin=(typeof isUboraAdmin==='function')?isUboraAdmin():false;
   if(!isVisitor&&!isAdmin)return '';
   const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
-  /* admin connecté : toujours les vrais chiffres, discret */
+  /* admin connecté : décompte réel discret + aperçu public musclé */
   if(isAdmin&&!isVisitor){
-    return `<div style="margin:12px 0;padding:9px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin · décompte réel','Admin · real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes suivies','people')} · <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} · <b>${repFmtNum(visits)}</b> ${_FL('visites aujourd’hui','visits today')}</div>`;
+    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin \u00b7 d\u00e9compte r\u00e9el','Admin \u00b7 real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} \u00b7 <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} \u00b7 <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')}</div>`;
+    const prev=`<div style="font-size:12px;opacity:.65;margin:10px 0 -6px">${_FL('Aper\u00e7u public (ce que verront les visiteurs au-dessus du seuil) :','Public preview (what visitors see above threshold):')}</div>`;
+    return line+prev+repBandBig(Math.max(people,REP_SEUIL_PUBLIC),Math.max(groups,42),Math.max(visits,318));
   }
   /* visiteur : selon les seuils */
-  if(people<REP_SEUIL_PLANCHER){
-    return `<div style="margin:14px 0;padding:13px 18px;border:1px solid rgba(201,168,76,.30);background:rgba(201,168,76,.07);border-radius:12px">${_FL('Rejoignez les <b>premières</b> associations de la diaspora qui font confiance à UBORA.','Join the <b>first</b> diaspora associations that trust UBORA.')}</div>`;
-  }
-  const big=people>=REP_SEUIL_PUBLIC;
-  const pep=`<span style="font-size:${big?'27px':'19px'};font-weight:800">${repFmtNum(people)}</span> <span class="msub">${_FL('personnes suivies dans le registre','people tracked in the register')}</span>`;
-  const grp=`<span style="font-size:${big?'20px':'16px'};font-weight:700">${repFmtNum(groups)}</span> <span class="msub">${_FL('groupes &amp; associations','groups &amp; associations')}</span>`;
-  const vis=`<span style="font-size:15px;font-weight:600">${repFmtNum(visits)}</span> <span class="msub">${_FL('visites aujourd’hui','visits today')}</span>`;
-  return `<div style="margin:14px 0;padding:14px 18px;border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.08);border-radius:12px;display:flex;gap:24px;flex-wrap:wrap;align-items:baseline">${['<div>'+pep+'</div>','<div>'+grp+'</div>','<div>'+vis+'</div>'].join('')}</div>`;
+  if(people<REP_SEUIL_PLANCHER)return repBandQual();
+  return repBandBig(people,groups,visits);
 }
 
 function viewImport(){
@@ -6989,7 +6997,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.42';
+const UBORA_BUILD='v8.44';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
