@@ -2157,7 +2157,13 @@ const REP_I18N={
     tont_result:'Historique \u00ab {s} \u00bb repris ({x} membres).',
     tont_live_ok:'Tontine vivante \u00ab {name} \u00bb cr\u00e9\u00e9e \u2014 code d\u2019invitation {code}. C\u2019est elle qui comptera dans votre r\u00e9putation.',
     hist_tont_h:'Historique repris \u00b7 non v\u00e9rifi\u00e9',
-    hist_tont_note:'Tontines charg\u00e9es depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9es, hors r\u00e9putation Ubora.'},
+    hist_tont_note:'Tontines charg\u00e9es depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9es, hors r\u00e9putation Ubora.',
+    name_label:'Nom de votre groupe / tontine (obligatoire)',
+    emp_h:'Reprendre les emprunts',
+    emp_intro:'Chaque pr\u00eat pass\u00e9 devient un historique (non v\u00e9rifi\u00e9, hors r\u00e9putation) : emprunteur, capital, int\u00e9r\u00eat, \u00e9ch\u00e9ance, statut. UBORA rep\u00e8re les colonnes automatiquement.',
+    emp_btn:'Reprendre les emprunts \u00ab {s} \u00bb',emp_working:'Reprise\u2026',emp_result:'{x} emprunt(s) repris.',
+    emp_panel_h:'Emprunts repris \u00b7 non v\u00e9rifi\u00e9',emp_panel_note:'Charg\u00e9s depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9s par UBORA, hors r\u00e9putation.',
+    emp_capital:'Capital',emp_interet:'Int\u00e9r\u00eat',emp_echeance:'\u00c9ch\u00e9ance',emp_statut:'Statut'},
   en:{title:'History onboarding',eyebrow:'Your past years, brought in without retyping',
     lead:'Upload your group’s Excel or Word file. UBORA reads every sheet, recognises what each holds, and lets you correct before anything is saved. Nothing is truncated.',
     grp:'Group name (meeting, association, network…)',grp_ph:'e.g. Friends of Bafou Association',
@@ -2191,7 +2197,13 @@ const REP_I18N={
     tont_result:'History \u201c{s}\u201d brought in ({x} members).',
     tont_live_ok:'Live tontine \u201c{name}\u201d created \u2014 invite code {code}. This one counts toward your reputation.',
     hist_tont_h:'Imported history \u00b7 unverified',
-    hist_tont_note:'Tontines loaded from a file \u2014 group memory, unverified, outside Ubora reputation.'}
+    hist_tont_note:'Tontines loaded from a file \u2014 group memory, unverified, outside Ubora reputation.',
+    name_label:'Your group / tontine name (required)',
+    emp_h:'Bring in loans',
+    emp_intro:'Each past loan becomes history (unverified, outside reputation): borrower, principal, interest, due date, status. UBORA detects the columns automatically.',
+    emp_btn:'Bring in loans \u201c{s}\u201d',emp_working:'Working\u2026',emp_result:'{x} loan(s) brought in.',
+    emp_panel_h:'Imported loans \u00b7 unverified',emp_panel_note:'Loaded from a file \u2014 group memory, unverified by UBORA, outside reputation.',
+    emp_capital:'Principal',emp_interet:'Interest',emp_echeance:'Due',emp_statut:'Status'}
 };
 function rt(k){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;}
 const REP_ROLES=['members','tontine','reunion','cot_fixe','cot_cumul','aide_ayants','emprunt','tresorerie','depense_recette','cotisation','fiche_derivee','ignore'];
@@ -2468,6 +2480,51 @@ function repHistTontines(){
   return '<h2 class="section-h" style="margin-top:22px">'+esc(H)+'</h2><div class="hint" style="margin-bottom:8px">'+esc(NOTE)+'</div><div style="display:flex;flex-direction:column;gap:12px">'+blocks+'</div>';
 }
 
+
+/* ---------- champ nom (rendu très visible) ---------- */
+function repNeedName(){const r=state.reprise;if(!r||!r.ingest)return false;const ing=r.ingest;return ing.mode==='new'&&!((ing.caseName||r.group||'').trim());}
+function repNameBox(){const r=state.reprise;const v=esc((r.ingest&&r.ingest.caseName)||r.group||'');return `<div style="border:2px solid var(--gold,#C9A84C);background:rgba(201,168,76,.10);border-radius:11px;padding:13px 15px;margin:8px 0"><label style="display:block;font-weight:700;margin-bottom:6px">${rt('name_label')}</label><input value="${v}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;padding:11px 12px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit;font-size:16px"><div class="hint" style="margin-top:6px">${rt('ing_name_hint')}</div></div>`;}
+
+/* ---------- ingestion : emprunts -> historique non vérifié ---------- */
+function repExcelDate(v){const n=repToNum(v);if(n>=30000&&n<=60000){try{const d=new Date(Math.round((n-25569)*86400*1000));if(!isNaN(d))return d.toISOString().slice(0,10);}catch(e){}}return String(v||'').trim();}
+function repEmpruntSheets(){if(!repWB)return [];return repWB.filter(function(x){return x.role==='emprunt';});}
+function repEmpruntCols(grid){
+  const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
+  let hIdx=0;for(let i=0;i<Math.min(rows.length,3);i++){const n=repNorm(rows[i].join(' '));if(/\b(emprunteur|nom|noms|capital|montant|pret|interet|echeance)\b/.test(n)){hIdx=i;break;}}
+  const header=(rows[hIdx]||[]).map(repNorm);
+  const find=function(re){return header.findIndex(function(h){return re.test(h);});};
+  let nom=find(/\b(emprunteur|nom|noms|membre)\b/);if(nom<0)nom=0;
+  return {hIdx:hIdx,nom:nom,capital:find(/\b(capital|montant|somme|pret|prete)\b/),interet:find(/\b(interet|taux)\b/),echeance:find(/\b(echeance|remboursement|delai|date)\b/),statut:find(/\b(statut|status|etat|solde)\b/)};
+}
+function repEmpCfg(name){const r=state.reprise;r.emp=r.emp||{};if(!r.emp[name])r.emp[name]={cur:'EUR',done:false,saving:false,result:''};return r.emp[name];}
+function repEmpSetCur(name,cur){repEmpCfg(name).cur=cur;}
+async function repIngestEmprunts(name){
+  const cfg=repEmpCfg(name);if(cfg.saving)return;cfg.saving=true;cfg.result='';render();
+  try{
+    const c=repResolveCase();const entry=repWB.find(function(x){return x.name===name;});
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(cc){return String(cc).trim();});});
+    const col=repEmpruntCols(entry.grid);c.empruntsReprise=c.empruntsReprise||[];let added=0;
+    for(let ri=col.hIdx+1;ri<rows.length;ri++){const who=String(rows[ri][col.nom]!=null?rows[ri][col.nom]:'').trim();
+      if(!who||repIsNum(who))continue;
+      if(/\b(nom|noms|emprunteur|total|capital|montant|date|statut)\b/.test(repNorm(who)))continue;
+      const cap=col.capital>=0?repToNum(rows[ri][col.capital]):0;
+      const inte=col.interet>=0?String(rows[ri][col.interet]!=null?rows[ri][col.interet]:'').trim():'';
+      const ech=col.echeance>=0?repExcelDate(rows[ri][col.echeance]):'';
+      const stat=col.statut>=0?String(rows[ri][col.statut]!=null?rows[ri][col.statut]:'').trim():'';if(!cap&&!stat&&!ech&&!inte)continue;
+      c.empruntsReprise.push({emprunteur:who,capital:cap,interet:inte,echeance:ech,statut:stat,cur:cfg.cur,sheet:name,source:'reprise'});added++;}
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    cfg.done=true;cfg.result=rt('emp_result').replace('{x}',added);
+  }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  cfg.saving=false;render();
+}
+/* panneau read-only injecté dans viewCaseDetail */
+function repEmpruntsPanel(c){
+  if(!c||!c.empruntsReprise||!c.empruntsReprise.length)return '';
+  const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';const T=function(k){return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;};
+  const rowsH=c.empruntsReprise.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.emprunteur)+' \u2014 '+money(Number(x.capital)||0,x.cur||'EUR')+'</div><div class="msub">'+(x.interet?(T('emp_interet')+' '+esc(x.interet)+' \u00b7 '):'')+(x.echeance?(T('emp_echeance')+' '+esc(x.echeance)+' \u00b7 '):'')+(x.statut?esc(x.statut):'')+'</div></div></div>';}).join('');
+  return '<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+esc(T('emp_panel_h'))+' ('+c.empruntsReprise.length+')</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">'+esc(T('emp_panel_note'))+'</div>'+rowsH+'</div></div>';
+}
+
 /* ---------- flux d'écran ---------- */
 function repStart(){repWB=null;state.reprise={step:'pick',group:'',fileName:'',sheets:[],attested:false,saving:false,savedId:null,err:''};}
 function repSetGroup(v){if(state.reprise)state.reprise.group=v;}
@@ -2534,7 +2591,7 @@ function viewReprise(){
       ?`<div class="panel"><div style="padding:12px 18px" class="msub">${rt('rep_into')} : <b>${esc(resolved.name)}</b></div></div>`
       :`<div class="panel"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:6px">${rt('ing_where')}</div>
           <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='new'?'checked':''} onchange="repSetIngestMode('new')"> ${rt('ing_new')}</label>
-          ${ing.mode==='new'?`<input value="${esc(ing.caseName||'')}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;margin:2px 0 4px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><div class="hint" style="margin:0 0 10px">${rt('ing_name_hint')}</div>`:''}
+          ${ing.mode==='new'?repNameBox():''}
           <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='existing'?'checked':''} onchange="repSetIngestMode('existing')"> ${rt('ing_existing')}</label>
           ${ing.mode==='existing'?`<select onchange="repSetIngestTarget(this.value)" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><option value="">${esc(rt('ing_pickcase'))}</option>${caseOpts}</select>`:''}
         </div></div>`;
@@ -2546,7 +2603,7 @@ function viewReprise(){
     }
     const cotEntries=repCotSheets();let cotHtml='';
     if(cotEntries.length){
-      cotHtml=`<h2 class="section-h">${rt('cot_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('cot_intro')}</div>`;
+      cotHtml=`<h2 class="section-h">${rt('cot_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('cot_intro')}</div>${repNeedName()?repNameBox():''}`;
       cotHtml+=cotEntries.map(function(e){const cfg=repCotCfg(e.name);
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> — ${esc(cfg.result)}</p></div></div>`;
         const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repCotToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
@@ -2556,13 +2613,22 @@ function viewReprise(){
     }
     const tontEntries=repTontineSheets();let tontHtml='';
     if(tontEntries.length){
-      tontHtml=`<h2 class="section-h">${rt('tont_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('tont_intro')}</div>`;
+      tontHtml=`<h2 class="section-h">${rt('tont_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('tont_intro')}</div>${repNeedName()?repNameBox():''}`;
       tontHtml+=tontEntries.map(function(e){const cfg=repTontCfg(e.name);
         if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
         const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repTontToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
         const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
         const first=!state.reprise.ingest.liveTontineId;
         return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tont_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTontSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestTontine('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tont_working'):(first?rt('tont_btn_first'):rt('tont_btn').replace('{s}',esc(e.name)))}</button></div></div></div>`;
+      }).join('');
+    }
+    const empEntries=repEmpruntSheets();let empHtml='';
+    if(empEntries.length){
+      empHtml=`<h2 class="section-h">${rt('emp_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('emp_intro')}</div>${repNeedName()?repNameBox():''}`;
+      empHtml+=empEntries.map(function(e){const cfg=repEmpCfg(e.name);
+        if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
+        const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repEmpSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestEmprunts('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('emp_working'):rt('emp_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
     const openBtn=resolved?`<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(resolved.id)}')">${rt('open_case')}</button></div>`:'';
@@ -2574,6 +2640,7 @@ function viewReprise(){
     ${membersHtml}
     ${cotHtml}
     ${tontHtml}
+    ${empHtml}
     ${openBtn}
     <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>`;
   }
@@ -4914,6 +4981,7 @@ function viewCaseDetail(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
     ${caseAbonnementPanel(c)}
+    ${repEmpruntsPanel(c)}
     ${footer()}`;
 }
 
@@ -6795,7 +6863,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.38';
+const UBORA_BUILD='v8.39';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
