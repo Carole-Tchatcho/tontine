@@ -2752,16 +2752,21 @@ async function repLoadStats(){
 }
 function repFmtNum(n){try{return (Number(n)||0).toLocaleString((state&&state.lang==='en')?'en-US':'fr-FR');}catch(e){return String(n);}}
 function repBandBig(people,groups,visits){
-  return `<style>@keyframes repPulse{0%{box-shadow:0 0 0 0 rgba(126,209,126,.6)}70%{box-shadow:0 0 0 9px rgba(126,209,126,0)}100%{box-shadow:0 0 0 0 rgba(126,209,126,0)}}</style>`
-  +`<div style="margin:16px 0;padding:20px 24px;border-radius:16px;background:linear-gradient(135deg,#2b2620,#3c352b);color:#f4ead0;box-shadow:0 8px 26px rgba(0,0,0,.14);display:flex;gap:30px;flex-wrap:wrap;align-items:center">`
-  +`<div><div style="font-size:36px;font-weight:800;color:#E9C96A;line-height:1.02">${repFmtNum(people)}</div><div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;opacity:.82;margin-top:3px">${_FL('personnes suivies dans le registre','people tracked in the register')}</div></div>`
-  +`<div style="width:1px;height:38px;background:rgba(244,234,208,.18)"></div>`
-  +`<div><div style="font-size:23px;font-weight:700">${repFmtNum(groups)}</div><div style="font-size:12px;opacity:.8;margin-top:2px">${_FL('groupes &amp; associations','groups &amp; associations')}</div></div>`
-  +`<div style="margin-left:auto;text-align:right"><div style="font-size:15px;font-weight:600"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7ED17E;margin-right:7px;animation:repPulse 2s infinite;vertical-align:middle"></span>${repFmtNum(visits)}</div><div style="font-size:12px;opacity:.8;margin-top:2px">${_FL('visites aujourd’hui','visits today')}</div></div>`
+  const gold='#9c7c2a',lab='#a99a76',div='rgba(201,168,76,.22)';
+  const cell=function(num,label,serif,extra){return `<div style="padding:0 26px;${extra||''}"><div style="${serif?"font-family:Georgia,'Times New Roman',serif;":''}font-size:${serif};color:${gold};line-height:1;font-weight:600">${num}</div><div style="font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:${lab};margin-top:6px">${label}</div></div>`;};
+  const sep=`<div style="width:1px;align-self:stretch;background:${div};margin:3px 0"></div>`;
+  const pulse=`<span style="width:7px;height:7px;border-radius:50%;background:#C9A84C;display:inline-block;animation:repPulse 2.4s infinite"></span>`;
+  return `<style>@keyframes repPulse{0%{box-shadow:0 0 0 0 rgba(201,168,76,.5)}70%{box-shadow:0 0 0 7px rgba(201,168,76,0)}100%{box-shadow:0 0 0 0 rgba(201,168,76,0)}}</style>`
+  +`<div style="margin:16px 0;padding:15px 6px;border:1px solid rgba(201,168,76,.30);border-radius:14px;background:linear-gradient(180deg,rgba(201,168,76,.06),rgba(255,255,255,0));display:flex;align-items:center;flex-wrap:wrap">`
+  +`<div style="padding:0 26px"><div style="font-family:Georgia,'Times New Roman',serif;font-size:29px;color:${gold};line-height:1;font-weight:600">${repFmtNum(people)}</div><div style="font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:${lab};margin-top:6px">${_FL('personnes suivies dans le registre','people tracked in the register')}</div></div>`
+  +sep
+  +`<div style="padding:0 26px"><div style="font-family:Georgia,serif;font-size:20px;color:${gold};font-weight:600">${repFmtNum(groups)}</div><div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:${lab};margin-top:5px">${_FL('groupes &amp; associations','groups &amp; associations')}</div></div>`
+  +sep
+  +`<div style="padding:0 26px;margin-left:auto"><div style="font-size:15px;color:#7a6a44;display:flex;align-items:center;gap:7px">${pulse}${repFmtNum(visits)}</div><div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:${lab};margin-top:5px">${_FL('visites aujourd\u2019hui','visits today')}</div></div>`
   +`</div>`;
 }
 function repBandQual(){
-  return `<div style="margin:16px 0;padding:17px 24px;border-radius:16px;background:linear-gradient(135deg,#2b2620,#3c352b);color:#f4ead0;font-size:16px;box-shadow:0 8px 26px rgba(0,0,0,.14)"><span style="color:#E9C96A;font-weight:700;margin-right:6px">\u2726</span>${_FL('Rejoignez les <b style="color:#E9C96A">premi\u00e8res</b> associations de la diaspora qui font confiance \u00e0 UBORA.','Join the <b style="color:#E9C96A">first</b> diaspora associations that trust UBORA.')}</div>`;
+  return `<div style="margin:16px 0;padding:14px 22px;border:1px solid rgba(201,168,76,.30);border-left:3px solid #C9A84C;border-radius:12px;background:linear-gradient(180deg,rgba(201,168,76,.05),rgba(255,255,255,0));font-size:15px;color:#5a4e34"><span style="color:#C9A84C;font-weight:700;margin-right:8px">\u2726</span>${_FL('Rejoignez les <b style="color:#9c7c2a">premi\u00e8res</b> associations de la diaspora qui font confiance \u00e0 UBORA.','Join the <b style="color:#9c7c2a">first</b> diaspora associations that trust UBORA.')}</div>`;
 }
 function repStatsBand(){
   const s=state.repStats;if(!s)return '';
@@ -6997,7 +7002,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.44';
+const UBORA_BUILD='v8.45';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
