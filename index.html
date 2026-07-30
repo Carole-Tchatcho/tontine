@@ -2163,7 +2163,13 @@ const REP_I18N={
     emp_intro:'Chaque pr\u00eat pass\u00e9 devient un historique (non v\u00e9rifi\u00e9, hors r\u00e9putation) : emprunteur, capital, int\u00e9r\u00eat, \u00e9ch\u00e9ance, statut. UBORA rep\u00e8re les colonnes automatiquement.',
     emp_btn:'Reprendre les emprunts \u00ab {s} \u00bb',emp_working:'Reprise\u2026',emp_result:'{x} emprunt(s) repris.',
     emp_panel_h:'Emprunts repris \u00b7 non v\u00e9rifi\u00e9',emp_panel_note:'Charg\u00e9s depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9s par UBORA, hors r\u00e9putation.',
-    emp_capital:'Capital',emp_interet:'Int\u00e9r\u00eat',emp_echeance:'\u00c9ch\u00e9ance',emp_statut:'Statut'},
+    emp_capital:'Capital',emp_interet:'Int\u00e9r\u00eat',emp_echeance:'\u00c9ch\u00e9ance',emp_statut:'Statut',
+    aide_h:'Reprendre aides / ayants droit',aide_intro:'Pour chaque membre, ses ayants droit et aides sont conserv\u00e9s tels quels (non v\u00e9rifi\u00e9s, hors r\u00e9putation).',
+    aide_btn:'Reprendre \u00ab {s} \u00bb',aide_working:'Reprise\u2026',aide_result:'{x} membre(s) repris.',
+    aide_panel_h:'Aides / ayants droit repris \u00b7 non v\u00e9rifi\u00e9',aide_panel_note:'Charg\u00e9s depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9s, hors r\u00e9putation.',
+    tre_h:'Reprendre la tr\u00e9sorerie',tre_intro:'Les mouvements pass\u00e9s sont conserv\u00e9s comme m\u00e9moire (non v\u00e9rifi\u00e9s, hors r\u00e9putation). Cochez la ou les colonnes de montant.',
+    tre_cols:'Colonnes de montant',tre_btn:'Reprendre \u00ab {s} \u00bb',tre_working:'Reprise\u2026',tre_result:'{x} ligne(s) reprise(s).',
+    tre_panel_h:'Tr\u00e9sorerie reprise \u00b7 non v\u00e9rifi\u00e9',tre_panel_note:'Charg\u00e9e depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9e, hors r\u00e9putation.'},
   en:{title:'History onboarding',eyebrow:'Your past years, brought in without retyping',
     lead:'Upload your group’s Excel or Word file. UBORA reads every sheet, recognises what each holds, and lets you correct before anything is saved. Nothing is truncated.',
     grp:'Group name (meeting, association, network…)',grp_ph:'e.g. Friends of Bafou Association',
@@ -2203,7 +2209,13 @@ const REP_I18N={
     emp_intro:'Each past loan becomes history (unverified, outside reputation): borrower, principal, interest, due date, status. UBORA detects the columns automatically.',
     emp_btn:'Bring in loans \u201c{s}\u201d',emp_working:'Working\u2026',emp_result:'{x} loan(s) brought in.',
     emp_panel_h:'Imported loans \u00b7 unverified',emp_panel_note:'Loaded from a file \u2014 group memory, unverified by UBORA, outside reputation.',
-    emp_capital:'Principal',emp_interet:'Interest',emp_echeance:'Due',emp_statut:'Status'}
+    emp_capital:'Principal',emp_interet:'Interest',emp_echeance:'Due',emp_statut:'Status',
+    aide_h:'Bring in aid / beneficiaries',aide_intro:'For each member, their beneficiaries and aid are kept as-is (unverified, outside reputation).',
+    aide_btn:'Bring in \u201c{s}\u201d',aide_working:'Working\u2026',aide_result:'{x} member(s) brought in.',
+    aide_panel_h:'Imported aid / beneficiaries \u00b7 unverified',aide_panel_note:'Loaded from a file \u2014 group memory, unverified, outside reputation.',
+    tre_h:'Bring in treasury',tre_intro:'Past movements are kept as memory (unverified, outside reputation). Tick the amount column(s).',
+    tre_cols:'Amount columns',tre_btn:'Bring in \u201c{s}\u201d',tre_working:'Working\u2026',tre_result:'{x} line(s) brought in.',
+    tre_panel_h:'Imported treasury \u00b7 unverified',tre_panel_note:'Loaded from a file \u2014 group memory, unverified, outside reputation.'}
 };
 function rt(k){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;}
 const REP_ROLES=['members','tontine','reunion','cot_fixe','cot_cumul','aide_ayants','emprunt','tresorerie','depense_recette','cotisation','fiche_derivee','ignore'];
@@ -2525,6 +2537,62 @@ function repEmpruntsPanel(c){
   return '<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+esc(T('emp_panel_h'))+' ('+c.empruntsReprise.length+')</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">'+esc(T('emp_panel_note'))+'</div>'+rowsH+'</div></div>';
 }
 
+
+/* ---------- ingestion : aides / ayants droit -> historique ---------- */
+function repAideSheets(){if(!repWB)return [];return repWB.filter(function(x){return x.role==='aide_ayants';});}
+function repAideCfg(name){const r=state.reprise;r.aide=r.aide||{};if(!r.aide[name])r.aide[name]={done:false,saving:false,result:''};return r.aide[name];}
+async function repIngestAides(name){
+  const cfg=repAideCfg(name);if(cfg.saving)return;cfg.saving=true;cfg.result='';render();
+  try{
+    const c=repResolveCase();const entry=repWB.find(function(x){return x.name===name;});const info=repCotColumns(entry.grid);
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(cc){return String(cc).trim();});});
+    const header=rows[info.hIdx]||[];c.aidesReprise=c.aidesReprise||[];let added=0;
+    for(let ri=(info.hIdx||0)+1;ri<rows.length;ri++){const who=String(rows[ri][info.nameCol]!=null?rows[ri][info.nameCol]:'').trim();
+      if(!who||repIsNum(who))continue;if(/\b(nom|noms|prenom|prenoms|membre|total|date)\b/.test(repNorm(who)))continue;
+      const parts=[];for(let cc=0;cc<rows[ri].length;cc++){if(cc===info.nameCol)continue;const v=String(rows[ri][cc]!=null?rows[ri][cc]:'').trim();if(!v)continue;const lab=String(header[cc]!=null?header[cc]:'').trim();parts.push((lab?lab+': ':'')+v);}
+      if(!parts.length)continue;
+      c.aidesReprise.push({who:who,detail:parts.join(' \u00b7 '),sheet:name,source:'reprise'});added++;}
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    cfg.done=true;cfg.result=rt('aide_result').replace('{x}',added);
+  }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  cfg.saving=false;render();
+}
+function repAidesPanel(c){
+  if(!c||!c.aidesReprise||!c.aidesReprise.length)return '';
+  const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';const T=function(k){return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;};
+  const rowsH=c.aidesReprise.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.who)+'</div><div class="msub">'+esc(x.detail||'')+'</div></div></div>';}).join('');
+  return '<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+esc(T('aide_panel_h'))+' ('+c.aidesReprise.length+')</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">'+esc(T('aide_panel_note'))+'</div>'+rowsH+'</div></div>';
+}
+
+/* ---------- ingestion : trésorerie -> historique ---------- */
+function repTreSheets(){if(!repWB)return [];return repWB.filter(function(x){return x.role==='tresorerie'||x.role==='depense_recette';});}
+function repTreCfg(name){const r=state.reprise;r.tre=r.tre||{};if(!r.tre[name]){const entry=repWB.find(function(x){return x.name===name;});const info=repCotColumns(entry.grid);r.tre[name]={nameCol:info.nameCol,headers:info.headers,hIdx:info.hIdx,chosen:info.guess,cur:'EUR',done:false,saving:false,result:''};}return r.tre[name];}
+function repTreToggle(name,i){const cfg=repTreCfg(name);cfg.chosen[i]=!cfg.chosen[i];render();}
+function repTreSetCur(name,cur){repTreCfg(name).cur=cur;}
+async function repIngestTre(name){
+  const cfg=repTreCfg(name);if(cfg.saving)return;const cols=cfg.headers.filter(function(h,i){return cfg.chosen[i];}).map(function(h){return h.idx;});
+  if(!cols.length){cfg.result=rt('cot_none_col');render();return;}
+  cfg.saving=true;cfg.result='';render();
+  try{
+    const c=repResolveCase();const entry=repWB.find(function(x){return x.name===name;});
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(cc){return String(cc).trim();});});c.tresoReprise=c.tresoReprise||[];let added=0;
+    for(let ri=(cfg.hIdx||0)+1;ri<rows.length;ri++){const lab=String(rows[ri][cfg.nameCol]!=null?rows[ri][cfg.nameCol]:'').trim();if(!lab)continue;if(/\b(nom|total|date)\b/.test(repNorm(lab)))continue;
+      let tot=0,any=false;cols.forEach(function(col){const v=rows[ri][col];if(repIsNum(v)){tot+=repToNum(v);any=true;}});if(!any)continue;
+      c.tresoReprise.push({label:lab,amount:tot,cur:cfg.cur,sheet:name,source:'reprise'});added++;}
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    cfg.done=true;cfg.result=rt('tre_result').replace('{x}',added);
+  }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  cfg.saving=false;render();
+}
+function repTresoPanel(c){
+  if(!c||!c.tresoReprise||!c.tresoReprise.length)return '';
+  const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';const T=function(k){return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;};
+  const rowsH=c.tresoReprise.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.label)+' \u2014 '+money(Number(x.amount)||0,x.cur||'EUR')+'</div><div class="msub">'+esc(x.sheet||'')+'</div></div></div>';}).join('');
+  return '<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+esc(T('tre_panel_h'))+' ('+c.tresoReprise.length+')</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">'+esc(T('tre_panel_note'))+'</div>'+rowsH+'</div></div>';
+}
+/* tous les panneaux historiques (injecté dans viewCaseDetail) */
+function repHistPanels(c){return repEmpruntsPanel(c)+repAidesPanel(c)+repTresoPanel(c);}
+
 /* ---------- flux d'écran ---------- */
 function repStart(){repWB=null;state.reprise={step:'pick',group:'',fileName:'',sheets:[],attested:false,saving:false,savedId:null,err:''};}
 function repSetGroup(v){if(state.reprise)state.reprise.group=v;}
@@ -2631,6 +2699,24 @@ function viewReprise(){
         return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repEmpSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestEmprunts('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('emp_working'):rt('emp_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
+    const aideEntries=repAideSheets();let aideHtml='';
+    if(aideEntries.length){
+      aideHtml=`<h2 class="section-h">${rt('aide_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('aide_intro')}</div>${repNeedName()?repNameBox():''}`;
+      aideHtml+=aideEntries.map(function(e){const cfg=repAideCfg(e.name);
+        if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestAides('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('aide_working'):rt('aide_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+      }).join('');
+    }
+    const treEntries=repTreSheets();let treHtml='';
+    if(treEntries.length){
+      treHtml=`<h2 class="section-h">${rt('tre_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('tre_intro')}</div>${repNeedName()?repNameBox():''}`;
+      treHtml+=treEntries.map(function(e){const cfg=repTreCfg(e.name);
+        if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
+        const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repTreToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
+        const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tre_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTreSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestTre('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tre_working'):rt('tre_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+      }).join('');
+    }
     const openBtn=resolved?`<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(resolved.id)}')">${rt('open_case')}</button></div>`:'';
     body=`
     <div class="eyebrow">\u2713</div>
@@ -2641,10 +2727,51 @@ function viewReprise(){
     ${cotHtml}
     ${tontHtml}
     ${empHtml}
+    ${aideHtml}
+    ${treHtml}
     ${openBtn}
     <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>`;
   }
   app().innerHTML=back+body+((r.step==='pick'||r.step==='reading')?footer():((typeof footer==='function')?footer():''));
+}
+
+/* ============================================================================
+   PREUVE SOCIALE — compteur (visiteurs) · seuils réglables · admin voit tout
+   ============================================================================ */
+const REP_SEUIL_PLANCHER=500;   /* en dessous : message qualitatif */
+const REP_SEUIL_PUBLIC=1000;    /* au-dessus : gros chiffres */
+const REP_ADMIN_EMAILS=['carole@caroletchatcho.com','milly.tchatcho@gmail.com'];
+async function repLoadStats(){
+  if(typeof sb==='undefined'||!sb||!sb.rpc){state.repStats={};return;}
+  if(state.repStatsLoading)return;state.repStatsLoading=true;
+  try{
+    try{const em=await sb.auth.getUser();state.repEmail=(em&&em.data&&em.data.user&&em.data.user.email||'').toLowerCase();}catch(e){}
+    try{const k='ubora_visit_day';const today=new Date().toISOString().slice(0,10);if(typeof localStorage!=='undefined'&&localStorage.getItem(k)!==today){await sb.rpc('bump_visit');localStorage.setItem(k,today);}}catch(e){}
+    const res=await sb.rpc('public_stats');
+    state.repStats=(res&&!res.error&&res.data)?res.data:{};
+  }catch(e){state.repStats={};}
+  state.repStatsLoading=false;render();
+}
+function repFmtNum(n){try{return (Number(n)||0).toLocaleString((state&&state.lang==='en')?'en-US':'fr-FR');}catch(e){return String(n);}}
+function repStatsBand(){
+  const s=state.repStats;if(!s)return '';
+  const isVisitor=!state.uid;
+  const isAdmin=state.repEmail&&REP_ADMIN_EMAILS.indexOf((state.repEmail||'').toLowerCase())>=0;
+  if(!isVisitor&&!isAdmin)return '';
+  const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
+  /* admin connecté : toujours les vrais chiffres, discret */
+  if(isAdmin&&!isVisitor){
+    return `<div style="margin:12px 0;padding:9px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin · décompte réel','Admin · real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes suivies','people')} · <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} · <b>${repFmtNum(visits)}</b> ${_FL('visites aujourd’hui','visits today')}</div>`;
+  }
+  /* visiteur : selon les seuils */
+  if(people<REP_SEUIL_PLANCHER){
+    return `<div style="margin:14px 0;padding:13px 18px;border:1px solid rgba(201,168,76,.30);background:rgba(201,168,76,.07);border-radius:12px">${_FL('Rejoignez les <b>premières</b> associations de la diaspora qui font confiance à UBORA.','Join the <b>first</b> diaspora associations that trust UBORA.')}</div>`;
+  }
+  const big=people>=REP_SEUIL_PUBLIC;
+  const pep=`<span style="font-size:${big?'27px':'19px'};font-weight:800">${repFmtNum(people)}</span> <span class="msub">${_FL('personnes suivies dans le registre','people tracked in the register')}</span>`;
+  const grp=`<span style="font-size:${big?'20px':'16px'};font-weight:700">${repFmtNum(groups)}</span> <span class="msub">${_FL('groupes &amp; associations','groups &amp; associations')}</span>`;
+  const vis=`<span style="font-size:15px;font-weight:600">${repFmtNum(visits)}</span> <span class="msub">${_FL('visites aujourd’hui','visits today')}</span>`;
+  return `<div style="margin:14px 0;padding:14px 18px;border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.08);border-radius:12px;display:flex;gap:24px;flex-wrap:wrap;align-items:baseline">${['<div>'+pep+'</div>','<div>'+grp+'</div>','<div>'+vis+'</div>'].join('')}</div>`;
 }
 
 function viewImport(){
@@ -2815,7 +2942,7 @@ function viewSeanceReleve(){
    ${footer()}`;
 }
 
-function viewHome(){
+function viewHome(){if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
   const cards=state_tontines.map(t=>{
     const r=t.rounds[t.currentRound];
     const conf=r?r.contribs.filter(s=>s==='confirmed').length:0;
@@ -2848,6 +2975,7 @@ function viewHome(){
     <p class="lead">${tr('h_lead')}</p>
     <div class="reassure">● ${tr('h_reassure')}</div>
     <div>${trustSeal()}</div>
+    ${repStatsBand()}
     ${(()=>{
       /* Un visiteur n'a pas de niveau, pas de cercle, et rien à calculer.
          Lui annoncer « VOTRE NIVEAU · Découverte · calculé sur l'ensemble de
@@ -4981,7 +5109,7 @@ function viewCaseDetail(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
     ${caseAbonnementPanel(c)}
-    ${repEmpruntsPanel(c)}
+    ${repHistPanels(c)}
     ${footer()}`;
 }
 
@@ -6863,7 +6991,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.39';
+const UBORA_BUILD='v8.41';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
