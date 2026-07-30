@@ -2146,7 +2146,7 @@ const REP_I18N={
       done_p:'Votre attestation est enregistrée et horodatée. Les {n} feuilles reconnues sont prêtes à être reprises. La reprise effective de chaque feuille dans vos modules sera la prochaine étape.',
       done_again:'Charger un autre fichier',
       err_file:'Ce fichier n’a pas pu être lu comme un classeur Excel (.xlsx). Vérifiez le format.',
-      note_derived:'Les fiches individuelles (une par personne) sont des récapitulatifs : UBORA les ignore par défaut pour ne rien compter en double.',ing_h:'Reprendre l’annuaire dans une Case',ing_found:'{n} personne(s) reconnue(s) dans l’annuaire.',ing_none:'Aucune feuille « Annuaire / membres » n’est marquée. Revenez en arrière pour en désigner une.',ing_where:'Où verser ces membres ?',ing_new:'Nouvelle Case',ing_existing:'Case existante',ing_casename:'Nom de la Case',ing_pickcase:'— Choisir une Case —',ing_btn:'Reprendre {n} personne(s)',ing_working:'Reprise en cours…',ing_result_ok:'{x} membre(s) repris dans « {c} ».',ing_result_dup:'{d} déjà présent(s), non dupliqué(s).',ing_result_pending:'{y} en attente : le palier actuel couvre {max} membres. Passez à Fagot pour reprendre le reste — rien n’est perdu.',ing_err:'Reprise échouée : {e}'},
+      note_derived:'Les fiches individuelles (une par personne) sont des récapitulatifs : UBORA les ignore par défaut pour ne rien compter en double.',ing_h:'Reprendre l’annuaire dans une Case',ing_found:'{n} personne(s) reconnue(s) dans l’annuaire.',ing_none:'Aucune feuille « Annuaire / membres » n’est marquée. Revenez en arrière pour en désigner une.',ing_where:'Où verser ces membres ?',ing_new:'Nouvelle Case',ing_existing:'Case existante',ing_casename:'Nom de la Case',ing_pickcase:'— Choisir une Case —',ing_btn:'Reprendre {n} personne(s)',ing_working:'Reprise en cours…',ing_result_ok:'{x} membre(s) repris dans « {c} ».',ing_result_dup:'{d} déjà présent(s), non dupliqué(s).',ing_result_pending:'{y} en attente : le palier actuel couvre {max} membres. Passez à Fagot pour reprendre le reste — rien n’est perdu.',ing_err:'Reprise échouée : {e}',back_case:'Ma Case',changefile:'Changer de fichier',formats:'Excel (.xlsx) ou Word (.docx)',err_notables:'Ce document Word ne contient aucun tableau exploitable. La reprise lit les tableaux ; un texte libre ne peut pas être repris de façon fiable.'},
   en:{title:'History onboarding',
       eyebrow:'Your past years, brought in without retyping',
       lead:'Upload your group’s Excel file. UBORA reads every sheet, recognises what each one holds, and lets you correct before anything is saved. Nothing is truncated.',
@@ -2168,7 +2168,7 @@ const REP_I18N={
       done_p:'Your attestation is saved and time-stamped. The {n} recognised sheets are ready to be brought in. Bringing each sheet into your modules will be the next step.',
       done_again:'Upload another file',
       err_file:'This file could not be read as an Excel workbook (.xlsx). Please check the format.',
-      note_derived:'Per-person sheets are summaries: UBORA ignores them by default so nothing is counted twice.',ing_h:'Bring the directory into a Case',ing_found:'{n} person(s) recognised in the directory.',ing_none:'No sheet is marked “Directory / members”. Go back to designate one.',ing_where:'Where to add these members?',ing_new:'New Case',ing_existing:'Existing Case',ing_casename:'Case name',ing_pickcase:'— Choose a Case —',ing_btn:'Bring in {n} person(s)',ing_working:'Working…',ing_result_ok:'{x} member(s) brought into “{c}”.',ing_result_dup:'{d} already present, not duplicated.',ing_result_pending:'{y} pending: the current tier covers {max} members. Move to Fagot to bring the rest — nothing is lost.',ing_err:'Import failed: {e}'}
+      note_derived:'Per-person sheets are summaries: UBORA ignores them by default so nothing is counted twice.',ing_h:'Bring the directory into a Case',ing_found:'{n} person(s) recognised in the directory.',ing_none:'No sheet is marked “Directory / members”. Go back to designate one.',ing_where:'Where to add these members?',ing_new:'New Case',ing_existing:'Existing Case',ing_casename:'Case name',ing_pickcase:'— Choose a Case —',ing_btn:'Bring in {n} person(s)',ing_working:'Working…',ing_result_ok:'{x} member(s) brought into “{c}”.',ing_result_dup:'{d} already present, not duplicated.',ing_result_pending:'{y} pending: the current tier covers {max} members. Move to Fagot to bring the rest — nothing is lost.',ing_err:'Import failed: {e}',back_case:'My Case',changefile:'Change file',formats:'Excel (.xlsx) or Word (.docx)',err_notables:'This Word document contains no usable table. Onboarding reads tables; free text cannot be brought in reliably.'}
 };
 function rt(k){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;}
 const REP_ROLES=['members','tontine','reunion','cot_fixe','cot_cumul','aide_ayants','emprunt','tresorerie','depense_recette','cotisation','fiche_derivee','ignore'];
@@ -2258,6 +2258,50 @@ async function repReadWorkbook(buf){
   return order.map(function(o){const f=map[o.rid];const xml=(f&&p2[f])?dec(p2[f]):'';return {name:o.name,grid:repGrid(xml,shared)};});
 }
 
+
+/* ---------- lecture Word (.docx) : chaque tableau devient une "feuille" ---------- */
+function repDocxLastPara(chunk){var pRe=/<w:p\b[\s\S]*?<\/w:p>/g,pm,last='';while((pm=pRe.exec(chunk))){var tRe=/<w:t[^>]*>([\s\S]*?)<\/w:t>/g,t,s='';while((t=tRe.exec(pm[0])))s+=repXmlDecode(t[1]);s=s.trim();if(s)last=s;}return last;}
+function repDocxTableGrid(tbl){
+  var rows=[],trRe=/<w:tr\b[\s\S]*?<\/w:tr>/g,trm,prev=[];
+  while((trm=trRe.exec(tbl))){
+    var tr=trm[0],cells=[],col=0,tcRe=/<w:tc\b([\s\S]*?)<\/w:tc>/g,tcm;
+    while((tcm=tcRe.exec(tr))){
+      var tc=tcm[1];
+      var span=parseInt((/<w:gridSpan\s+w:val="(\d+)"/.exec(tc)||[])[1]||'1',10)||1;
+      var vCont=/<w:vMerge(\s*\/>|[^>]*w:val="continue")/.test(tc)&&!/w:val="restart"/.test(tc);
+      var txt='',pRe=/<w:p\b[\s\S]*?<\/w:p>/g,pm;
+      while((pm=pRe.exec(tc))){var tRe=/<w:t[^>]*>([\s\S]*?)<\/w:t>/g,t,line='';while((t=tRe.exec(pm[0])))line+=repXmlDecode(t[1]);if(line)txt+=(txt?' ':'')+line;}
+      if(vCont&&txt==='')txt=(prev[col]!=null?prev[col]:'');
+      for(var k=0;k<span;k++){cells[col]=txt;prev[col]=txt;col++;}
+    }
+    for(var i=0;i<cells.length;i++)if(cells[i]==null)cells[i]='';
+    rows.push(cells);
+  }
+  return {rows:rows,merges:0};
+}
+function repDocxSheets(xml){
+  var bodyM=/<w:body\b[\s\S]*?<\/w:body>/.exec(xml),body=bodyM?bodyM[0]:xml;
+  var tblRe=/<w:tbl\b[\s\S]*?<\/w:tbl>/g,m,last=0,sheets=[],idx=0;
+  while((m=tblRe.exec(body))){
+    var before=body.slice(last,m.index);last=tblRe.lastIndex;
+    var name=repDocxLastPara(before)||('Tableau '+(idx+1));
+    sheets.push({name:name,grid:repDocxTableGrid(m[0])});idx++;
+  }
+  return sheets;
+}
+async function repReadDocx(buf){
+  var p=await unzipEntries(buf,['word/document.xml']);
+  var xml=p['word/document.xml']?new TextDecoder().decode(p['word/document.xml']):'';
+  if(!xml)throw new Error('format');
+  return repDocxSheets(xml);
+}
+async function repReadAny(buf){
+  var probe=await unzipEntries(buf,['xl/workbook.xml','word/document.xml']);
+  if(probe['xl/workbook.xml'])return repReadWorkbook(buf);
+  if(probe['word/document.xml']){var s=await repReadDocx(buf);if(!s.length)throw new Error('notables');return s;}
+  throw new Error('format');
+}
+
 /* ---------- flux d'écran ---------- */
 function repStart(){repWB=null;state.reprise={step:'pick',group:'',fileName:'',sheets:[],attested:false,saving:false,savedId:null,err:''};}
 function repSetGroup(v){if(state.reprise)state.reprise.group=v;}
@@ -2266,11 +2310,11 @@ async function repFile(input){
   const r=state.reprise;r.fileName=f.name;r.err='';r.step='reading';render();
   try{
     const buf=await f.arrayBuffer();
-    const sheets=await repReadWorkbook(buf);
+    const sheets=await repReadAny(buf);
     repWB=repClassify(sheets);
     r.sheets=repWB.map(function(x){const nr=x.grid.rows.filter(function(rr){return rr&&rr.some(function(c){return String(c).trim();});}).length;return {name:x.name,role:x.role,nr:nr,merges:x.grid.merges};});
     r.step='preview';render();
-  }catch(e){r.err=rt('err_file');r.step='pick';render();}
+  }catch(e){const msg=String((e&&e.message)||e);r.err=(msg==='notables')?rt('err_notables'):rt('err_file');r.step='pick';render();}
 }
 function repSetRole(i,role){if(state.reprise&&state.reprise.sheets[i]){state.reprise.sheets[i].role=role;if(repWB&&repWB[i])repWB[i].role=role;}}
 function repToggleAttest(cb){if(state.reprise){state.reprise.attested=!!cb.checked;render();}}
@@ -2346,6 +2390,7 @@ function viewReprise(){
   if(!state.reprise)repStart();
   const r=state.reprise;
   let body='';
+  const back=`<div class="releve-actions" style="margin-bottom:4px"><button class="btn btn-ghost btn-sm" onclick="go('case')">\u2039 ${rt('back_case')}</button></div>`;
   if(r.step==='pick'||r.step==='reading'){
     body=`
     <div class="eyebrow">${rt('eyebrow')}</div>
@@ -2355,7 +2400,7 @@ function viewReprise(){
     <div class="panel"><div style="padding:16px 18px">
       <label class="msub">${rt('grp')}</label>
       <input value="${esc(r.group||'')}" oninput="repSetGroup(this.value)" placeholder="${esc(rt('grp_ph'))}" style="width:100%;margin:6px 0 14px;padding:9px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">
-      ${r.step==='reading'?`<div class="msub">${rt('reading')}</div>`:`<input type="file" accept=".xlsx" onchange="repFile(this)">`}
+      ${r.step==='reading'?`<div class="msub">${rt('reading')}</div>`:`<input type="file" accept=".xlsx,.docx" onchange="repFile(this)"><div class="hint" style="margin-top:6px">${rt('formats')}</div>`}
       <div class="hint" style="margin-top:12px">${rt('note_derived')}</div>
     </div></div>
     ${footer()}`;
@@ -2370,7 +2415,7 @@ function viewReprise(){
       </tr>`;
     }).join('');
     body=`
-    <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('back')}</button></div>
+    <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('changefile')}</button></div>
     <h1 class="page-title">${esc(r.group||rt('title'))}</h1>
     <p class="lead">${rt('detected').replace('{n}',r.sheets.length)} · ${esc(r.fileName)}</p>
     <div class="hint" style="margin-bottom:8px">${rt('role_hint')}</div>
@@ -2420,7 +2465,7 @@ function viewReprise(){
     <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>
     ${footer()}`;
   }
-  app().innerHTML=body;
+  app().innerHTML=back+body;
 }
 
 function viewImport(){
@@ -4715,7 +4760,7 @@ function viewCase(){
     <h1 class="page-title">${tr('mc_title')}</h1>
     <div style="display:flex;gap:16px;align-items:center;margin:8px 0 6px">${caseGlyph(66)}<p class="lead" style="margin:0">${tr('mc_lead')}</p></div>
     <div>${trustSeal(tr('mc_seal'))}</div>
-    <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel)':'Reprendre un historique (Excel)'}</button></div>
+    <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button></div>
     ${cards||`<div class="panel"><div class="empty">${tr('mc_none')}</div></div>`}
     ${footer()}`;
 }
@@ -6638,7 +6683,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.33';
+const UBORA_BUILD='v8.34';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
