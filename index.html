@@ -2116,59 +2116,62 @@ function impJoined(i){ if(state.imp.roster[i])state.imp.roster[i].status='joined
 function impDecline(i){ if(state.imp.roster[i])state.imp.roster[i].status='declined'; render(); }
 function impToTontine(){ const active=(state.imp.roster||[]).filter(r=>r.status!=='declined'); if(!active.length){alert(tr('imp_need_name'));return;} const amts=active.map(r=>r.amount).filter(a=>a!=null&&a>0); let rep=''; if(amts.length){ const freq={}; amts.forEach(a=>{freq[a]=(freq[a]||0)+1;}); rep=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]; } draft={name:state.imp.group||'',amount:rep||'',currency:state.imp.cur||'XOF',frequency:'mensuelle',places:Math.max(2,Math.min(30,active.length+1)),oName:state.user,oContact:'',oCountry:state.homeCountry,oMk:false,renforced:true,roster:active.map(r=>({name:r.name,contact:r.contact||'—'}))}; go('create'); }
 /* ============================================================================
-   UBORA — REPRISE D'HISTORIQUE · Couche 0 (lecture fidèle multi-feuilles)
-   Ajout pur : aucune fonction existante n'est modifiée. Préfixe rep* / REP_.
-   Ce module LIT et CLASSE un classeur Excel (toutes les feuilles, fusions
-   incluses) et enregistre l'attestation de droit de partage. Il n'écrit
-   encore RIEN dans les modules (tontine/case/…) : c'est le socle.
+   UBORA — REPRISE D'HISTORIQUE  (Couches 0 + 1/2)
+   Ajout pur. Prefixe rep et REP_. Lit Excel (.xlsx) ET Word (.docx), classe
+   les feuilles, reprend l'annuaire -> membres, et les cotisations -> historique
+   NON VÉRIFIÉ (séparé de la réputation). N'écrit que via db.saveCase.
    ============================================================================ */
-let repWB=null; /* classeur analysé, gardé en mémoire pour l'étape d'ingestion (chantier suivant) */
+let repWB=null;
 const REP_ATTEST_VERSION='2026-07-30';
 const REP_I18N={
-  fr:{title:'Reprise d’historique',
-      eyebrow:'Vos années d’avant, reprises sans les ressaisir',
-      lead:'Chargez le fichier Excel de votre réunion ou association. UBORA lit toutes les feuilles, reconnaît ce que chacune contient, et vous laisse corriger avant tout enregistrement. Rien n’est tronqué.',
-      grp:'Nom du groupe (réunion, association, réseau…)',
-      grp_ph:'Ex. Association des Amis de Bafou',
-      pick:'Choisir un fichier Excel (.xlsx)',
-      reading:'Lecture du classeur…',
-      detected:'{n} feuille(s) lue(s)',
-      col_sheet:'Feuille',col_role:'Ce qu’UBORA a reconnu',col_size:'Taille',
-      role_hint:'Vous pouvez corriger chaque ligne. Ce qui est « ignoré » ne sera pas repris.',
-      lines:'{n} lignes',
-      attest_h:'Attestation — droit de partage',
-      attest_text:'J’atteste être autorisé(e) à partager ces données au nom de mon groupe, que les personnes concernées en sont ou en seront informées, et j’autorise UBORA à les enregistrer et à les traiter pour tenir le registre et améliorer ses services.',
-      attest_check:'Je lis et j’accepte cette attestation.',
-      confirm:'Confirmer et enregistrer l’attestation',
-      saving:'Enregistrement…',
-      back:'‹ Retour',
-      done_h:'Attestation enregistrée',
-      done_p:'Votre attestation est enregistrée et horodatée. Les {n} feuilles reconnues sont prêtes à être reprises. La reprise effective de chaque feuille dans vos modules sera la prochaine étape.',
-      done_again:'Charger un autre fichier',
-      err_file:'Ce fichier n’a pas pu être lu comme un classeur Excel (.xlsx). Vérifiez le format.',
-      note_derived:'Les fiches individuelles (une par personne) sont des récapitulatifs : UBORA les ignore par défaut pour ne rien compter en double.',ing_h:'Reprendre l’annuaire dans une Case',ing_found:'{n} personne(s) reconnue(s) dans l’annuaire.',ing_none:'Aucune feuille « Annuaire / membres » n’est marquée. Revenez en arrière pour en désigner une.',ing_where:'Où verser ces membres ?',ing_new:'Nouvelle Case',ing_existing:'Case existante',ing_casename:'Nom de la Case',ing_pickcase:'— Choisir une Case —',ing_btn:'Reprendre {n} personne(s)',ing_working:'Reprise en cours…',ing_result_ok:'{x} membre(s) repris dans « {c} ».',ing_result_dup:'{d} déjà présent(s), non dupliqué(s).',ing_result_pending:'{y} en attente : le palier actuel couvre {max} membres. Passez à Fagot pour reprendre le reste — rien n’est perdu.',ing_err:'Reprise échouée : {e}',back_case:'Ma Case',changefile:'Changer de fichier',formats:'Excel (.xlsx) ou Word (.docx)',err_notables:'Ce document Word ne contient aucun tableau exploitable. La reprise lit les tableaux ; un texte libre ne peut pas être repris de façon fiable.'},
-  en:{title:'History onboarding',
-      eyebrow:'Your past years, brought in without retyping',
-      lead:'Upload your group’s Excel file. UBORA reads every sheet, recognises what each one holds, and lets you correct before anything is saved. Nothing is truncated.',
-      grp:'Group name (meeting, association, network…)',
-      grp_ph:'e.g. Friends of Bafou Association',
-      pick:'Choose an Excel file (.xlsx)',
-      reading:'Reading the workbook…',
-      detected:'{n} sheet(s) read',
-      col_sheet:'Sheet',col_role:'What UBORA recognised',col_size:'Size',
-      role_hint:'You can correct each row. Anything set to “ignore” will not be brought in.',
-      lines:'{n} rows',
-      attest_h:'Attestation — right to share',
-      attest_text:'I certify that I am authorised to share this data on behalf of my group, that the people concerned are or will be informed, and I authorise UBORA to store and process it to run the registry and improve its services.',
-      attest_check:'I have read and accept this attestation.',
-      confirm:'Confirm and save the attestation',
-      saving:'Saving…',
-      back:'‹ Back',
-      done_h:'Attestation saved',
-      done_p:'Your attestation is saved and time-stamped. The {n} recognised sheets are ready to be brought in. Bringing each sheet into your modules will be the next step.',
-      done_again:'Upload another file',
-      err_file:'This file could not be read as an Excel workbook (.xlsx). Please check the format.',
-      note_derived:'Per-person sheets are summaries: UBORA ignores them by default so nothing is counted twice.',ing_h:'Bring the directory into a Case',ing_found:'{n} person(s) recognised in the directory.',ing_none:'No sheet is marked “Directory / members”. Go back to designate one.',ing_where:'Where to add these members?',ing_new:'New Case',ing_existing:'Existing Case',ing_casename:'Case name',ing_pickcase:'— Choose a Case —',ing_btn:'Bring in {n} person(s)',ing_working:'Working…',ing_result_ok:'{x} member(s) brought into “{c}”.',ing_result_dup:'{d} already present, not duplicated.',ing_result_pending:'{y} pending: the current tier covers {max} members. Move to Fagot to bring the rest — nothing is lost.',ing_err:'Import failed: {e}',back_case:'My Case',changefile:'Change file',formats:'Excel (.xlsx) or Word (.docx)',err_notables:'This Word document contains no usable table. Onboarding reads tables; free text cannot be brought in reliably.'}
+  fr:{title:'Reprise d’historique',eyebrow:'Vos années d’avant, reprises sans les ressaisir',
+    lead:'Chargez le fichier Excel ou Word de votre réunion ou association. UBORA lit toutes les feuilles, reconnaît ce que chacune contient, et vous laisse corriger avant tout enregistrement. Rien n’est tronqué.',
+    grp:'Nom du groupe (réunion, association, réseau…)',grp_ph:'Ex. Association des Amis de Bafou',
+    reading:'Lecture du fichier…',detected:'{n} feuille(s) lue(s)',col_sheet:'Feuille',col_role:'Ce qu’UBORA a reconnu',col_size:'Taille',
+    role_hint:'Vous pouvez corriger chaque ligne. Ce qui est « ignoré » ne sera pas repris.',lines:'{n} lignes',
+    attest_h:'Attestation — droit de partage',
+    attest_text:'J’atteste être autorisé(e) à partager ces données au nom de mon groupe, que les personnes concernées en sont ou en seront informées, et j’autorise UBORA à les enregistrer et à les traiter pour tenir le registre et améliorer ses services.',
+    attest_check:'Je lis et j’accepte cette attestation.',confirm:'Confirmer et enregistrer l’attestation',saving:'Enregistrement…',
+    done_h:'Attestation enregistrée',done_p:'Attestation enregistrée et horodatée. Vous pouvez maintenant reprendre les feuilles reconnues.',
+    done_again:'Charger un autre fichier',err_file:'Ce fichier n’a pas pu être lu comme un classeur Excel (.xlsx) ni un document Word (.docx).',
+    err_notables:'Ce document Word ne contient aucun tableau exploitable. La reprise lit les tableaux ; un texte libre ne peut pas être repris de façon fiable.',
+    note_derived:'Les fiches individuelles (une par personne) sont des récapitulatifs : UBORA les ignore par défaut pour ne rien compter en double.',
+    back_case:'Ma Case',changefile:'Changer de fichier',formats:'Excel (.xlsx) ou Word (.docx)',
+    ing_h:'Reprendre l’annuaire dans une Case',ing_found:'{n} personne(s) reconnue(s) dans l’annuaire.',
+    ing_none:'Aucune feuille « Annuaire / membres » n’est marquée. Revenez en arrière pour en désigner une.',
+    ing_where:'Où verser ces reprises ?',ing_new:'Nouvelle Case',ing_existing:'Case existante',ing_casename:'Nom de la Case',ing_pickcase:'— Choisir une Case —',
+    ing_btn:'Reprendre {n} personne(s)',ing_working:'Reprise en cours…',ing_result_ok:'{x} membre(s) repris dans « {c} ».',
+    ing_result_dup:'{d} déjà présent(s), non dupliqué(s).',ing_result_pending:'{y} en attente : le palier actuel couvre {max} membres. Passez à Fagot pour reprendre le reste — rien n’est perdu.',
+    ing_err:'Reprise échouée : {e}',rep_into:'Reprise dans',open_case:'Ouvrir la Case',
+    cot_h:'Reprendre des cotisations (non vérifiées)',
+    cot_intro:'Ces montants sont chargés depuis votre fichier. Ils sont conservés comme mémoire de l’association, marqués « non vérifiés », et n’entrent PAS dans la réputation. Cochez la ou les colonnes de montant à additionner.',
+    cot_cols:'Colonnes de montant à additionner',cot_cur:'Devise',cot_btn:'Reprendre « {s} »',cot_working:'Reprise…',
+    cot_tag:'Repris · non vérifié',cot_result:'{x} cotisation(s) reprise(s) dans « {c} » (non vérifiées).',cot_none_col:'Cochez au moins une colonne de montant.',
+    cot_text:'texte'},
+  en:{title:'History onboarding',eyebrow:'Your past years, brought in without retyping',
+    lead:'Upload your group’s Excel or Word file. UBORA reads every sheet, recognises what each holds, and lets you correct before anything is saved. Nothing is truncated.',
+    grp:'Group name (meeting, association, network…)',grp_ph:'e.g. Friends of Bafou Association',
+    reading:'Reading the file…',detected:'{n} sheet(s) read',col_sheet:'Sheet',col_role:'What UBORA recognised',col_size:'Size',
+    role_hint:'You can correct each row. Anything set to “ignore” will not be brought in.',lines:'{n} rows',
+    attest_h:'Attestation — right to share',
+    attest_text:'I certify that I am authorised to share this data on behalf of my group, that the people concerned are or will be informed, and I authorise UBORA to store and process it to run the registry and improve its services.',
+    attest_check:'I have read and accept this attestation.',confirm:'Confirm and save the attestation',saving:'Saving…',
+    done_h:'Attestation saved',done_p:'Attestation saved and time-stamped. You can now bring in the recognised sheets.',
+    done_again:'Upload another file',err_file:'This file could not be read as an Excel (.xlsx) or Word (.docx) file.',
+    err_notables:'This Word document contains no usable table. Onboarding reads tables; free text cannot be brought in reliably.',
+    note_derived:'Per-person sheets are summaries: UBORA ignores them by default so nothing is counted twice.',
+    back_case:'My Case',changefile:'Change file',formats:'Excel (.xlsx) or Word (.docx)',
+    ing_h:'Bring the directory into a Case',ing_found:'{n} person(s) recognised in the directory.',
+    ing_none:'No sheet is marked “Directory / members”. Go back to designate one.',
+    ing_where:'Where to add these imports?',ing_new:'New Case',ing_existing:'Existing Case',ing_casename:'Case name',ing_pickcase:'— Choose a Case —',
+    ing_btn:'Bring in {n} person(s)',ing_working:'Working…',ing_result_ok:'{x} member(s) brought into “{c}”.',
+    ing_result_dup:'{d} already present, not duplicated.',ing_result_pending:'{y} pending: the current tier covers {max} members. Move to Fagot to bring the rest — nothing is lost.',
+    ing_err:'Import failed: {e}',rep_into:'Bringing into',open_case:'Open the Case',
+    cot_h:'Bring in contributions (unverified)',
+    cot_intro:'These amounts come from your file. They are kept as the association’s memory, marked “unverified”, and do NOT count toward reputation. Tick the amount column(s) to sum.',
+    cot_cols:'Amount columns to sum',cot_cur:'Currency',cot_btn:'Bring in “{s}”',cot_working:'Working…',
+    cot_tag:'Imported · unverified',cot_result:'{x} contribution(s) brought into “{c}” (unverified).',cot_none_col:'Tick at least one amount column.',
+    cot_text:'text'}
 };
 function rt(k){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;}
 const REP_ROLES=['members','tontine','reunion','cot_fixe','cot_cumul','aide_ayants','emprunt','tresorerie','depense_recette','cotisation','fiche_derivee','ignore'];
@@ -2178,7 +2181,7 @@ const REP_ROLE_LABEL={
 };
 function repRoleLabel(r){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_ROLE_LABEL[L]&&REP_ROLE_LABEL[L][r])||REP_ROLE_LABEL.fr[r]||r;}
 
-/* ---------- moteur de lecture (identique à la version testée) ---------- */
+/* ---------- moteur de lecture (prouvé) ---------- */
 function repXmlDecode(s){return String(s).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(+n);}).replace(/&amp;/g,'&');}
 function repColToNum(letters){let n=0;for(let i=0;i<letters.length;i++)n=n*26+(letters.charCodeAt(i)-64);return n-1;}
 function repRefToRC(ref){const m=/^([A-Z]+)(\d+)$/.exec(ref||'');if(!m)return null;return {r:parseInt(m[2],10)-1,c:repColToNum(m[1])};}
@@ -2202,6 +2205,7 @@ function repGrid(xml,shared){
 }
 function repNorm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
 function repIsNum(v){if(v==null||v==='')return false;const s=String(v).replace(/[\s'’.]/g,'').replace(',','.');return /^-?\d+(\.\d+)?$/.test(s);}
+function repToNum(v){if(v==null||v==='')return 0;const s=String(v).replace(/[\s'’.]/g,'').replace(',','.');const n=parseFloat(s);return isFinite(n)?n:0;}
 function repHasNameCol(rows){return rows.slice(1,8).some(function(r){return r[0]&&!repIsNum(r[0])&&String(r[0]).trim().length>2;});}
 function repCountNumCols(rows){const w=Math.max.apply(null,rows.map(function(r){return r.length;}).concat([0]));let c=0;for(let col=1;col<w;col++){let num=0,tot=0;for(let r=1;r<Math.min(rows.length,12);r++){const v=rows[r]&&rows[r][col];if(v!=null&&v!==''){tot++;if(repIsNum(v))num++;}}if(tot>=2&&num/tot>=0.6)c++;}return c;}
 const REP_THEMATIC=/\b(tontine|assurance|aide|aides|emprunt|tresor|tresorerie|colation|collation|codefo|liela|effectif|membre|membres|accueil|reconstitution|solde|caisse|cotis|cotisation|fond|fonds|liste|noms|annuaire|divers|projet|banque)\b/;
@@ -2258,8 +2262,7 @@ async function repReadWorkbook(buf){
   return order.map(function(o){const f=map[o.rid];const xml=(f&&p2[f])?dec(p2[f]):'';return {name:o.name,grid:repGrid(xml,shared)};});
 }
 
-
-/* ---------- lecture Word (.docx) : chaque tableau devient une "feuille" ---------- */
+/* ---------- lecture Word (.docx) ---------- */
 function repDocxLastPara(chunk){var pRe=/<w:p\b[\s\S]*?<\/w:p>/g,pm,last='';while((pm=pRe.exec(chunk))){var tRe=/<w:t[^>]*>([\s\S]*?)<\/w:t>/g,t,s='';while((t=tRe.exec(pm[0])))s+=repXmlDecode(t[1]);s=s.trim();if(s)last=s;}return last;}
 function repDocxTableGrid(tbl){
   var rows=[],trRe=/<w:tr\b[\s\S]*?<\/w:tr>/g,trm,prev=[];
@@ -2282,24 +2285,100 @@ function repDocxTableGrid(tbl){
 function repDocxSheets(xml){
   var bodyM=/<w:body\b[\s\S]*?<\/w:body>/.exec(xml),body=bodyM?bodyM[0]:xml;
   var tblRe=/<w:tbl\b[\s\S]*?<\/w:tbl>/g,m,last=0,sheets=[],idx=0;
-  while((m=tblRe.exec(body))){
-    var before=body.slice(last,m.index);last=tblRe.lastIndex;
-    var name=repDocxLastPara(before)||('Tableau '+(idx+1));
-    sheets.push({name:name,grid:repDocxTableGrid(m[0])});idx++;
-  }
+  while((m=tblRe.exec(body))){var before=body.slice(last,m.index);last=tblRe.lastIndex;var name=repDocxLastPara(before)||('Tableau '+(idx+1));sheets.push({name:name,grid:repDocxTableGrid(m[0])});idx++;}
   return sheets;
 }
-async function repReadDocx(buf){
-  var p=await unzipEntries(buf,['word/document.xml']);
-  var xml=p['word/document.xml']?new TextDecoder().decode(p['word/document.xml']):'';
-  if(!xml)throw new Error('format');
-  return repDocxSheets(xml);
+async function repReadDocx(buf){var p=await unzipEntries(buf,['word/document.xml']);var xml=p['word/document.xml']?new TextDecoder().decode(p['word/document.xml']):'';if(!xml)throw new Error('format');return repDocxSheets(xml);}
+async function repReadAny(buf){var probe=await unzipEntries(buf,['xl/workbook.xml','word/document.xml']);if(probe['xl/workbook.xml'])return repReadWorkbook(buf);if(probe['word/document.xml']){var s=await repReadDocx(buf);if(!s.length)throw new Error('notables');return s;}throw new Error('format');}
+
+/* ---------- cible de reprise (Case) ---------- */
+function repResolveCase(){
+  const r=state.reprise,ing=r.ingest;
+  if(ing.targetId){const c=state_cases.find(function(x){return x.id===ing.targetId;});if(c)return c;}
+  if(ing.mode==='existing')throw new Error(rt('ing_pickcase'));
+  const nm=((ing.caseName||r.group||'Groupe')+'').trim();
+  const c={id:newId('cs'),name:nm,type:'autre',mission:rt('ing_h'),country:(state.homeCountry||''),city:''};
+  state_cases.unshift(c);ing.targetId=c.id;return c;
 }
-async function repReadAny(buf){
-  var probe=await unzipEntries(buf,['xl/workbook.xml','word/document.xml']);
-  if(probe['xl/workbook.xml'])return repReadWorkbook(buf);
-  if(probe['word/document.xml']){var s=await repReadDocx(buf);if(!s.length)throw new Error('notables');return s;}
-  throw new Error('format');
+
+/* ---------- ingestion : annuaire -> membres ---------- */
+function repMembersEntry(){if(!repWB)return null;for(let i=0;i<repWB.length;i++){if(repWB[i].role==='members')return repWB[i];}return null;}
+function repExtractMembers(grid){
+  const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
+  if(!rows.length)return [];
+  const kw=/\b(nom|noms|name|prenom|prenoms|membre|membres|participant|foyer|adherent|adherents)\b/;
+  const ck=/\b(mail|email|courriel|tel|telephone|phone|contact|numero|whatsapp)\b/;
+  let hIdx=-1;for(let i=0;i<Math.min(rows.length,3);i++){if(kw.test(repNorm(rows[i].join(' ')))){hIdx=i;break;}}
+  const headerRow=hIdx>=0?rows[hIdx]:rows[0];const head=headerRow.map(function(x){return repNorm(x);});
+  let nameCol=head.findIndex(function(h){return kw.test(h);});if(nameCol<0)nameCol=0;
+  let contactCol=head.findIndex(function(h){return ck.test(h);});
+  const start=hIdx>=0?hIdx+1:0;const out=[],seen={};
+  for(let i=start;i<rows.length;i++){const nm=String(rows[i][nameCol]!=null?rows[i][nameCol]:'').trim();if(!nm||repIsNum(nm))continue;const k=repNorm(nm);if(seen[k])continue;seen[k]=1;const ct=contactCol>=0?String(rows[i][contactCol]!=null?rows[i][contactCol]:'').trim():'';out.push({name:nm,contact:ct,role:''});}
+  return out;
+}
+function repSetIngestMode(m){if(state.reprise&&state.reprise.ingest){state.reprise.ingest.mode=m;render();}}
+function repSetIngestTarget(id){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.targetId=id;}
+function repSetCaseName(v){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.caseName=v;}
+async function repIngestMembers(){
+  const r=state.reprise;if(!r||!r.ingest||r.ingest.saving)return;const ing=r.ingest;
+  const entry=repMembersEntry();if(!entry)return;const members=repExtractMembers(entry.grid);
+  ing.saving=true;ing.membersResult='';render();
+  try{
+    const c=repResolveCase();c.members=c.members||[];
+    const seen={};c.members.forEach(function(m){seen[repNorm(m.name)]=1;});
+    const active=!!(c.premium_until&&new Date(c.premium_until)>new Date());const max=active?100:30;
+    let added=0,dup=0,pending=0;const pendingList=[];
+    for(let i=0;i<members.length;i++){const m=members[i];const k=repNorm(m.name);
+      if(seen[k]){dup++;continue;}
+      if(c.members.length>=max){pending++;pendingList.push(m);continue;}
+      c.members.push({name:m.name,contact:m.contact||'',role:m.role||''});seen[k]=1;added++;}
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    r.pendingMembers=pendingList;ing.membersDone=true;
+    ing.membersResult=rt('ing_result_ok').replace('{x}',added).replace('{c}',c.name)+(dup?(' '+rt('ing_result_dup').replace('{d}',dup)):'')+(pending?(' '+rt('ing_result_pending').replace('{y}',pending).replace('{max}',max)):'');
+  }catch(e){ing.membersResult=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  ing.saving=false;render();
+}
+
+/* ---------- ingestion : cotisations -> historique NON VÉRIFIÉ ---------- */
+function repCotSheets(){if(!repWB)return [];return repWB.filter(function(x){return x.role==='cot_fixe'||x.role==='cot_cumul'||x.role==='cotisation';});}
+function repCotColumns(grid){
+  const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
+  const kw=/\b(nom|noms|name|prenom|membre|participant|adherent)\b/;
+  let hIdx=0;for(let i=0;i<Math.min(rows.length,3);i++){if(kw.test(repNorm(rows[i].join(' ')))){hIdx=i;break;}}
+  const header=rows[hIdx]||[];const width=Math.max.apply(null,rows.map(function(r){return r.length;}).concat([0]));
+  let nameCol=header.findIndex(function(h){return kw.test(repNorm(h));});
+  if(nameCol<0){let best=0,bestText=-1;for(let col=0;col<Math.min(width,4);col++){let txt=0;for(let r=hIdx+1;r<Math.min(rows.length,hIdx+13);r++){const v=rows[r][col];if(v&&!repIsNum(v))txt++;}if(txt>bestText){bestText=txt;best=col;}}nameCol=best;}
+  const headers=[];
+  for(let col=0;col<width;col++){if(col===nameCol)continue;let num=0,tot=0;for(let r=hIdx+1;r<Math.min(rows.length,hIdx+21);r++){const v=rows[r][col];if(v!=null&&v!==''){tot++;if(repIsNum(v))num++;}}const isNum=tot>=2&&num/tot>=0.6;let label=String(header[col]!=null?header[col]:'').trim()||('Col '+(col+1));headers.push({idx:col,label:label,isNum:isNum});}
+  const totals=headers.map(function(h,i){return {i:i,ok:h.isNum&&/\b(total|cumul|somme|general|generale)\b/.test(repNorm(h.label))};}).filter(function(o){return o.ok;});
+  const guess=totals.length?headers.map(function(h,i){return totals.some(function(o){return o.i===i;});}):headers.map(function(h){return h.isNum;});
+  return {nameCol:nameCol,headers:headers,hIdx:hIdx,guess:guess};
+}
+function repCotCfg(name){
+  const r=state.reprise;r.cot=r.cot||{};
+  if(!r.cot[name]){const entry=repWB.find(function(x){return x.name===name;});const info=repCotColumns(entry.grid);r.cot[name]={nameCol:info.nameCol,headers:info.headers,hIdx:info.hIdx,chosen:info.guess,cur:'EUR',done:false,saving:false,result:''};}
+  return r.cot[name];
+}
+function repCotToggle(name,i){const cfg=repCotCfg(name);cfg.chosen[i]=!cfg.chosen[i];render();}
+function repCotSetCur(name,cur){const cfg=repCotCfg(name);cfg.cur=cur;}
+async function repIngestCot(name){
+  const cfg=repCotCfg(name);if(cfg.saving)return;
+  const chosenCols=cfg.headers.filter(function(h,i){return cfg.chosen[i];}).map(function(h){return h.idx;});
+  if(!chosenCols.length){cfg.result=rt('cot_none_col');render();return;}
+  cfg.saving=true;cfg.result='';render();
+  try{
+    const c=repResolveCase();const entry=repWB.find(function(x){return x.name===name;});
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(cc){return String(cc).trim();});});
+    c.cotisReprise=c.cotisReprise||[];let added=0;
+    for(let ri=(cfg.hIdx||0)+1;ri<rows.length;ri++){const who=String(rows[ri][cfg.nameCol]!=null?rows[ri][cfg.nameCol]:'').trim();if(!who||repIsNum(who))continue;
+      if(/\b(nom|noms|prenom|prenoms|membre|participant|total|date|montant)\b/.test(repNorm(who)))continue;
+      let tot=0,any=false;chosenCols.forEach(function(col){const v=rows[ri][col];if(repIsNum(v)){tot+=repToNum(v);any=true;}});
+      if(!any)continue;
+      c.cotisReprise.push({who:who,amount:tot,cur:cfg.cur,note:rt('cot_tag')+' · '+name,source:'reprise',sheet:name});added++;}
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    cfg.done=true;cfg.result=rt('cot_result').replace('{x}',added).replace('{c}',c.name);
+  }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  cfg.saving=false;render();
 }
 
 /* ---------- flux d'écran ---------- */
@@ -2308,88 +2387,25 @@ function repSetGroup(v){if(state.reprise)state.reprise.group=v;}
 async function repFile(input){
   const f=input&&input.files&&input.files[0];if(!f)return;
   const r=state.reprise;r.fileName=f.name;r.err='';r.step='reading';render();
-  try{
-    const buf=await f.arrayBuffer();
-    const sheets=await repReadAny(buf);
-    repWB=repClassify(sheets);
+  try{const buf=await f.arrayBuffer();const sheets=await repReadAny(buf);repWB=repClassify(sheets);
     r.sheets=repWB.map(function(x){const nr=x.grid.rows.filter(function(rr){return rr&&rr.some(function(c){return String(c).trim();});}).length;return {name:x.name,role:x.role,nr:nr,merges:x.grid.merges};});
     r.step='preview';render();
   }catch(e){const msg=String((e&&e.message)||e);r.err=(msg==='notables')?rt('err_notables'):rt('err_file');r.step='pick';render();}
 }
-function repSetRole(i,role){if(state.reprise&&state.reprise.sheets[i]){state.reprise.sheets[i].role=role;if(repWB&&repWB[i])repWB[i].role=role;}}
+function repSetRole(i,role){if(state.reprise&&state.reprise.sheets[i]){state.reprise.sheets[i].role=role;if(repWB&&repWB[i])repWB[i].role=role;if(state.reprise.cot&&state.reprise.cot[state.reprise.sheets[i].name])delete state.reprise.cot[state.reprise.sheets[i].name];}}
 function repToggleAttest(cb){if(state.reprise){state.reprise.attested=!!cb.checked;render();}}
 async function repConfirm(){
-  const r=state.reprise;if(!r||!r.attested||r.saving)return;
-  r.saving=true;r.err='';render();
-  try{
-    const roles={};r.sheets.forEach(function(s){roles[s.name]=s.role;});
-    if(typeof sb!=='undefined'&&sb&&sb.from){
-      const res=await sb.from('import_attestations').insert({org_label:r.group||'',file_name:r.fileName||'',sheet_count:r.sheets.length,roles:roles,attest_version:REP_ATTEST_VERSION,attest_text:rt('attest_text')}).select('id').single();
-      if(res.error)throw res.error;r.savedId=(res.data&&res.data.id)||'ok';
-    }else{r.savedId='local';}
+  const r=state.reprise;if(!r||!r.attested||r.saving)return;r.saving=true;r.err='';render();
+  try{const roles={};r.sheets.forEach(function(s){roles[s.name]=s.role;});
+    if(typeof sb!=='undefined'&&sb&&sb.from){const res=await sb.from('import_attestations').insert({org_label:r.group||'',file_name:r.fileName||'',sheet_count:r.sheets.length,roles:roles,attest_version:REP_ATTEST_VERSION,attest_text:rt('attest_text')}).select('id').single();if(res.error)throw res.error;r.savedId=(res.data&&res.data.id)||'ok';}
+    else{r.savedId='local';}
     r.step='done';
   }catch(e){r.err=String((e&&e.message)||e);}
   r.saving=false;render();
 }
-
-/* ---------- ingestion : annuaire -> membres d'une Case ---------- */
-function repMembersEntry(){ if(!repWB)return null; for(let i=0;i<repWB.length;i++){ if(repWB[i].role==='members')return repWB[i]; } return null; }
-function repExtractMembers(grid){
-  const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
-  if(!rows.length)return [];
-  const kw=/\b(nom|noms|name|prenom|prenoms|membre|membres|participant|foyer|adherent|adherents)\b/;
-  const ck=/\b(mail|email|courriel|tel|telephone|phone|contact|numero|whatsapp)\b/;
-  let hIdx=-1;
-  for(let i=0;i<Math.min(rows.length,3);i++){ if(kw.test(repNorm(rows[i].join(' ')))){hIdx=i;break;} }
-  const headerRow=hIdx>=0?rows[hIdx]:rows[0];
-  const head=headerRow.map(function(x){return repNorm(x);});
-  let nameCol=head.findIndex(function(h){return kw.test(h);}); if(nameCol<0)nameCol=0;
-  let contactCol=head.findIndex(function(h){return ck.test(h);});
-  const start=hIdx>=0?hIdx+1:0;
-  const out=[],seen={};
-  for(let i=start;i<rows.length;i++){
-    const nm=String(rows[i][nameCol]!=null?rows[i][nameCol]:'').trim();
-    if(!nm||repIsNum(nm))continue;
-    const k=repNorm(nm); if(seen[k])continue; seen[k]=1;
-    const ct=contactCol>=0?String(rows[i][contactCol]!=null?rows[i][contactCol]:'').trim():'';
-    out.push({name:nm,contact:ct,role:''});
-  }
-  return out;
-}
-function repSetIngestMode(m){if(state.reprise&&state.reprise.ingest){state.reprise.ingest.mode=m;render();}}
-function repSetIngestTarget(id){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.targetId=id;}
-function repSetCaseName(v){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.caseName=v;}
-async function repIngestMembers(){
-  const r=state.reprise;if(!r||!r.ingest||r.ingest.saving)return;const ing=r.ingest;
-  const entry=repMembersEntry();if(!entry)return;
-  const members=repExtractMembers(entry.grid);
-  ing.saving=true;ing.result='';render();
-  try{
-    let c;
-    if(ing.mode==='existing'){ c=state_cases.find(function(x){return x.id===ing.targetId;}); if(!c)throw new Error(rt('ing_pickcase')); }
-    else{ const nm=((ing.caseName||r.group||'Groupe')+'').trim(); c={id:newId('cs'),name:nm,type:'autre',mission:rt('ing_h'),country:(state.homeCountry||''),city:''}; state_cases.unshift(c); }
-    c.members=c.members||[];
-    const seen={};c.members.forEach(function(m){seen[repNorm(m.name)]=1;});
-    const active=!!(c.premium_until&&new Date(c.premium_until)>new Date());
-    const max=active?100:30;
-    let added=0,dup=0,pending=0;const pendingList=[];
-    for(let i=0;i<members.length;i++){const m=members[i];const k=repNorm(m.name);
-      if(seen[k]){dup++;continue;}
-      if(c.members.length>=max){pending++;pendingList.push(m);continue;}
-      c.members.push({name:m.name,contact:m.contact||'',role:m.role||''});seen[k]=1;added++;}
-    if(typeof db!=='undefined'&&db&&db.saveCase){ await db.saveCase(c); }
-    r.pendingMembers=pendingList;ing.done=true;ing.targetId=c.id;
-    ing.result=rt('ing_result_ok').replace('{x}',added).replace('{c}',c.name)
-      +(dup?(' '+rt('ing_result_dup').replace('{d}',dup)):'')
-      +(pending?(' '+rt('ing_result_pending').replace('{y}',pending).replace('{max}',max)):'');
-  }catch(e){ing.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
-  ing.saving=false;render();
-}
-
 function viewReprise(){
   if(!state.reprise)repStart();
-  const r=state.reprise;
-  let body='';
+  const r=state.reprise;let body='';
   const back=`<div class="releve-actions" style="margin-bottom:4px"><button class="btn btn-ghost btn-sm" onclick="go('case')">\u2039 ${rt('back_case')}</button></div>`;
   if(r.step==='pick'||r.step==='reading'){
     body=`
@@ -2402,70 +2418,67 @@ function viewReprise(){
       <input value="${esc(r.group||'')}" oninput="repSetGroup(this.value)" placeholder="${esc(rt('grp_ph'))}" style="width:100%;margin:6px 0 14px;padding:9px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">
       ${r.step==='reading'?`<div class="msub">${rt('reading')}</div>`:`<input type="file" accept=".xlsx,.docx" onchange="repFile(this)"><div class="hint" style="margin-top:6px">${rt('formats')}</div>`}
       <div class="hint" style="margin-top:12px">${rt('note_derived')}</div>
-    </div></div>
-    ${footer()}`;
+    </div></div>`;
   } else if(r.step==='preview'){
     const rowsHtml=r.sheets.map(function(s,i){
       const dim=(s.role==='ignore'||s.role==='fiche_derivee')?'opacity:.6':'';
       const opts=REP_ROLES.map(function(rl){return `<option value="${rl}"${rl===s.role?' selected':''}>${esc(repRoleLabel(rl))}</option>`;}).join('');
-      return `<tr style="${dim}">
-        <td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08)">${esc(s.name)}</td>
-        <td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08)"><select onchange="repSetRole(${i},this.value)" style="font:inherit;padding:5px 6px;border:1px solid rgba(0,0,0,.18);border-radius:7px;max-width:100%">${opts}</select></td>
-        <td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08);white-space:nowrap" class="msub">${rt('lines').replace('{n}',s.nr)}</td>
-      </tr>`;
+      return `<tr style="${dim}"><td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08)">${esc(s.name)}</td><td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08)"><select onchange="repSetRole(${i},this.value)" style="font:inherit;padding:5px 6px;border:1px solid rgba(0,0,0,.18);border-radius:7px;max-width:100%">${opts}</select></td><td style="padding:8px 10px;border-top:1px solid rgba(0,0,0,.08);white-space:nowrap" class="msub">${rt('lines').replace('{n}',s.nr)}</td></tr>`;
     }).join('');
     body=`
     <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('changefile')}</button></div>
     <h1 class="page-title">${esc(r.group||rt('title'))}</h1>
     <p class="lead">${rt('detected').replace('{n}',r.sheets.length)} · ${esc(r.fileName)}</p>
     <div class="hint" style="margin-bottom:8px">${rt('role_hint')}</div>
-    <div class="panel"><div style="padding:6px 8px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px">
-      <tr><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_sheet')}</th><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_role')}</th><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_size')}</th></tr>
-      ${rowsHtml}
-    </table></div></div>
+    <div class="panel"><div style="padding:6px 8px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px"><tr><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_sheet')}</th><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_role')}</th><th style="text-align:left;padding:8px 10px" class="msub">${rt('col_size')}</th></tr>${rowsHtml}</table></div></div>
     <h2 class="section-h">${rt('attest_h')}</h2>
     <div class="panel"><div style="padding:14px 18px">
       <p style="margin:0 0 12px">${rt('attest_text')}</p>
-      <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
-        <input type="checkbox" ${r.attested?'checked':''} onchange="repToggleAttest(this)" style="margin-top:3px">
-        <span>${rt('attest_check')}</span></label>
+      <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer"><input type="checkbox" ${r.attested?'checked':''} onchange="repToggleAttest(this)" style="margin-top:3px"><span>${rt('attest_check')}</span></label>
       ${r.err?`<div style="margin-top:10px;color:#b23">${esc(r.err)}</div>`:''}
-      <div class="row" style="margin-top:14px">
-        <button class="btn btn-gold" ${(!r.attested||r.saving)?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repConfirm()">${r.saving?rt('saving'):rt('confirm')}</button>
-      </div>
-    </div></div>
-    ${footer()}`;
+      <div class="row" style="margin-top:14px"><button class="btn btn-gold" ${(!r.attested||r.saving)?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repConfirm()">${r.saving?rt('saving'):rt('confirm')}</button></div>
+    </div></div>`;
   } else if(r.step==='done'){
-    if(!r.ingest)r.ingest={mode:'new',targetId:'',caseName:(r.group||''),done:false,saving:false,result:''};
+    if(!r.ingest)r.ingest={mode:'new',targetId:'',caseName:(r.group||''),saving:false};
     const ing=r.ingest;
-    const entry=repMembersEntry();
-    const nMembers=entry?repExtractMembers(entry.grid).length:0;
+    const resolved=ing.targetId?(state_cases.find(function(x){return x.id===ing.targetId;})||null):null;
     const caseOpts=(typeof state_cases!=='undefined'?state_cases:[]).map(function(c){return `<option value="${esc(c.id)}"${c.id===ing.targetId?' selected':''}>${esc(c.name)}</option>`;}).join('');
-    let ingPanel='';
-    if(!entry){ ingPanel=`<div class="panel"><div style="padding:14px 18px" class="msub">${rt('ing_none')}</div></div>`; }
-    else if(ing.done){ ingPanel=`<div class="panel"><div style="padding:14px 18px"><p style="margin:0">${esc(ing.result)}</p>
-        <div class="row" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(ing.targetId)}')">${(state&&state.lang==='en')?'Open the Case':'Ouvrir la Case'}</button></div></div></div>`; }
-    else { ingPanel=`
-      <h2 class="section-h">${rt('ing_h')}</h2>
-      <div class="panel"><div style="padding:14px 18px">
-        <p style="margin:0 0 12px">${rt('ing_found').replace('{n}',nMembers)}</p>
-        <div class="msub" style="margin-bottom:6px">${rt('ing_where')}</div>
-        <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='new'?'checked':''} onchange="repSetIngestMode('new')"> ${rt('ing_new')}</label>
-        ${ing.mode==='new'?`<input value="${esc(ing.caseName||'')}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">`:''}
-        <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='existing'?'checked':''} onchange="repSetIngestMode('existing')"> ${rt('ing_existing')}</label>
-        ${ing.mode==='existing'?`<select onchange="repSetIngestTarget(this.value)" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><option value="">${esc(rt('ing_pickcase'))}</option>${caseOpts}</select>`:''}
-        ${ing.result?`<div style="margin:8px 0;color:#b23">${esc(ing.result)}</div>`:''}
-        <div class="row" style="margin-top:10px"><button class="btn btn-gold" ${ing.saving?'disabled style="opacity:.5"':''} onclick="repIngestMembers()">${ing.saving?rt('ing_working'):rt('ing_btn').replace('{n}',nMembers)}</button></div>
-      </div></div>`; }
+    const targetHtml=resolved
+      ?`<div class="panel"><div style="padding:12px 18px" class="msub">${rt('rep_into')} : <b>${esc(resolved.name)}</b></div></div>`
+      :`<div class="panel"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:6px">${rt('ing_where')}</div>
+          <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='new'?'checked':''} onchange="repSetIngestMode('new')"> ${rt('ing_new')}</label>
+          ${ing.mode==='new'?`<input value="${esc(ing.caseName||'')}" oninput="repSetCaseName(this.value)" placeholder="${esc(rt('ing_casename'))}" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">`:''}
+          <label style="display:block;margin:4px 0"><input type="radio" name="repmode" ${ing.mode==='existing'?'checked':''} onchange="repSetIngestMode('existing')"> ${rt('ing_existing')}</label>
+          ${ing.mode==='existing'?`<select onchange="repSetIngestTarget(this.value)" style="width:100%;margin:2px 0 10px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><option value="">${esc(rt('ing_pickcase'))}</option>${caseOpts}</select>`:''}
+        </div></div>`;
+    const mEntry=repMembersEntry();const nMembers=mEntry?repExtractMembers(mEntry.grid).length:0;
+    let membersHtml='';
+    if(mEntry){
+      if(ing.membersDone){membersHtml=`<div class="panel"><div style="padding:12px 18px"><p style="margin:0">${esc(ing.membersResult||'')}</p></div></div>`;}
+      else membersHtml=`<h2 class="section-h">${rt('ing_h')}</h2><div class="panel"><div style="padding:14px 18px"><p style="margin:0 0 10px">${rt('ing_found').replace('{n}',nMembers)}</p>${ing.membersResult?`<div style="margin:6px 0;color:#b23">${esc(ing.membersResult)}</div>`:''}<div class="row"><button class="btn btn-gold" ${ing.saving?'disabled style="opacity:.5"':''} onclick="repIngestMembers()">${ing.saving?rt('ing_working'):rt('ing_btn').replace('{n}',nMembers)}</button></div></div></div>`;
+    }
+    const cotEntries=repCotSheets();let cotHtml='';
+    if(cotEntries.length){
+      cotHtml=`<h2 class="section-h">${rt('cot_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('cot_intro')}</div>`;
+      cotHtml+=cotEntries.map(function(e){const cfg=repCotCfg(e.name);
+        if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> — ${esc(cfg.result)}</p></div></div>`;
+        const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repCotToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
+        const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('cot_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repCotSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestCot('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('cot_working'):rt('cot_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
+      }).join('');
+    }
+    const openBtn=resolved?`<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(resolved.id)}')">${rt('open_case')}</button></div>`:'';
     body=`
     <div class="eyebrow">\u2713</div>
     <h1 class="page-title">${rt('done_h')}</h1>
-    <p class="lead">${rt('done_p').replace('{n}',r.sheets.length)}</p>
-    ${ingPanel}
-    <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>
-    ${footer()}`;
+    <p class="lead">${rt('done_p')}</p>
+    ${targetHtml}
+    ${membersHtml}
+    ${cotHtml}
+    ${openBtn}
+    <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>`;
   }
-  app().innerHTML=back+body;
+  app().innerHTML=back+body+((r.step==='pick'||r.step==='reading')?footer():((typeof footer==='function')?footer():''));
 }
 
 function viewImport(){
@@ -4663,7 +4676,7 @@ function viewCaseCotis(){
         <div class="field" style="flex:2;min-width:140px;margin-top:0"><label>Note</label><input id="ct-note" placeholder="Ex. janvier"></div></div>
       <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseCotisAdd()">+ Enregistrer la cotisation</button></div>
     </div></div>
-    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Cotisations (${c.cotis.length})</h3><span class="pill p-done">Total ${money(total,cur)}</span></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Cotisations (${c.cotis.length})</h3><span class="pill p-done">Total ${money(total,cur)}</span></div><div style="padding:6px 16px 12px">${rows}</div></div>${(c.cotisReprise&&c.cotisReprise.length)?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Historique repris \u00b7 non v\u00e9rifi\u00e9 (${c.cotisReprise.length})</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">Charg\u00e9 depuis un fichier, non v\u00e9rifi\u00e9 par UBORA \u2014 m\u00e9moire de l\u2019association, exclu de la r\u00e9putation et des attestations certifi\u00e9es.</div>${c.cotisReprise.map(x=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||'')}</div></div></div>`).join('')}</div></div>`:''}
     ${footer()}`;
 }
 function caseCotisAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
@@ -4758,7 +4771,7 @@ function viewCase(){
   app().innerHTML=`
     <div class="eyebrow">${tr('mc_eyebrow')}</div>
     <h1 class="page-title">${tr('mc_title')}</h1>
-    <div style="display:flex;gap:16px;align-items:center;margin:8px 0 6px">${caseGlyph(66)}<p class="lead" style="margin:0">${tr('mc_lead')}</p></div>
+    <div style="display:flex;gap:16px;align-items:center;margin:8px 0 6px">${caseGlyph(66)}<p class="lead" style="margin:0;text-align:justify">${tr('mc_lead')}</p></div>
     <div>${trustSeal(tr('mc_seal'))}</div>
     <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button></div>
     ${cards||`<div class="panel"><div class="empty">${tr('mc_none')}</div></div>`}
@@ -6683,7 +6696,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.34';
+const UBORA_BUILD='v8.36';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
