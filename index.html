@@ -2071,7 +2071,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -2783,6 +2783,76 @@ function repStatsBand(){
   /* visiteur : selon les seuils */
   if(people<REP_SEUIL_PLANCHER)return repBandQual();
   return repBandBig(people,groups,visits);
+}
+/* ============================================================================
+   PAS 2a — Accès des membres : générer les codes (créateur) + rejoindre (membre)
+   Suppose la Couche 1 SQL en place (case_members, case_seed_members, join_case).
+   ============================================================================ */
+function repAccessPanel(c){
+  if(!c||!c.id)return '';
+  const st=(state.caseAccess&&state.caseAccess[c.id])||null;
+  let inner;
+  if(!st){
+    inner=`<div class="hint" style="margin-bottom:10px">${_FL('Pr\\u00e9parez les acc\\u00e8s : UBORA g\\u00e9n\\u00e8re un code perso par membre, que vous partagez par email, SMS ou WhatsApp. Chacun rejoint et se relie \\u00e0 sa fiche.','Prepare access: UBORA generates a personal code per member, which you share by email, SMS or WhatsApp. Each person joins and links to their record.')}</div><div class="row"><button class="btn btn-gold btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Pr\\u00e9parer les acc\\u00e8s membres','Prepare member access')}</button></div>`;
+  } else if(st.loading){
+    inner=`<div class="msub">${_FL('Pr\\u00e9paration\\u2026','Preparing\\u2026')}</div>`;
+  } else if(st.err){
+    inner=`<div style="color:#b23">${esc(st.err)}</div><div class="row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('R\\u00e9essayer','Retry')}</button></div>`;
+  } else {
+    const list=st.list||[];
+    const joined=list.filter(function(m){return m.user_id;}).length;
+    const rows=list.map(function(m){
+      const ok=!!m.user_id;
+      return `<div class="mrow"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('reli\\u00e9\\u00b7e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span></div></div><div>${ok?'':`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${esc(String(m.member_ref).replace(/'/g,"\\'"))}','${esc(m.join_code||'')}')">${_FL('Copier l\\u2019invitation','Copy invite')}</button>`}</div></div>`;
+    }).join('');
+    inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reli\\u00e9s. Partagez le code de chacun ; il rejoint via \\u00ab Rejoindre ma Case \\u00bb.','members linked. Share each code; they join via \\u201cJoin my Case\\u201d.')}</div>${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
+  }
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Acc\\u00e8s des membres','Member access')}</h3></div><div style="padding:10px 16px 14px">${inner}</div></div>`;
+}
+async function repLoadAccess(id){
+  if(typeof sb==='undefined'||!sb){return;}
+  state.caseAccess=state.caseAccess||{};state.caseAccess[id]={loading:true};render();
+  try{
+    await sb.rpc('case_seed_members',{p_case:id});
+    const res=await sb.from('case_members').select('member_ref,join_code,user_id').eq('case_id',id).order('member_ref');
+    if(res.error)throw res.error;
+    state.caseAccess[id]={list:res.data||[]};
+  }catch(e){state.caseAccess[id]={err:String((e&&e.message)||e)};}
+  render();
+}
+function repCopyInvite(caseId,member,code){
+  const cse=(state_cases||[]).find(function(x){return x.id===caseId;});
+  const nom=cse?cse.name:'';
+  const url='https://tontine.caroletchatcho.com';
+  const txt=_FL('Bonjour '+member+', vous \\u00eates invit\\u00e9\\u00b7e \\u00e0 rejoindre \\u00ab '+nom+' \\u00bb sur UBORA, le registre de confiance. Rendez-vous sur '+url+' \\u2192 \\u00ab Rejoindre ma Case \\u00bb et entrez votre code : '+code,
+                'Hello '+member+', you are invited to join \\u201c'+nom+'\\u201d on UBORA, the trust register. Go to '+url+' \\u2192 \\u201cJoin my Case\\u201d and enter your code: '+code);
+  try{navigator.clipboard.writeText(txt);}catch(e){}
+  try{alert(_FL('Invitation copi\\u00e9e \\u2014 collez-la dans un email, un SMS ou WhatsApp.','Invitation copied \\u2014 paste it into an email, SMS or WhatsApp.'));}catch(e){}
+}
+function repJoinSet(v){state.repJoinCode=v;}
+async function repJoinSubmit(){
+  const code=((state.repJoinCode||'')+'').trim();if(!code)return;
+  state.repJoinMsg='';state.repJoinBusy=true;state.repJoinOk=false;render();
+  try{
+    const res=await sb.rpc('join_case',{p_code:code});
+    if(res.error)throw res.error;
+    state.repJoinMsg=_FL('C\\u2019est fait \\u2014 vous \\u00eates reli\\u00e9\\u00b7e \\u00e0 votre fiche dans le groupe.','Done \\u2014 you are linked to your record in the group.');
+    state.repJoinOk=true;state.repJoinCode='';
+  }catch(e){state.repJoinMsg=String((e&&e.message)||e);state.repJoinOk=false;}
+  state.repJoinBusy=false;render();
+}
+function viewCaseJoin(){
+  const back='<div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="go(\'case\')">\u2039 '+_FL('Ma Case','My Case')+'</button></div>';
+  app().innerHTML=back+`
+    <div class="eyebrow">${_FL('Rejoindre','Join')}</div>
+    <h1 class="page-title">${_FL('Rejoindre ma Case','Join my Case')}</h1>
+    <p class="lead">${_FL('Entrez le code perso re\\u00e7u dans votre invitation. Il vous relie \\u00e0 votre fiche dans le groupe.','Enter the personal code from your invitation. It links you to your record in the group.')}</p>
+    <div class="panel"><div style="padding:16px 18px">
+      <input value="${esc(state.repJoinCode||'')}" oninput="repJoinSet(this.value)" placeholder="${_FL('Votre code','Your code')}" style="width:100%;padding:12px 13px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit;text-transform:uppercase;letter-spacing:.12em;font-size:16px">
+      ${state.repJoinMsg?`<div style="margin-top:12px;color:${state.repJoinOk?'#2a7d4f':'#b23'}">${esc(state.repJoinMsg)}</div>`:''}
+      <div class="row" style="margin-top:14px"><button class="btn btn-gold" ${state.repJoinBusy?'disabled style="opacity:.5"':''} onclick="repJoinSubmit()">${state.repJoinBusy?'\u2026':_FL('Rejoindre','Join')}</button></div>
+    </div></div>
+    ${footer()}`;
 }
 
 function viewImport(){
@@ -5078,7 +5148,7 @@ function viewCase(){
     <h1 class="page-title">${tr('mc_title')}</h1>
     <div style="display:flex;gap:16px;align-items:center;margin:8px 0 6px">${caseGlyph(66)}<p class="lead" style="margin:0;text-align:justify">${tr('mc_lead')}</p></div>
     <div>${trustSeal(tr('mc_seal'))}</div>
-    <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button></div>
+    <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button><button class="btn btn-ghost btn-sm" onclick="go('casejoin')">${(state&&state.lang==='en')?'Join my Case':'Rejoindre ma Case'}</button></div>
     ${cards||`<div class="panel"><div class="empty">${tr('mc_none')}</div></div>`}
     ${footer()}`;
 }
@@ -5120,6 +5190,7 @@ function viewCaseDetail(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
     ${caseAbonnementPanel(c)}
+    ${repAccessPanel(c)}
     ${repHistPanels(c)}
     ${footer()}`;
 }
@@ -7002,7 +7073,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.45';
+const UBORA_BUILD='v8.46';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
