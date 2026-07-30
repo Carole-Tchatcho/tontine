@@ -2147,7 +2147,17 @@ const REP_I18N={
     cot_intro:'Ces montants sont chargés depuis votre fichier. Ils sont conservés comme mémoire de l’association, marqués « non vérifiés », et n’entrent PAS dans la réputation. Cochez la ou les colonnes de montant à additionner.',
     cot_cols:'Colonnes de montant à additionner',cot_cur:'Devise',cot_btn:'Reprendre « {s} »',cot_working:'Reprise…',
     cot_tag:'Repris · non vérifié',cot_result:'{x} cotisation(s) reprise(s) dans « {c} » (non vérifiées).',cot_none_col:'Cochez au moins une colonne de montant.',
-    cot_text:'texte'},
+    cot_text:'texte',
+    tont_h:'Reprendre les tontines',
+    tont_intro:'Chaque tontine passée devient un historique (non vérifié, hors réputation). Nous créons aussi automatiquement une tontine vivante au nom du groupe : elle repart de zéro et bâtira votre réputation Ubora, honnêtement, dès vos premiers versements. Votre historique n\u2019est pas perdu.',
+    tont_cols:'Colonnes de tours / montants à additionner',
+    tont_btn_first:'Reprendre l\u2019historique + cr\u00e9er la tontine vivante',
+    tont_btn:'Reprendre l\u2019historique \u00ab {s} \u00bb',
+    tont_working:'Reprise\u2026',
+    tont_result:'Historique \u00ab {s} \u00bb repris ({x} membres).',
+    tont_live_ok:'Tontine vivante \u00ab {name} \u00bb cr\u00e9\u00e9e \u2014 code d\u2019invitation {code}. C\u2019est elle qui comptera dans votre r\u00e9putation.',
+    hist_tont_h:'Historique repris \u00b7 non v\u00e9rifi\u00e9',
+    hist_tont_note:'Tontines charg\u00e9es depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9es, hors r\u00e9putation Ubora.'},
   en:{title:'History onboarding',eyebrow:'Your past years, brought in without retyping',
     lead:'Upload your group’s Excel or Word file. UBORA reads every sheet, recognises what each holds, and lets you correct before anything is saved. Nothing is truncated.',
     grp:'Group name (meeting, association, network…)',grp_ph:'e.g. Friends of Bafou Association',
@@ -2171,7 +2181,17 @@ const REP_I18N={
     cot_intro:'These amounts come from your file. They are kept as the association’s memory, marked “unverified”, and do NOT count toward reputation. Tick the amount column(s) to sum.',
     cot_cols:'Amount columns to sum',cot_cur:'Currency',cot_btn:'Bring in “{s}”',cot_working:'Working…',
     cot_tag:'Imported · unverified',cot_result:'{x} contribution(s) brought into “{c}” (unverified).',cot_none_col:'Tick at least one amount column.',
-    cot_text:'text'}
+    cot_text:'text',
+    tont_h:'Bring in tontines',
+    tont_intro:'Each past tontine becomes history (unverified, outside reputation). We also automatically create a live tontine under the group name: it starts fresh and builds your Ubora reputation honestly from your first payments. Your history is not lost.',
+    tont_cols:'Round / amount columns to sum',
+    tont_btn_first:'Bring in history + create the live tontine',
+    tont_btn:'Bring in history \u201c{s}\u201d',
+    tont_working:'Working\u2026',
+    tont_result:'History \u201c{s}\u201d brought in ({x} members).',
+    tont_live_ok:'Live tontine \u201c{name}\u201d created \u2014 invite code {code}. This one counts toward your reputation.',
+    hist_tont_h:'Imported history \u00b7 unverified',
+    hist_tont_note:'Tontines loaded from a file \u2014 group memory, unverified, outside Ubora reputation.'}
 };
 function rt(k){const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';return (REP_I18N[L]&&REP_I18N[L][k])||REP_I18N.fr[k]||k;}
 const REP_ROLES=['members','tontine','reunion','cot_fixe','cot_cumul','aide_ayants','emprunt','tresorerie','depense_recette','cotisation','fiche_derivee','ignore'];
@@ -2351,8 +2371,9 @@ function repCotColumns(grid){
   if(nameCol<0){let best=0,bestText=-1;for(let col=0;col<Math.min(width,4);col++){let txt=0;for(let r=hIdx+1;r<Math.min(rows.length,hIdx+13);r++){const v=rows[r][col];if(v&&!repIsNum(v))txt++;}if(txt>bestText){bestText=txt;best=col;}}nameCol=best;}
   const headers=[];
   for(let col=0;col<width;col++){if(col===nameCol)continue;let num=0,tot=0;for(let r=hIdx+1;r<Math.min(rows.length,hIdx+21);r++){const v=rows[r][col];if(v!=null&&v!==''){tot++;if(repIsNum(v))num++;}}const isNum=tot>=2&&num/tot>=0.6;let label=String(header[col]!=null?header[col]:'').trim()||('Col '+(col+1));headers.push({idx:col,label:label,isNum:isNum});}
-  const totals=headers.map(function(h,i){return {i:i,ok:h.isNum&&/\b(total|cumul|somme|general|generale)\b/.test(repNorm(h.label))};}).filter(function(o){return o.ok;});
-  const guess=totals.length?headers.map(function(h,i){return totals.some(function(o){return o.i===i;});}):headers.map(function(h){return h.isNum;});
+  const isIndexLabel=function(lab){const n=repNorm(lab);return n===''||/\b(n|no|num|numero|position|pos|tour|rang|ordre|id|slot|avaliste|avalistes|garant|garante)\b/.test(n);};
+  const totals=headers.map(function(h,i){return {i:i,ok:h.isNum&&!isIndexLabel(h.label)&&/\b(total|cumul|somme|general|generale)\b/.test(repNorm(h.label))};}).filter(function(o){return o.ok;});
+  const guess=totals.length?headers.map(function(h,i){return totals.some(function(o){return o.i===i;});}):headers.map(function(h){return h.isNum&&!isIndexLabel(h.label);});
   return {nameCol:nameCol,headers:headers,hIdx:hIdx,guess:guess};
 }
 function repCotCfg(name){
@@ -2380,6 +2401,71 @@ async function repIngestCot(name){
     cfg.done=true;cfg.result=rt('cot_result').replace('{x}',added).replace('{c}',c.name);
   }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
   cfg.saving=false;render();
+}
+
+
+/* ---------- ingestion : tontines -> historique + tontine vivante ---------- */
+function repTontineSheets(){if(!repWB)return [];return repWB.filter(function(x){return x.role==='tontine';});}
+function repTontCfg(name){
+  const r=state.reprise;r.tont=r.tont||{};
+  if(!r.tont[name]){const entry=repWB.find(function(x){return x.name===name;});const info=repCotColumns(entry.grid);
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(c){return String(c).trim();});});
+    const header=rows[info.hIdx]||[];
+    let avCol=header.findIndex(function(h){return /\b(avaliste|avalistes|garant|garante)\b/.test(repNorm(h));});
+    let posCol=header.findIndex(function(h){return /\b(position|tour|rang|ordre)\b/.test(repNorm(h));});
+    r.tont[name]={nameCol:info.nameCol,headers:info.headers,hIdx:info.hIdx,chosen:info.guess,avCol:avCol,posCol:posCol,cur:'EUR',done:false,saving:false,result:''};}
+  return r.tont[name];
+}
+function repTontToggle(name,i){const cfg=repTontCfg(name);cfg.chosen[i]=!cfg.chosen[i];render();}
+function repTontSetCur(name,cur){const cfg=repTontCfg(name);cfg.cur=cur;}
+async function repIngestTontine(name){
+  const cfg=repTontCfg(name);if(cfg.saving)return;
+  cfg.saving=true;cfg.result='';render();
+  try{
+    const c=repResolveCase();const entry=repWB.find(function(x){return x.name===name;});
+    const rows=entry.grid.rows.filter(function(rr){return rr&&rr.some(function(cc){return String(cc).trim();});});
+    const chosenCols=cfg.headers.filter(function(h,i){return cfg.chosen[i];}).map(function(h){return h.idx;});
+    const recs=[];const amounts=[];
+    for(let ri=(cfg.hIdx||0)+1;ri<rows.length;ri++){const who=String(rows[ri][cfg.nameCol]!=null?rows[ri][cfg.nameCol]:'').trim();
+      if(!who||repIsNum(who))continue;
+      if(/\b(nom|noms|prenom|prenoms|membre|participant|total|date|montant|position|tour|avaliste)\b/.test(repNorm(who)))continue;
+      let tot=0,any=false;chosenCols.forEach(function(col){const v=rows[ri][col];if(repIsNum(v)){tot+=repToNum(v);any=true;amounts.push(repToNum(v));}});
+      const av=cfg.avCol>=0?String(rows[ri][cfg.avCol]!=null?rows[ri][cfg.avCol]:'').trim():'';
+      const pos=cfg.posCol>=0?String(rows[ri][cfg.posCol]!=null?rows[ri][cfg.posCol]:'').trim():'';
+      recs.push({who:who,avaliste:av,position:pos,total:any?tot:0});}
+    c.tontinesReprise=c.tontinesReprise||[];
+    c.tontinesReprise.push({sheet:name,cur:cfg.cur,rows:recs,source:'reprise'});
+    // tontine vivante : une seule fois, au nom du groupe
+    let liveMsg='';
+    if(!state.reprise.ingest.liveTontineId && typeof db!=='undefined' && db && db.create){
+      let guess=0;if(amounts.length){const f={};amounts.forEach(function(a){f[a]=(f[a]||0)+1;});guess=Number(Object.keys(f).sort(function(a,bb){return f[bb]-f[a];})[0])||0;}
+      const mem=(c.members||[]);
+      const draft={name:c.name,amount:guess,currency:cfg.cur,frequency:'mensuelle',jourEcheance:null,places:Math.max(2,Math.min(30,mem.length+1)),oName:(state.user||c.name||''),oContact:'',oCountry:(state.homeCountry||''),oMk:false,renforced:true,roster:mem.map(function(m){return {name:m.name,contact:m.contact||'\u2014'};})};
+      const tid=await db.create(draft);
+      state.reprise.ingest.liveTontineId=tid;
+      const lt=(typeof state_tontines!=='undefined')?state_tontines.find(function(x){return x.id===tid;}):null;
+      state.reprise.ingest.liveCode=lt?lt.code:'';
+      liveMsg=' '+rt('tont_live_ok').replace('{name}',c.name).replace('{code}',(lt&&lt.code)||'');
+    }
+    if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
+    cfg.done=true;cfg.result=rt('tont_result').replace('{s}',name).replace('{x}',recs.length)+liveMsg;
+  }catch(e){cfg.result=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  cfg.saving=false;render();
+}
+/* section affichée SOUS l'onglet Tontine (lecture seule, hors réputation) */
+function repHistTontines(){
+  if(typeof state_cases==='undefined'||!state_cases)return '';
+  let items=[];
+  state_cases.forEach(function(c){(c.tontinesReprise||[]).forEach(function(h){items.push({caseName:c.name,h:h});});});
+  if(!items.length)return '';
+  const L=(typeof state!=='undefined'&&state&&state.lang==='en')?'en':'fr';
+  const H=(REP_I18N[L]&&REP_I18N[L].hist_tont_h)||REP_I18N.fr.hist_tont_h;
+  const NOTE=(REP_I18N[L]&&REP_I18N[L].hist_tont_note)||REP_I18N.fr.hist_tont_note;
+  let blocks=items.map(function(it){
+    const rowsH=it.h.rows.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.who)+' \u2014 '+money(Number(x.total)||0,it.h.cur||'EUR')+'</div><div class="msub">'+(x.avaliste?('Avaliste : '+esc(x.avaliste)+' \u00b7 '):'')+esc(it.caseName)+' \u00b7 '+esc(it.h.sheet)+'</div></div></div>';}).join('');
+    return '<div class="card" style="flex:1 1 100%"><div class="between"><div class="t-name">'+esc(it.h.sheet)+'</div><span class="pill p-soon">'+esc(it.caseName)+'</span></div><div style="padding:6px 0">'+rowsH+'</div></div>';
+  }).join('');
+  return '<h2 class="section-h" style="margin-top:22px">'+esc(H)+'</h2><div class="hint" style="margin-bottom:8px">'+esc(NOTE)+'</div><div style="display:flex;flex-direction:column;gap:12px">'+blocks+'</div>';
 }
 
 /* ---------- flux d'écran ---------- */
@@ -2468,6 +2554,17 @@ function viewReprise(){
         return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('cot_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repCotSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestCot('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('cot_working'):rt('cot_btn').replace('{s}',esc(e.name))}</button></div></div></div>`;
       }).join('');
     }
+    const tontEntries=repTontineSheets();let tontHtml='';
+    if(tontEntries.length){
+      tontHtml=`<h2 class="section-h">${rt('tont_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('tont_intro')}</div>`;
+      tontHtml+=tontEntries.map(function(e){const cfg=repTontCfg(e.name);
+        if(cfg.done)return `<div class="panel"><div style="padding:12px 18px"><p style="margin:0"><b>${esc(e.name)}</b> \u2014 ${esc(cfg.result)}</p></div></div>`;
+        const cols=cfg.headers.map(function(h,i){return `<label style="display:inline-flex;gap:5px;align-items:center;margin:3px 12px 3px 0"><input type="checkbox" ${cfg.chosen[i]?'checked':''} onchange="repTontToggle('${esc(e.name).replace(/'/g,"\\'")}',${i})"> ${esc(h.label)}${h.isNum?'':` <span class="msub">(${rt('cot_text')})</span>`}</label>`;}).join('');
+        const curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${cfg.cur===cu?'selected':''}>${cu}</option>`;}).join('');
+        const first=!state.reprise.ingest.liveTontineId;
+        return `<div class="panel"><div style="padding:14px 18px"><div style="font-weight:600;margin-bottom:8px">${esc(e.name)}</div><div class="msub" style="margin-bottom:4px">${rt('tont_cols')}</div><div style="margin-bottom:10px">${cols}</div><label class="msub">${rt('cot_cur')}</label><br><select onchange="repTontSetCur('${esc(e.name).replace(/'/g,"\\'")}',this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${curs}</select>${cfg.result?`<div style="margin:6px 0;color:#b23">${esc(cfg.result)}</div>`:''}<div class="row"><button class="btn btn-gold" ${cfg.saving?'disabled style="opacity:.5"':''} onclick="repIngestTontine('${esc(e.name).replace(/'/g,"\\'")}')">${cfg.saving?rt('tont_working'):(first?rt('tont_btn_first'):rt('tont_btn').replace('{s}',esc(e.name)))}</button></div></div></div>`;
+      }).join('');
+    }
     const openBtn=resolved?`<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="openCase('${esc(resolved.id)}')">${rt('open_case')}</button></div>`:'';
     body=`
     <div class="eyebrow">\u2713</div>
@@ -2476,6 +2573,7 @@ function viewReprise(){
     ${targetHtml}
     ${membersHtml}
     ${cotHtml}
+    ${tontHtml}
     ${openBtn}
     <div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="repStart();render()">${rt('done_again')}</button></div>`;
   }
@@ -4299,7 +4397,7 @@ function viewTarifs(){
     </div>
     <p class="lead" style="margin-top:18px">${_FL('Le registre est gratuit, et il l’est entièrement : le journal, la double signature et l’attestation ne s’achètent pas. <b>On paie la taille, jamais l’intégrité.</b>','The register is free, and wholly so: the journal, the double signature and the attestation are not for sale. <b>You pay for size, never for integrity.</b>')}</p>
     <div class="asnote">${_FL('UBORA ne prélève <b>aucune commission sur vos cotisations</b> et ne détient aucun fonds. L’abonnement rémunère le logiciel et son hébergement — rien d’autre.','UBORA takes <b>no commission on your contributions</b> and holds no funds. The subscription pays for the software and its hosting — nothing else.')}</div>
-    <div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>
+    <div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>${repHistTontines()}
     <div class="asnote" style="margin-top:16px">${_FL('<b>Où que soit votre cercle</b>, le registre est le même. Ce qui change, c’est le chemin de l’argent : là où la carte bancaire existe, l’acheteur paie par carte ; ailleurs, il paie l’organisateur par Orange Money, MTN ou virement, et le déclare ici. <b>Dans les deux cas UBORA ne touche rien</b> — et le billet porte le même code vérifiable.','<b>Wherever your circle is</b>, the register is the same. What changes is the path of the money: where cards exist, the buyer pays by card; elsewhere, they pay the organiser by Orange Money, MTN or transfer, and declare it here. <b>Either way UBORA touches nothing</b> — and the ticket carries the same verifiable code.')}</div>
     <div class="asnote" style="margin-top:10px">${_FL('Les abonnements sont ouverts. <b>Kwèn</b> s’applique à un cercle ; <b>Fagot</b> et <b>Baobab</b> à un groupe (réunion, association ou fédération) — les cercles qui en sont membres bénéficient alors de Kwèn. Paiement sécurisé par Stripe, sans engagement, résiliable à tout moment.','Subscriptions are open. <b>Kwèn</b> applies to one circle; <b>Fagot</b> and <b>Baobab</b> to a group (meeting, association or federation) — its member circles then benefit from Kwèn. Secure payment by Stripe, no commitment, cancel anytime.')}</div>
     <h2 class="section-h">${_FL('Et après le registre ?','And beyond the register?')}</h2>
@@ -6697,7 +6795,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.37';
+const UBORA_BUILD='v8.38';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
