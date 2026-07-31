@@ -2788,6 +2788,13 @@ function repStatsBand(){
    PAS 2a — Accès des membres : générer les codes (créateur) + rejoindre (membre)
    Suppose la Couche 1 SQL en place (case_members, case_seed_members, join_case).
    ============================================================================ */
+function repMemberEmail(c,ref){
+  if(!c||!c.members)return '';
+  const n=repNorm(ref);
+  const m=c.members.find(function(x){return repNorm(x.name)===n;});
+  const ct=m?String(m.contact||'').trim():'';
+  return ct.indexOf('@')>=0?ct:'';
+}
 function repAccessPanel(c){
   if(!c||!c.id)return '';
   const st=(state.caseAccess&&state.caseAccess[c.id])||null;
@@ -2801,11 +2808,21 @@ function repAccessPanel(c){
   } else {
     const list=st.list||[];
     const joined=list.filter(function(m){return m.user_id;}).length;
+    const emailable=list.filter(function(m){return !m.user_id && repMemberEmail(c,m.member_ref);}).length;
     const rows=list.map(function(m){
       const ok=!!m.user_id;
-      return `<div class="mrow"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span></div></div><div>${ok?'':`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${esc(String(m.member_ref).replace(/'/g,"\\'"))}','${esc(m.join_code||'')}')">${_FL('Copier l’invitation','Copy invite')}</button>`}</div></div>`;
+      const email=repMemberEmail(c,m.member_ref);
+      const memJs=esc(String(m.member_ref).replace(/'/g,"\\'"));
+      const buBtn=`<button class="btn ${m.is_bureau?'btn-gold':'btn-ghost'} btn-sm" onclick="repSetBureau('${esc(m.id)}','${esc(c.id)}',${m.is_bureau?'false':'true'})">${m.is_bureau?_FL('Bureau ✓','Board ✓'):_FL('Bureau','Board')}</button>`;
+      let actions='';
+      if(!ok){
+        actions=`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}')">${_FL('Copier','Copy')}</button>`;
+        if(email)actions+=` <button class="btn btn-ghost btn-sm" onclick="repEmailInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}','${esc(email)}')">${_FL('Email','Email')}</button>`;
+      }
+      return `<div class="mrow"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${buBtn}${actions}</div></div>`;
     }).join('');
-    inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Partagez le code de chacun ; il rejoint via « Rejoindre ma Case ».','members linked. Share each code; they join via “Join my Case”.')}</div>${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
+    const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
+    inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Nommez le bureau, et invitez par email (ou copiez le code pour SMS/WhatsApp).','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
   }
   return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Accès des membres','Member access')}</h3></div><div style="padding:10px 16px 14px">${inner}</div></div>`;
 }
@@ -2814,11 +2831,44 @@ async function repLoadAccess(id){
   state.caseAccess=state.caseAccess||{};state.caseAccess[id]={loading:true};render();
   try{
     await sb.rpc('case_seed_members',{p_case:id});
-    const res=await sb.from('case_members').select('member_ref,join_code,user_id').eq('case_id',id).order('member_ref');
+    const res=await sb.from('case_members').select('id,member_ref,join_code,user_id,is_bureau').eq('case_id',id).order('member_ref');
     if(res.error)throw res.error;
     state.caseAccess[id]={list:res.data||[]};
   }catch(e){state.caseAccess[id]={err:String((e&&e.message)||e)};}
   render();
+}
+async function repSetBureau(memberId,caseId,flag){
+  try{const res=await sb.rpc('case_set_bureau',{p_member:memberId,p_flag:flag});if(res.error)throw res.error;}
+  catch(e){try{alert(String((e&&e.message)||e));}catch(_){}}
+  await repLoadAccess(caseId);
+}
+function repInviteHtml(c,member,code){
+  const nom=c?c.name:'';const link='https://tontine.caroletchatcho.com';
+  return '<p>'+_FL('Bonjour','Hello')+' '+esc(member)+',</p>'
+    +'<p>'+_FL('Vous êtes invité·e à rejoindre','You are invited to join')+' <b>'+esc(nom)+'</b> '+_FL('sur UBORA, le registre de confiance.','on UBORA, the trust register.')+'</p>'
+    +'<p>'+_FL('Rendez-vous sur','Go to')+' <a href="'+link+'">'+link+'</a>, '+_FL('cliquez « Rejoindre ma Case » et entrez votre code :','click “Join my Case” and enter your code:')+'</p>'
+    +'<p style="font-size:22px;font-weight:700;letter-spacing:3px">'+esc(code)+'</p>'
+    +'<p style="color:#8a8a86">UBORA '+_FL('ne détient aucun fonds — registre de confiance.','holds no funds — trust register.')+'</p>';
+}
+async function repEmailInvite(caseId,member,code,email){
+  const c=(state_cases||[]).find(function(x){return x.id===caseId;});
+  try{
+    await db.sendEmail(email,_FL('Invitation à rejoindre ','Invitation to join ')+(c?c.name:''),repInviteHtml(c,member,code));
+    try{alert(_FL('Invitation envoyée à ','Invitation sent to ')+email);}catch(_){}
+  }catch(e){try{alert(_FL('Échec de l’envoi : ','Send failed: ')+String((e&&e.message)||e));}catch(_){}}
+}
+async function repEmailAll(caseId){
+  const st=(state.caseAccess&&state.caseAccess[caseId]);if(!st||!st.list)return;
+  const c=(state_cases||[]).find(function(x){return x.id===caseId;});
+  const dest=st.list.filter(function(m){return !m.user_id && repMemberEmail(c,m.member_ref);});
+  if(!dest.length)return;
+  let sent=0,fail=0;
+  for(let i=0;i<dest.length;i++){const m=dest[i];const email=repMemberEmail(c,m.member_ref);
+    await new Promise(function(r){setTimeout(r,350);});
+    try{await db.sendEmail(email,_FL('Invitation à rejoindre ','Invitation to join ')+(c?c.name:''),repInviteHtml(c,m.member_ref,m.join_code));sent++;}
+    catch(e){fail++;}
+  }
+  try{alert(_FL('Invitations envoyées : ','Invitations sent: ')+sent+(fail?(' · '+_FL('échecs : ','failures: ')+fail):''));}catch(_){}
 }
 function repCopyInvite(caseId,member,code){
   const cse=(state_cases||[]).find(function(x){return x.id===caseId;});
@@ -7073,7 +7123,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.47';
+const UBORA_BUILD='v8.48';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
