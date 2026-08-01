@@ -2071,7 +2071,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -2824,7 +2824,7 @@ function repAccessPanel(c){
     const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
     inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Nommez le bureau, et invitez par email (ou copiez le code pour SMS/WhatsApp).','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
   }
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Accès des membres','Member access')}</h3></div><div style="padding:10px 16px 14px">${inner}</div></div>`;
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Accès des membres','Member access')}</h3></div><div style="padding:10px 16px 14px"><div class="row" style="margin-bottom:12px"><button class="btn btn-gold btn-sm" onclick="repOpenGroupLife('${esc(c.id)}','${esc(String(c.name||'').replace(/'/g,"\\'"))}')">${_FL('Vue groupe · tiroirs par membre','Group view · per-member drawers')}</button></div>${inner}</div></div>`;
 }
 async function repLoadAccess(id){
   if(typeof sb==='undefined'||!sb){return;}
@@ -2920,7 +2920,7 @@ function repMyCasesPanel(){
   const mc=state.myCases;
   if(!mc||!mc.length)return '';
   const rows=mc.map(function(x){
-    return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.name)} ${x.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('vous : ','you: ')}${esc(x.member)}</div></div><div><button class="btn btn-gold btn-sm" onclick="repOpenMyLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}','${esc(String(x.member).replace(/'/g,"\\'"))}')">${_FL('Ma vue','My view')}</button></div></div>`;
+    return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.name)} ${x.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('vous : ','you: ')}${esc(x.member)}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">${x.bureau?`<button class="btn btn-ghost btn-sm" onclick="repOpenGroupLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}')">${_FL('Vue groupe','Group view')}</button>`:''}<button class="btn btn-gold btn-sm" onclick="repOpenMyLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}','${esc(String(x.member).replace(/'/g,"\\'"))}')">${_FL('Ma vue','My view')}</button></div></div>`;
   }).join('');
   return `<h2 class="section-h" style="margin-top:22px">${_FL('Mes groupes','My groups')}</h2><div class="hint" style="margin-bottom:8px">${_FL('Les groupes où vous êtes membre. Ouvrez « Ma vue » pour suivre votre vie dans le groupe.','Groups where you are a member. Open “My view” to follow your life in the group.')}</div><div class="panel"><div style="padding:6px 16px 10px">${rows}</div></div>`;
 }
@@ -2955,6 +2955,48 @@ function viewMyLife(){
     <div class="eyebrow">${_FL('Ma vue','My view')}</div>
     <h1 class="page-title">${esc(ml.name||'')}</h1>
     <p class="lead">${_FL('Vous : ','You: ')}<b>${esc(ml.member||'')}</b></p>
+    ${body}
+    ${footer()}`;
+}
+
+
+/* ============================================================================
+   « Vue groupe » — le bureau EN COURS voit tout le monde (tiroir par membre)
+   ============================================================================ */
+function repOpenGroupLife(caseId,name){
+  state.groupLife={caseId:caseId,name:name,data:null,loading:true,err:''};
+  go('casegroupview');repLoadGroupLife(caseId);
+}
+async function repLoadGroupLife(caseId){
+  try{const res=await sb.rpc('case_group_life',{p_case:caseId});if(res.error)throw res.error;
+    if(state.groupLife&&state.groupLife.caseId===caseId){state.groupLife.data=res.data||[];state.groupLife.loading=false;}
+  }catch(e){if(state.groupLife&&state.groupLife.caseId===caseId){state.groupLife.err=String((e&&e.message)||e);state.groupLife.loading=false;}}
+  render();
+}
+function viewGroupLife(){
+  const gl=state.groupLife||{};
+  const back='<div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="go(\'case\')">‹ '+_FL('Ma Case','My Case')+'</button></div>';
+  const money2=(typeof money==='function')?money:function(a,c){return a+' '+c;};
+  let body;
+  if(gl.loading){body=`<div class="msub">${_FL('Chargement…','Loading…')}</div>`;}
+  else if(gl.err){body=`<div style="color:#b23">${esc(gl.err)}</div>`;}
+  else{
+    const members=gl.data||[];
+    const sub=function(title,items){if(!items||!items.length)return '';return `<div class="msub" style="margin:8px 0 3px;font-weight:600">${title}</div>${items.join('')}`;};
+    const drawers=members.map(function(m){
+      const cot=(m.cotisations||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${money2(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||x.sheet||'')}</div></div></div>`;});
+      const emp=(m.emprunts||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${money2(Number(x.capital)||0,x.cur||'EUR')}</div><div class="msub">${(x.interet?_FL('Intérêt ','Interest ')+esc(x.interet)+' · ':'')+(x.echeance?_FL('Échéance ','Due ')+esc(x.echeance)+' · ':'')+esc(x.statut||'')}</div></div></div>`;});
+      const ton=(m.tontines||[]).map(function(x){const r=x.row||{};return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.sheet||'')} — ${money2(Number(r.total)||0,x.cur||'EUR')}</div><div class="msub">${(r.avaliste?_FL('Avaliste : ','Guarantor: ')+esc(r.avaliste)+' · ':'')+(r.position?_FL('Position ','Position ')+esc(r.position):'')}</div></div></div>`;});
+      const aid=(m.aides||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.detail||'')}</div><div class="msub">${esc(x.sheet||'')}</div></div></div>`;});
+      const any=cot.length||emp.length||ton.length||aid.length;
+      const inner=any?(sub(_FL('Cotisations','Contributions'),cot)+sub(_FL('Emprunts','Loans'),emp)+sub(_FL('Tontines (historique)','Tontines (history)'),ton)+sub(_FL('Aides / ayants droit','Aid / beneficiaries'),aid)):`<div class="msub" style="padding:4px 0">${_FL('Aucun historique à son nom.','No history in their name.')}</div>`;
+      return `<details class="panel" style="margin-top:10px"><summary style="cursor:pointer;padding:13px 16px;list-style:none"><span class="mname">${esc(m.member)}</span> ${m.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''} ${m.joined?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}</summary><div style="padding:0 16px 14px">${inner}</div></details>`;
+    }).join('');
+    body=`<div class="hint" style="margin-bottom:10px">${_FL('Vous voyez le groupe entier — un tiroir par membre. Réservé au bureau en cours ; l’ancien bureau perd cet accès.','You see the whole group — one drawer per member. Reserved for the current board; the former board loses this access.')}</div>${drawers||`<div class="panel"><div class="empty">${_FL('Aucun membre.','No members.')}</div></div>`}`;
+  }
+  app().innerHTML=back+`
+    <div class="eyebrow">${_FL('Vue groupe','Group view')}</div>
+    <h1 class="page-title">${esc(gl.name||'')}</h1>
     ${body}
     ${footer()}`;
 }
@@ -7178,7 +7220,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.49';
+const UBORA_BUILD='v8.50';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
