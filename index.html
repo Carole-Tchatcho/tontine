@@ -2071,7 +2071,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -2902,6 +2902,60 @@ function viewCaseJoin(){
       ${state.repJoinMsg?`<div style="margin-top:12px;color:${state.repJoinOk?'#2a7d4f':'#b23'}">${esc(state.repJoinMsg)}</div>`:''}
       <div class="row" style="margin-top:14px"><button class="btn btn-gold" ${state.repJoinBusy?'disabled style="opacity:.5"':''} onclick="repJoinSubmit()">${state.repJoinBusy?'…':_FL('Rejoindre','Join')}</button></div>
     </div></div>
+    ${footer()}`;
+}
+
+
+/* ============================================================================
+   « Ma vue » — le membre relié voit SA vie dans le groupe (matrice serveur)
+   ============================================================================ */
+async function repLoadMyCases(){
+  if(typeof sb==='undefined'||!sb||!sb.rpc){state.myCases=[];return;}
+  if(state.myCasesLoading)return;state.myCasesLoading=true;
+  try{const res=await sb.rpc('my_member_cases');state.myCases=(res&&!res.error&&Array.isArray(res.data))?res.data:[];}
+  catch(e){state.myCases=[];}
+  state.myCasesLoading=false;render();
+}
+function repMyCasesPanel(){
+  const mc=state.myCases;
+  if(!mc||!mc.length)return '';
+  const rows=mc.map(function(x){
+    return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.name)} ${x.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('vous : ','you: ')}${esc(x.member)}</div></div><div><button class="btn btn-gold btn-sm" onclick="repOpenMyLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}','${esc(String(x.member).replace(/'/g,"\\'"))}')">${_FL('Ma vue','My view')}</button></div></div>`;
+  }).join('');
+  return `<h2 class="section-h" style="margin-top:22px">${_FL('Mes groupes','My groups')}</h2><div class="hint" style="margin-bottom:8px">${_FL('Les groupes où vous êtes membre. Ouvrez « Ma vue » pour suivre votre vie dans le groupe.','Groups where you are a member. Open “My view” to follow your life in the group.')}</div><div class="panel"><div style="padding:6px 16px 10px">${rows}</div></div>`;
+}
+function repOpenMyLife(caseId,name,member){
+  state.myLife={caseId:caseId,name:name,member:member,data:null,loading:true,err:''};
+  go('casemylife');repLoadMyLife(caseId);
+}
+async function repLoadMyLife(caseId){
+  try{const res=await sb.rpc('case_my_life',{p_case:caseId});if(res.error)throw res.error;
+    if(state.myLife&&state.myLife.caseId===caseId){state.myLife.data=res.data||{};state.myLife.loading=false;}
+  }catch(e){if(state.myLife&&state.myLife.caseId===caseId){state.myLife.err=String((e&&e.message)||e);state.myLife.loading=false;}}
+  render();
+}
+function viewMyLife(){
+  const ml=state.myLife||{};
+  const back='<div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="go(\'case\')">‹ '+_FL('Ma Case','My Case')+'</button></div>';
+  const money2=(typeof money==='function')?money:function(a,c){return a+' '+c;};
+  let body;
+  if(ml.loading){body=`<div class="msub">${_FL('Chargement…','Loading…')}</div>`;}
+  else if(ml.err){body=`<div style="color:#b23">${esc(ml.err)}</div>`;}
+  else{
+    const d=ml.data||{};
+    const section=function(title,items){if(!items||!items.length)return '';return `<h2 class="section-h">${title}</h2><div class="panel"><div style="padding:6px 16px 10px">${items.join('')}</div></div>`;};
+    const cot=(d.cotisations||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${money2(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||x.sheet||'')}</div></div></div>`;});
+    const emp=(d.emprunts||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${money2(Number(x.capital)||0,x.cur||'EUR')}</div><div class="msub">${(x.interet?_FL('Intérêt ','Interest ')+esc(x.interet)+' · ':'')+(x.echeance?_FL('Échéance ','Due ')+esc(x.echeance)+' · ':'')+esc(x.statut||'')}</div></div></div>`;});
+    const aid=(d.aides||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.detail||'')}</div><div class="msub">${esc(x.sheet||'')}</div></div></div>`;});
+    const ton=(d.tontines||[]).map(function(x){const r=x.row||{};return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.sheet||'')} — ${money2(Number(r.total)||0,x.cur||'EUR')}</div><div class="msub">${(r.avaliste?_FL('Avaliste : ','Guarantor: ')+esc(r.avaliste)+' · ':'')+(r.position?_FL('Position ','Position ')+esc(r.position):'')}</div></div></div>`;});
+    const any=cot.length||emp.length||aid.length||ton.length;
+    body=`<div class="hint" style="margin-bottom:10px">${_FL('Votre vie dans le groupe — votre historique, visible par vous seul·e (et le bureau). Le présent de vos tontines se suit dans l’onglet Tontines.','Your life in the group — your history, visible only to you (and the board). Your live tontines are followed in the Tontines tab.')}</div>${section(_FL('Mes cotisations','My contributions'),cot)}${section(_FL('Mes emprunts','My loans'),emp)}${section(_FL('Mes tontines (historique)','My tontines (history)'),ton)}${section(_FL('Mes aides / ayants droit','My aid / beneficiaries'),aid)}${any?'':`<div class="panel"><div class="empty">${_FL('Aucun historique repris à votre nom pour l’instant.','No imported history in your name yet.')}</div></div>`}`;
+  }
+  app().innerHTML=back+`
+    <div class="eyebrow">${_FL('Ma vue','My view')}</div>
+    <h1 class="page-title">${esc(ml.name||'')}</h1>
+    <p class="lead">${_FL('Vous : ','You: ')}<b>${esc(ml.member||'')}</b></p>
+    ${body}
     ${footer()}`;
 }
 
@@ -5187,7 +5241,7 @@ function caseGlyph(s){s=s||64;return `<svg width="${s}" height="${s}" viewBox="0
   <path d="M20 68 Q50 62 80 68" stroke="#C9A84C" stroke-width=".7" opacity=".28"/>
   <path d="M42 90 L42 73 Q50 63 58 73 L58 90" fill="#0b1030" stroke="#C9A84C" stroke-width="1.6"/>
 </svg>`;}
-function viewCase(){
+function viewCase(){if(typeof state!=='undefined'&&state.myCases===undefined&&!state.myCasesLoading){repLoadMyCases();}
   const cards=state_cases.map(c=>`<div class="panel p-card" onclick="openCase('${c.id}')">
       <div class="panel-h"><h3>${esc(c.name)}</h3><span class="pill p-face">${tr('mct_'+(c.type||'autre'))}</span></div>
       <div style="padding:12px 20px 16px"><div class="t-meta">${esc(c.mission)}</div>
@@ -5200,6 +5254,7 @@ function viewCase(){
     <div>${trustSeal(tr('mc_seal'))}</div>
     <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button><button class="btn btn-ghost btn-sm" onclick="go('casejoin')">${(state&&state.lang==='en')?'Join my Case':'Rejoindre ma Case'}</button></div>
     ${cards||`<div class="panel"><div class="empty">${tr('mc_none')}</div></div>`}
+    ${repMyCasesPanel()}
     ${footer()}`;
 }
 function viewCaseCreate(){
@@ -7123,7 +7178,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.48';
+const UBORA_BUILD='v8.49';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
