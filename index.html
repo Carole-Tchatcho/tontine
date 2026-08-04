@@ -2160,6 +2160,9 @@ const REP_I18N={
     hist_tont_h:'Historique repris \u00b7 non v\u00e9rifi\u00e9',
     hist_tont_note:'Tontines charg\u00e9es depuis un fichier \u2014 m\u00e9moire du groupe, non v\u00e9rifi\u00e9es, hors r\u00e9putation Ubora.',
     name_label:'Nom de votre groupe / tontine (obligatoire)',
+    mem_tont_intro:'Cette liste a un montant mensuel : vous pouvez aussi créer une tontine vivante avec ces membres. Elle repart de zéro et comptera dans votre réputation dès les premiers versements.',
+    mem_tont_btn:'Créer une tontine ({a}/mois)',
+    mem_tont_ok:'Tontine « {name} » créée — code {code}. Elle apparaît sous Tontines et comptera dans votre réputation.',
     emp_h:'Reprendre les emprunts',
     emp_intro:'Chaque pr\u00eat pass\u00e9 devient un historique (non v\u00e9rifi\u00e9, hors r\u00e9putation) : emprunteur, capital, int\u00e9r\u00eat, \u00e9ch\u00e9ance, statut. UBORA rep\u00e8re les colonnes automatiquement.',
     emp_btn:'Reprendre les emprunts \u00ab {s} \u00bb',emp_working:'Reprise\u2026',emp_result:'{x} emprunt(s) repris.',
@@ -2206,6 +2209,9 @@ const REP_I18N={
     hist_tont_h:'Imported history \u00b7 unverified',
     hist_tont_note:'Tontines loaded from a file \u2014 group memory, unverified, outside Ubora reputation.',
     name_label:'Your group / tontine name (required)',
+    mem_tont_intro:'This list has a monthly amount: you can also create a live tontine with these members. It starts fresh and will count toward your reputation from the first payments.',
+    mem_tont_btn:'Create a tontine ({a}/mo)',
+    mem_tont_ok:'Tontine “{name}” created — code {code}. It appears under Tontines and counts toward your reputation.',
     emp_h:'Bring in loans',
     emp_intro:'Each past loan becomes history (unverified, outside reputation): borrower, principal, interest, due date, status. UBORA detects the columns automatically.',
     emp_btn:'Bring in loans \u201c{s}\u201d',emp_working:'Working\u2026',emp_result:'{x} loan(s) brought in.',
@@ -2594,6 +2600,40 @@ function repTresoPanel(c){
 /* tous les panneaux historiques (injecté dans viewCaseDetail) */
 function repHistPanels(c){return repEmpruntsPanel(c)+repAidesPanel(c)+repTresoPanel(c);}
 
+
+/* ---------- proposer une tontine vivante à partir d'un annuaire à montant mensuel ---------- */
+function repMembersAmount(grid){
+  const info=repCotColumns(grid);
+  const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
+  const amtHeader=/\b(somme|montant|cotis|cotisation|part|parts|mois|mensuel|mensuelle|contribution)\b/;
+  let col=info.headers.find(function(h){return h.isNum&&amtHeader.test(repNorm(h.label));});
+  if(!col)col=info.headers.find(function(h){return h.isNum;});
+  if(!col)return {has:false};
+  const amounts=[];
+  for(let r=(info.hIdx||0)+1;r<rows.length;r++){const v=rows[r][col.idx];if(repIsNum(v))amounts.push(repToNum(v));}
+  if(!amounts.length)return {has:false};
+  const f={};amounts.forEach(function(a){f[a]=(f[a]||0)+1;});
+  const guess=Number(Object.keys(f).sort(function(a,bb){return f[bb]-f[a];})[0])||0;
+  return {has:true,amount:guess,label:col.label};
+}
+function repSetTontineCur(cur){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.tontineCur=cur;}
+async function repCreateTontineFromMembers(){
+  const r=state.reprise;if(!r||!r.ingest||r.ingest.tontineBusy)return;const ing=r.ingest;
+  const entry=repMembersEntry();if(!entry)return;
+  ing.tontineBusy=true;ing.tontineMsg='';render();
+  try{
+    const c=repResolveCase();
+    const members=repExtractMembers(entry.grid);
+    const ai=repMembersAmount(entry.grid);
+    const draft={name:c.name,amount:(ai.amount||0),currency:(ing.tontineCur||'EUR'),frequency:'mensuelle',jourEcheance:null,places:Math.max(2,Math.min(30,members.length)),oName:(state.user||c.name||''),oContact:'',oCountry:(state.homeCountry||''),oMk:false,renforced:true,roster:members.map(function(m){return {name:m.name,contact:m.contact||'\u2014'};})};
+    const tid=await db.create(draft);
+    ing.tontineId=tid;
+    const lt=(typeof state_tontines!=='undefined')?state_tontines.find(function(x){return x.id===tid;}):null;
+    ing.tontineMsg=rt('mem_tont_ok').replace('{name}',c.name).replace('{code}',(lt&&lt.code)||'');
+  }catch(e){ing.tontineMsg=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
+  ing.tontineBusy=false;render();
+}
+
 /* ---------- flux d'écran ---------- */
 function repStart(){repWB=null;state.reprise={step:'pick',group:'',fileName:'',sheets:[],attested:false,saving:false,savedId:null,err:''};}
 function repSetGroup(v){if(state.reprise)state.reprise.group=v;}
@@ -2670,6 +2710,12 @@ function viewReprise(){
       if(ing.membersDone){membersHtml=`<div class="panel"><div style="padding:12px 18px"><p style="margin:0">${esc(ing.membersResult||'')}</p></div></div>`;}
       else membersHtml=`<h2 class="section-h">${rt('ing_h')}</h2><div class="panel"><div style="padding:14px 18px"><p style="margin:0 0 10px">${rt('ing_found').replace('{n}',nMembers)}</p>${ing.membersResult?`<div style="margin:6px 0;color:#b23">${esc(ing.membersResult)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(ing.saving||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repIngestMembers()">${ing.saving?rt('ing_working'):rt('ing_btn').replace('{n}',nMembers)}</button></div></div></div>`;
     }
+    let memTontHtml='';
+    if(mEntry){const _ai=repMembersAmount(mEntry.grid);if(_ai.has){
+      const _curs=['EUR','CHF','USD','CAD','XAF','XOF'].map(function(cu){return `<option ${(ing.tontineCur||'EUR')===cu?'selected':''}>${cu}</option>`;}).join('');
+      if(ing.tontineId){memTontHtml=`<div class="panel"><div style="padding:12px 18px"><p style="margin:0">${esc(ing.tontineMsg||'')}</p></div></div>`;}
+      else{memTontHtml=`<div class="panel"><div style="padding:14px 18px"><div class="hint" style="margin-bottom:8px">${rt('mem_tont_intro')}</div>${repNeedName()?repNameBox():''}<label class="msub">${rt('cot_cur')}</label><br><select onchange="repSetTontineCur(this.value)" style="margin:4px 0 10px;padding:7px 9px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit">${_curs}</select>${ing.tontineMsg?`<div style="margin:6px 0;color:#b23">${esc(ing.tontineMsg)}</div>`:''}<div class="row"><button class="btn btn-gold" ${(ing.tontineBusy||repNeedName())?'disabled style="opacity:.5;cursor:not-allowed"':''} onclick="repCreateTontineFromMembers()">${ing.tontineBusy?rt('tont_working'):rt('mem_tont_btn').replace('{a}',_ai.amount)}</button></div></div></div>`;}
+    }}
     const cotEntries=repCotSheets();let cotHtml='';
     if(cotEntries.length){
       cotHtml=`<h2 class="section-h">${rt('cot_h')}</h2><div class="hint" style="margin-bottom:8px">${rt('cot_intro')}</div>${repNeedName()?repNameBox():''}`;
@@ -2725,6 +2771,7 @@ function viewReprise(){
     <p class="lead">${rt('done_p')}</p>
     ${targetHtml}
     ${membersHtml}
+    ${memTontHtml}
     ${cotHtml}
     ${tontHtml}
     ${empHtml}
@@ -7222,7 +7269,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.51';
+const UBORA_BUILD='v8.52';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
