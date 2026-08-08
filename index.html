@@ -680,7 +680,7 @@ const I18N={
     h_create:'+ Créer une tontine',h_join:'Rejoindre une tontine',h_empty_t:'Aucune tontine pour l\u2019instant.',
     h_caisses:'Caisses d\u2019entraide',
     h_caisses_lead:'La caisse de solidarité de votre association — décès, rapatriement, événements de vie. UBORA en tient le registre, jamais les fonds.',
-    h_create_caisse:'+ Créer une caisse / association',h_empty_c:'Aucune caisse pour l\u2019instant.',
+    h_create_caisse:'+ Créer une caisse / association',et_my_caisses:'Mes caisses',et_empty_caisses:'Aucune caisse pour l’instant. Créez la première.',empty_members:'Aucun membre pour l’instant. Ajoutez le premier.',empty_cotis:'Aucune cotisation enregistrée.',empty_org_events:'Aucun événement pour cette organisation.',empty_contrib:'Aucune contribution pour l’instant.',h_empty_c:'Aucune caisse pour l\u2019instant.',
     c_round:'Tour en cours',c_receives:'Reçoit ce tour',c_confirmed:'Versements confirmés',c_deadline:'Échéance',
     c_members:'membres',c_spot_open:'place libre',c_spots_open:'places libres',
     cc_appel:'Appel en cours',cc_noappel:'Aucun appel',cc_foyers:'foyers',cc_motif:'Motif',cc_perfoyer:'Par foyer',cc_paid:'Foyers ayant versé',
@@ -694,7 +694,7 @@ const I18N={
     h_create:'+ Create a tontine',h_join:'Join a tontine',h_empty_t:'No tontine yet.',
     h_caisses:'Mutual-aid funds',
     h_caisses_lead:'Your association\u2019s solidarity fund — bereavement, repatriation, life events. UBORA keeps the ledger, never the funds.',
-    h_create_caisse:'+ Create a fund / association',h_empty_c:'No fund yet.',
+    h_create_caisse:'+ Create a fund / association',et_my_caisses:'My funds',et_empty_caisses:'No fund yet. Create the first one.',empty_members:'No member yet. Add the first one.',empty_cotis:'No contribution recorded.',empty_org_events:'No event for this organization.',empty_contrib:'No contribution yet.',h_empty_c:'No fund yet.',
     c_round:'Current round',c_receives:'Receives this round',c_confirmed:'Confirmed payments',c_deadline:'Deadline',
     c_members:'members',c_spot_open:'spot open',c_spots_open:'spots open',
     cc_appel:'Open call',cc_noappel:'No call',cc_foyers:'households',cc_motif:'Reason',cc_perfoyer:'Per household',cc_paid:'Households paid',
@@ -4732,8 +4732,8 @@ function viewEntraide(){
     <p class="lead">${tr('et_lead')}</p>
     <div>${trustSeal(tr('et_seal'))}</div>
     <div style="margin:16px 0 8px" class="row-gap"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button><button class="btn btn-ghost btn-sm" onclick="go('fedhome')">${tr('et_sec_networks')}</button></div>
-    <h2 class="section-h">Mes caisses</h2>
-    <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">Aucune caisse pour l'instant. Créez la première.</div>`}</div>
+    <h2 class="section-h">${tr('et_my_caisses')}</h2>
+    <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">${tr('et_empty_caisses')}</div>`}</div>
     
     <h2 class="section-h">${tr('et_sec_open')}</h2>
     <div class="cards">${cards||`<div class="empty">${tr('et_empty')}</div>`}</div>
@@ -5391,7 +5391,7 @@ function viewCaseMembers(){
   const c=state_cases.find(x=>x.id===state.activeCase);
   if(!c)return go('case');
   c.members=c.members||[];
-  const rows=c.members.length?c.members.map((m,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${[m.role,m.contact].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseMemberDel(${i})">🗑</button></div></div>`).join(''):`<div class="empty">Aucun membre pour l'instant. Ajoutez le premier.</div>`;
+  const rows=c.members.length?c.members.map((m,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${[m.role,m.contact].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseMemberDel(${i})">🗑</button></div></div>`).join(''):`<div class="empty">${tr('empty_members')}</div>`;
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_dir')}</div>
@@ -5440,7 +5440,7 @@ function viewCaseCotis(){
   c.cotis=c.cotis||[];
   const cur=(c.cotis[0]&&c.cotis[0].cur)||'EUR';
   const total=c.cotis.reduce((s,x)=>s+(Number(x.amount)||0),0);
-  const rows=c.cotis.length?c.cotis.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||'')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseCotisDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">Aucune cotisation enregistr\u00e9e.</div>`;
+  const rows=c.cotis.length?c.cotis.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||'')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseCotisDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">${tr('empty_cotis')}</div>`;
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_cot')}</div>
@@ -5466,7 +5466,7 @@ function openCaseEvts(id){ state.activeCase=id; go('caseevts'); }
 function viewCaseEvts(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   c.evts=c.evts||[];
-  const rows=c.evts.length?c.evts.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.title)}</div><div class="msub">${[x.date,x.lieu].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}${x.note?' \u00b7 '+esc(x.note):''}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">Aucun \u00e9v\u00e9nement pour cette organisation.</div>`;
+  const rows=c.evts.length?c.evts.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.title)}</div><div class="msub">${[x.date,x.lieu].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}${x.note?' \u00b7 '+esc(x.note):''}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">${tr('empty_org_events')}</div>`;
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_evt')}</div>
@@ -5495,7 +5495,7 @@ function viewCaseCagnotte(){
   const cg=c.cagnotte; cg.contribs=cg.contribs||[];
   const raised=cg.contribs.reduce((s,x)=>s+(Number(x.amount)||0),0);
   const goal=Number(cg.goal)||0; const pct=goal>0?Math.min(100,Math.round(raised/goal*100)):0;
-  const rows=cg.contribs.length?cg.contribs.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,cg.cur||'EUR')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseCagDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">Aucune contribution pour l'instant.</div>`;
+  const rows=cg.contribs.length?cg.contribs.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,cg.cur||'EUR')}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseCagDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">${tr('empty_contrib')}</div>`;
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_pot')}</div>
@@ -7476,7 +7476,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.58';
+const UBORA_BUILD='v8.59';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
