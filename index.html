@@ -89,6 +89,17 @@
   .eyebrow{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:8px}
   .page-title{font-size:34px;font-weight:500;line-height:1.08;letter-spacing:-.01em;margin-bottom:2px}
   .lead{color:var(--mid);font-size:15.5px;margin-top:8px;max-width:60ch}
+.kicker{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:6px}
+.kicker-hero{font-size:16px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:700;text-align:center;margin-bottom:10px;position:relative;padding-bottom:12px}
+.kicker-hero::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:56px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.75}
+.ub-tiles{display:grid;gap:14px;margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.ub-tile{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 1px 3px rgba(120,90,40,.05);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.ub-tile:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(120,90,40,.14);border-color:rgba(201,168,76,.55)}
+.ub-tile .tt{font-weight:700;margin-bottom:6px}
+.ub-tile .td{color:var(--mid);font-size:14px;line-height:1.55}
+.faq-item{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.faq-item:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,90,40,.12);border-color:rgba(201,168,76,.5)}
+@media (prefers-reduced-motion:reduce){.ub-tile,.faq-item{transition:none}.ub-tile:hover,.faq-item:hover{transform:none}}
   .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .stack{display:flex;flex-direction:column;min-width:0}
@@ -1849,7 +1860,7 @@ const db={
       if(d.firstBenIdx&&d.firstBenIdx>0&&d.firstBenIdx<places){const _b0=t.rounds[0].beneficiary;t.rounds[0].beneficiary=t.rounds[d.firstBenIdx].beneficiary;t.rounds[d.firstBenIdx].beneficiary=_b0;}
       state_tontines.push(t);return t.id; }
     const uid=await sbUid();
-    if(!uid){ alert('Session non reconnue — reconnecte-toi puis réessaie.'); state.view='auth'; render(); throw new Error('no-session'); }
+    if(!uid){ alert(_FL('Session non reconnue — reconnecte-toi puis réessaie.','Session not recognized — sign in again and retry.')); state.view='auth'; render(); throw new Error('no-session'); }
     await sb.from('profiles').update({nom:d.oName.trim(),contact:d.oContact.trim()||null}).eq('id',uid);
     const{data:t,error}=await sb.from('tontines').insert({nom:d.name.trim(),montant:Number(d.amount)||0,devise:d.currency,jour_echeance:d.jourEcheance||null,
       frequence:d.frequency,places,code:genCode(),organisateur_id:uid,tour_courant:0}).select().single(); if(error)throw error;
@@ -2048,6 +2059,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';});}
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
@@ -3333,7 +3345,7 @@ let state_reunions=[{
 }];
 function openReunion(id){state.activeReunion=id;go('reunion');}
 function reuPersist(r){ if(!r)return; if(BACKEND==='supabase'){db.saveReunion(r).catch(e=>console.warn('saveReunion',e));} else saveLocal(); }
-function delReunion(id){ if(!confirm('Supprimer cette réunion ? Cette action est définitive.'))return; const done=()=>{ state_reunions=state_reunions.filter(x=>x.id!==id); go('home'); }; if(BACKEND==='supabase'){ db.deleteReunion(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
+function delReunion(id){ if(!confirm(_FL('Supprimer cette réunion ? Cette action est définitive.','Delete this reunion? This action is permanent.')))return; const done=()=>{ state_reunions=state_reunions.filter(x=>x.id!==id); go('home'); }; if(BACKEND==='supabase'){ db.deleteReunion(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); saveLocal(); } }
 function reuActive(){return state_reunions.find(x=>x.id===state.activeReunion);}
 function reuOpenSeance(r){return r&&r.seances.find(s=>s.open);}
 function reuPot(s){return ((s&&s.contribs)||[]).reduce((a,c)=>a+(Number(c.tontine)||0),0);}
@@ -3358,8 +3370,8 @@ function reuAddMember(){const r=reuActive();if(!r)return;const n=document.getEle
     return;
   }
 r.members.push({name:nm,contact:(c?String(c.value).trim():'')||'\u2014',role:'membre'});r.seances.forEach(s=>{s.contribs.push({tontine:0,cc:r.ccAmount||0,status:'none'});});reuPersist(r);render();}
-function startReunion(){const nm=state.user||'Moi';const r={id:newId('r'),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
-function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:newId('r'),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:newId('s'),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}go('reunion');}
+function startReunion(){const nm=state.user||'Moi';const r={id:newId('r'),code:genCode(),name:tr('re_default_name'),currency:'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members:[{name:nm,contact:'\u2014',role:'organisateur'}],seances:[{id:newId('s'),date:EV_TODAY,label:tr('re_seance_n').replace('{n}',1),open:true,beneficiaryIdx:0,contribs:[{tontine:0,cc:1000,status:'none'}],caisseReturn:0,debts:[]}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}go('reunion');}
+function impToReunion(){const rows=impRows();const seen={};const members=[];const contribs=[];rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;members.push({name:x.name,contact:x.contact||'\u2014',role:members.length===0?'organisateur':'membre'});contribs.push({tontine:impParseAmount(x.amount)||0,cc:1000,status:'declared'});});if(!members.length){alert(tr('imp_need_name'));return;}const sc=state.imp.seance||{};let benIdx=0;if(sc.beneficiary){const bi=members.findIndex(m=>m.name.toLowerCase().indexOf(String(sc.beneficiary).toLowerCase())>=0||String(sc.beneficiary).toLowerCase().indexOf(m.name.toLowerCase())>=0);if(bi>=0)benIdx=bi;}const debts=(sc.debts||[]).map(d=>({name:d.name,amount:d.amount||0,note:''}));const r={id:newId('r'),code:genCode(),name:state.imp.group||tr('re_default_name'),currency:state.imp.cur||'XOF',me:0,tresorierIdx:0,commissaireIdx:null,ccAmount:1000,members,seances:[{id:newId('s'),date:(sc.date||EV_TODAY),label:(sc.date||tr('re_seance_n').replace('{n}',1)),open:true,beneficiaryIdx:benIdx,contribs,caisseReturn:(sc.caisse||0),debts}]};state_reunions.unshift(r);state.activeReunion=r.id;if(BACKEND==='supabase'){db.saveReunion(r).then(()=>go('reunion')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}go('reunion');}
 function viewReunion(){
   const r=reuActive(); if(!r)return go('home');
   const open=reuOpenSeance(r); const closed=r.seances.filter(s=>!s.open);
@@ -3679,9 +3691,9 @@ async function doJoin(){
 function statusPill(s){return s==='confirmed'?`<span class="pill p-paid">${tr('st_confirmed')}</span>`
   :s==='declared'?`<span class="pill p-decl">${tr('st_declared')}</span>`:`<span class="pill p-due">${tr('st_due')}</span>`;}
 
-function delTontine(id){ if(!confirm('Supprimer cette tontine et tout son historique ? Cette action est définitive.'))return;
+function delTontine(id){ if(!confirm(_FL('Supprimer cette tontine et tout son historique ? Cette action est définitive.','Delete this tontine and all its history? This action is permanent.')))return;
   const done=()=>{ state_tontines=(state_tontines||[]).filter(t=>t.id!==id); state.active=null; go('home'); };
-  if(BACKEND==='supabase'){ db.deleteTontine(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  if(BACKEND==='supabase'){ db.deleteTontine(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); }
   else { done(); saveLocal(); } }
 function viewDash(){
   const t=getT(state.active);if(!t)return go('home');
@@ -4424,9 +4436,9 @@ function openCaisse(id){state.activeCaisse=id;state.view='caisse';state.caisseTa
 let cDraft=null;
 function startCaisse(){cDraft={group:'',name:'',type:'deces',currency:'CAD',federation:'',pres:state.user,tres:'',comm:'',cot:'',freq:'mensuelle'};go('caissecreate');}
 function editCaisse(id){ const c=getC(id); if(!c)return; cDraft={editId:id,group:c.group||'',name:c.name||'',type:c.type||'deces',currency:c.currency||'CAD',federation:c.federation||'',pres:'',tres:'',comm:'',cot:(c.cotisation&&c.cotisation.montant)||'',freq:(c.cotisation&&c.cotisation.frequence)||'mensuelle'}; go('caissecreate'); }
-function delCaisse(id){ if(!confirm('Supprimer cette caisse ? Cette action est définitive.'))return;
+function delCaisse(id){ if(!confirm(_FL('Supprimer cette caisse ? Cette action est définitive.','Delete this fund? This action is permanent.')))return;
   const done=()=>{ state_caisses=state_caisses.filter(c=>c.id!==id); go('entraide'); };
-  if(BACKEND==='supabase'){ db.deleteCaisse(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  if(BACKEND==='supabase'){ db.deleteCaisse(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); }
   else { done(); saveLocal(); } }
 function cRead(){ if(!cDraft)return; const g=(id,d)=>{const el=$('#'+id);return el?el.value:d;};
   cDraft.group=g('c-group',cDraft.group);cDraft.name=g('c-name',cDraft.name);cDraft.type=g('c-type',cDraft.type);
@@ -4441,7 +4453,7 @@ function cSave(){cRead();
     const c=getC(cDraft.editId);
     if(c){ c.group=cDraft.group.trim(); c.name=name; c.type=cDraft.type; c.currency=cDraft.currency; c.federation=(cDraft.federation||'').trim()||null; c.cotisation={montant:Number(cDraft.cot)||0,frequence:cDraft.freq}; }
     const eid=cDraft.editId; cDraft=null;
-    if(BACKEND==='supabase'){db.saveCaisse(getC(eid)).then(()=>openCaisse(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    if(BACKEND==='supabase'){db.saveCaisse(getC(eid)).then(()=>openCaisse(eid)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
     saveLocal(); openCaisse(eid); return;
   }
   const creator=cDraft.pres.trim()||state.user||tr('cc_you');
@@ -4456,7 +4468,7 @@ function cSave(){cRead();
       what:tr('cc_seed_created').replace('{c}',creator).replace('{n}',name)+((cDraft.federation&&cDraft.federation!=='Aucun')?tr('cc_seed_net').replace('{f}',cDraft.federation):'.')}]
   });
   const id=state_caisses[0].id; cDraft=null;
-  if(BACKEND==='supabase'){db.saveCaisse(getC(id)).then(()=>openCaisse(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  if(BACKEND==='supabase'){db.saveCaisse(getC(id)).then(()=>openCaisse(id)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
   saveLocal(); openCaisse(id);
 }
 function viewCaisseCreate(){
@@ -5048,7 +5060,7 @@ async function tarifNotify(k){
    tontines — l'envoyer dix fois par semaine sur une grille de prix serait
    une petite cruauté. Pour un visiteur, en revanche, il n'y a pas d'accueil
    à retrouver : il découvre. Chacun atterrit là où il voulait aller. */
-function brandGo(){ go(state.uid?'home':'tarifs'); }
+function brandGo(){ go(state.uid?'home':'landing'); }
 
 function viewTarifs(){
   const cards=PALIERS.map(p=>`<div class="panel tarif-card" style="flex:1;min-width:230px">
@@ -5377,15 +5389,15 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
     const c=state_cases.find(x=>x.id===caseDraft.editId);
     if(c){c.name=name;c.type=type;c.mission=mission;c.country=country;c.city=city;}
     const eid=caseDraft.editId;caseDraft=null;
-    if(BACKEND==='supabase'){db.saveCase(state_cases.find(x=>x.id===eid)).then(()=>openCase(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    if(BACKEND==='supabase'){db.saveCase(state_cases.find(x=>x.id===eid)).then(()=>openCase(eid)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
     openCase(eid);return;
   }
   const nc={id:newId('cs'),name,type,mission,country,city};
   state_cases.unshift(nc);caseDraft=null;
-  if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
   go('case');}
 function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; caseDraft={editId:id,name:c.name||'',type:c.type||'pro',mission:c.mission||'',country:c.country||'',city:c.city||''}; go('casecreate'); }
-function delCase(id){ if(!confirm('Supprimer cette Case ? Cette action est définitive.'))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); } }
+function delCase(id){ if(!confirm(_FL('Supprimer cette Case ? Cette action est définitive.','Delete this Case? This action is permanent.')))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); } }
 function openCaseMembers(id){ state.activeCase=id; go('casemembers'); }
 function viewCaseMembers(){
   const c=state_cases.find(x=>x.id===state.activeCase);
@@ -5650,7 +5662,7 @@ function pSave(){
     if(p){ p.title=title; p.face=face; p.cur=cur;
       if(!(p.expenses&&p.expenses.length)){ const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean); p.members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur}))); } }
     const eid=pDraft.editId; pDraft=null;
-    if(BACKEND==='supabase'){db.savePartage(getP(eid)).then(()=>openPartage(eid)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+    if(BACKEND==='supabase'){db.savePartage(getP(eid)).then(()=>openPartage(eid)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
     saveLocal(); openPartage(eid); return;
   }
   const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean);
@@ -5658,13 +5670,13 @@ function pSave(){
   const id=newId('p');
   state_partages.unshift({id,title,face,cur,members,me:0,expenses:[],settlements:[]});
   pDraft=null;
-  if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e)));return;}
+  if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
   openPartage(id);
 }
 function editPartage(id){ const p=getP(id); if(!p)return; pDraft={editId:id,title:p.title||'',face:p.face||'sortie',cur:p.cur||'EUR',membersText:(p.members||[]).slice(1).map(m=>m.name).join('\n')}; go('partagecreate'); }
-function delPartage(id){ if(!confirm('Supprimer ce partage ? Cette action est définitive.'))return;
+function delPartage(id){ if(!confirm(_FL('Supprimer ce partage ? Cette action est définitive.','Delete this share? This action is permanent.')))return;
   const done=()=>{ state_partages=state_partages.filter(p=>p.id!==id); go('partages'); };
-  if(BACKEND==='supabase'){ db.deletePartage(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); }
+  if(BACKEND==='supabase'){ db.deletePartage(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); }
   else { done(); saveLocal(); } }
 function viewPartage(){
   const p=getP(state.activePartage); if(!p)return go('partages');
@@ -6248,7 +6260,7 @@ async function eSave(){eRead();
     if(ev&&_geoStale){ const _g=await evGeocode(_extra.city,_extra.country);
       if(_g){ev.lat=_g.lat;ev.lng=_g.lng;} else {delete ev.lat;delete ev.lng;} }
     const id=eDraft.editId; eDraft=null;
-    if(BACKEND==='supabase'&&ev){ db.saveEvent(ev).then(()=>openEvent(id)).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
+    if(BACKEND==='supabase'&&ev){ db.saveEvent(ev).then(()=>openEvent(id)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e))); return; }
     saveLocal(); openEvent(id); return;
   }
   const _newEv={id:newId('e'),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
@@ -6258,7 +6270,7 @@ async function eSave(){eRead();
   if(_g){_newEv.lat=_g.lat;_newEv.lng=_g.lng;}
   state_events.unshift(_newEv);
   eDraft=null;
-  if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert('Enregistrement échoué : '+(e.message||e))); return; }
+  if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e))); return; }
   saveLocal();go('events');
 }
 function canEditEvent(ev){ if(!ev)return false; if(!ev.creator)return true; if(ev.creator===state.user||ev.creator===state.uid)return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
@@ -6514,7 +6526,7 @@ function diffOutbox(){
   return `<div class="panel"><div class="panel-h"><h3>${BACKEND==='supabase'?'Journal d\u2019envoi':tr('df_outbox_h')}</h3></div>
     ${rows||`<div class="empty">${BACKEND==='supabase'?'Aucun envoi pour l\u2019instant.':tr('df_outbox_empty')}</div>`}</div>`;
 }
-function delEvent(id){ if(!confirm('Supprimer cet événement ? Cette action est définitive.'))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert('Suppression échouée : '+(e.message||e))); } else { done(); saveLocal(); } }
+function delEvent(id){ if(!confirm(_FL('Supprimer cet événement ? Cette action est définitive.','Delete this event? This action is permanent.')))return; const done=()=>{ state_events=state_events.filter(e=>e.id!==id); go('events'); }; if(BACKEND==='supabase'){ db.deleteEvent(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); saveLocal(); } }
 function editEvent(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const isCreator=!!(ev.creator&&(ev.creator===state.uid||ev.creator===state.user))||!ev.creator;
@@ -7182,7 +7194,7 @@ function viewCGVGate(){
     <div class="panel" style="margin-top:14px"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>`;
 }
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
-function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
 function viewLanding(){
   const gold='#C9A84C';
@@ -7192,7 +7204,7 @@ function viewLanding(){
     ${stat(repFmtNum(42), _FL('groupes &amp; associations','groups &amp; associations'))}
     ${stat(_FL('Suisse','Switzerland'), _FL('données hébergées','data hosted'))}
   </div></div>`;
-  const card=(t,d)=>`<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:4px">${t}</div><div class="lead" style="margin:0">${d}</div></div></div>`;
+  const card=(t,d)=>`<div class="ub-tile"><div class="tt">${t}</div><div class="td">${d}</div></div>`;
   const cards=
      card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
     +card(_FL('La mémoire fiable de votre groupe','Your group’s reliable memory'),_FL('Qui a versé, qui a confirmé, qui reçoit, et quand — proprement, au même endroit. La mémoire ne meurt plus avec le mandat d’un bureau.','Who paid, who confirmed, who receives, and when — cleanly, in one place. The memory no longer dies with a committee’s term.'))
@@ -7200,7 +7212,7 @@ function viewLanding(){
   const video=`<div class="panel" style="margin-top:14px"><div style="padding:26px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
   const pricing=`<div class="lead" style="text-align:center;margin-top:16px">${_FL('Gratuit jusqu’à 12 membres.','Free up to 12 members.')} <a href="#" onclick="go('tarifs');return false" style="color:${gold};text-decoration:underline">${_FL('Voir les tarifs','See pricing')}</a></div>`;
   app().innerHTML=`
-    <div class="kicker" style="text-align:center">${_FL('LE REGISTRE DE CONFIANCE','THE TRUST LEDGER')}</div>
+    <div class="kicker-hero">${_FL('LE REGISTRE DE CONFIANCE','THE TRUST LEDGER')}</div>
     <h1 class="page-title" style="text-align:center">${_FL('La mémoire fiable de votre groupe.','The reliable memory of your group.')}</h1>
     <p class="lead" style="text-align:center;max-width:640px;margin:0 auto">${_FL('Tontines, caisses d’entraide, associations : UBORA tient le compte — qui a versé, qui a confirmé, qui reçoit, et quand. L’argent, lui, ne passe jamais par UBORA.','Tontines, mutual-aid funds, associations: UBORA keeps the count — who paid, who confirmed, who receives, and when. The money itself never passes through UBORA.')}</p>
     <div class="row-gap" style="justify-content:center;margin:20px 0">
@@ -7208,7 +7220,7 @@ function viewLanding(){
       <button class="btn btn-ghost" onclick="go('faq')">${_FL('Comment ça marche ?','How it works')}</button>
     </div>
     ${band}
-    ${cards}
+    <div class="ub-tiles">${cards}</div>
     ${video}
     ${pricing}
     <div class="lead" style="text-align:center;margin-top:18px"><a href="#" onclick="go('auth');return false" style="color:${gold};text-decoration:underline">${_FL('J’ai déjà un compte — me connecter','I already have an account — sign in')}</a></div>
@@ -7272,7 +7284,7 @@ function viewFAQ(){
   ];
   const body=QA.map(function(x){return x.s
     ? `<h2 class="section-h" style="margin-top:24px">${x.s}</h2>`
-    : `<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:6px">${x.q}</div><div class="lead" style="margin:0">${x.a}</div></div></div>`;}).join('');
+    : `<div class="panel faq-item" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:6px">${x.q}</div><div style="color:var(--mid);font-size:15px;line-height:1.6;margin:0;text-align:justify">${x.a}</div></div></div>`;}).join('');
   const videoSlot=`<div class="panel" style="margin-top:6px"><div style="padding:22px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
   const contact=`<div class="panel" style="margin-top:22px"><div style="padding:16px 18px;text-align:center"><div style="font-weight:700">${_FL('Une question restée sans réponse ?','Still have a question?')}</div><div class="msub" style="margin-top:4px">${_FL('Écrivez-nous à','Write to us at')} <a href="mailto:contact@caroletchatcho.com" style="color:var(--gold)">contact@caroletchatcho.com</a></div></div></div>`;
   app().innerHTML=back+`<div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">FAQ</h1><p class="lead">${_FL('Les questions que l’on nous pose le plus souvent.','The questions we are asked most often.')}</p>${videoSlot}${body}${contact}${footer()}`;
@@ -7570,7 +7582,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.60';
+const UBORA_BUILD='v8.62';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
