@@ -2071,7 +2071,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -7182,7 +7182,101 @@ function viewCGVGate(){
     <div class="panel" style="margin-top:14px"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>`;
 }
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
-function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+
+function viewLanding(){
+  const gold='#C9A84C';
+  const stat=(v,l)=>`<div style="padding:0 18px"><div style="font-family:Georgia,serif;font-size:26px;color:${gold};font-weight:600">${v}</div><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:5px">${l}</div></div>`;
+  const band=`<div class="panel" style="margin:18px 0"><div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;padding:18px 20px;text-align:center">
+    ${stat(repFmtNum(1000)+'+', _FL('personnes suivies','people tracked'))}
+    ${stat(repFmtNum(42), _FL('groupes &amp; associations','groups &amp; associations'))}
+    ${stat(_FL('Suisse','Switzerland'), _FL('données hébergées','data hosted'))}
+  </div></div>`;
+  const card=(t,d)=>`<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:4px">${t}</div><div class="lead" style="margin:0">${d}</div></div></div>`;
+  const cards=
+     card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
+    +card(_FL('La mémoire fiable de votre groupe','Your group’s reliable memory'),_FL('Qui a versé, qui a confirmé, qui reçoit, et quand — proprement, au même endroit. La mémoire ne meurt plus avec le mandat d’un bureau.','Who paid, who confirmed, who receives, and when — cleanly, in one place. The memory no longer dies with a committee’s term.'))
+    +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Votre régularité d’épargne, prouvée et vérifiable par un tiers. Une preuve de sérieux qui grandit avec votre discipline.','Your saving regularity, proven and verifiable by a third party. Proof of seriousness that grows with your discipline.'));
+  const video=`<div class="panel" style="margin-top:14px"><div style="padding:26px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+  const pricing=`<div class="lead" style="text-align:center;margin-top:16px">${_FL('Gratuit jusqu’à 12 membres.','Free up to 12 members.')} <a href="#" onclick="go('tarifs');return false" style="color:${gold};text-decoration:underline">${_FL('Voir les tarifs','See pricing')}</a></div>`;
+  app().innerHTML=`
+    <div class="kicker" style="text-align:center">${_FL('LE REGISTRE DE CONFIANCE','THE TRUST LEDGER')}</div>
+    <h1 class="page-title" style="text-align:center">${_FL('La mémoire fiable de votre groupe.','The reliable memory of your group.')}</h1>
+    <p class="lead" style="text-align:center;max-width:640px;margin:0 auto">${_FL('Tontines, caisses d’entraide, associations : UBORA tient le compte — qui a versé, qui a confirmé, qui reçoit, et quand. L’argent, lui, ne passe jamais par UBORA.','Tontines, mutual-aid funds, associations: UBORA keeps the count — who paid, who confirmed, who receives, and when. The money itself never passes through UBORA.')}</p>
+    <div class="row-gap" style="justify-content:center;margin:20px 0">
+      <button class="btn btn-gold" onclick="go('auth')">${_FL('Commencer — c’est gratuit','Get started — it’s free')}</button>
+      <button class="btn btn-ghost" onclick="go('faq')">${_FL('Comment ça marche ?','How it works')}</button>
+    </div>
+    ${band}
+    ${cards}
+    ${video}
+    ${pricing}
+    <div class="lead" style="text-align:center;margin-top:18px"><a href="#" onclick="go('auth');return false" style="color:${gold};text-decoration:underline">${_FL('J’ai déjà un compte — me connecter','I already have an account — sign in')}</a></div>
+    ${footer()}`;
+}
+
+function viewFAQ(){
+  const back=`<a class="backlink" href="#" onclick="go(state.uid?'home':'landing');return false">\u2039 ${_FL('Retour','Back')}</a>`;
+  const QA=[
+    {s:_FL('Comprendre UBORA','Understanding UBORA')},
+    {q:_FL('Qu’est-ce que le registre de confiance UBORA ?','What is the UBORA trust ledger?'),
+     a:_FL('Le registre de confiance UBORA est un cahier de comptes partagé et fiable pour la vie collective : tontines, caisses d’entraide, associations et réseaux de la diaspora, des africain·e·s et afro-descendant·e·s du continent, et de toute communauté qui organise sa vie sociale en groupe. Votre groupe continue de gérer son argent et ses activités exactement comme avant, entre vous ; UBORA en tient la mémoire — qui a versé, qui a confirmé, qui reçoit, qui participe, et quand. Ce n’est ni une banque, ni une application de paiement : c’est la mémoire fiable de votre groupe.',
+             'The UBORA trust ledger is a shared, reliable account book for collective life: tontines, mutual-aid funds, associations and networks of the diaspora, of Africans and people of African descent on the continent, and of any community that organizes its social life as a group. Your group keeps managing its money and its activities exactly as before, among yourselves; UBORA keeps the memory of it — who paid, who confirmed, who receives, who takes part, and when. It is neither a bank nor a payment app: it is the reliable memory of your group.')},
+    {q:_FL('C’est payant ?','Is it paid?'),
+     a:_FL('Oui et non : commencer est gratuit — un groupe jusqu’à 12 membres ne paie rien — et UBORA ne prélève jamais de commission sur vos cotisations. Au-delà, des paliers payants débloquent de plus grands groupes et des fonctionnalités pour les associations et fédérations ; les montants à jour figurent sur la page Tarifs. Vous payez un abonnement pour l’outil, pas un pourcentage de votre argent.',
+             'Yes and no: getting started is free — a group of up to 12 members pays nothing — and UBORA never takes a commission on your contributions. Beyond that, paid tiers unlock larger groups and features for associations and federations; up-to-date amounts are on the Pricing page. You pay a subscription for the tool, not a percentage of your money.')},
+    {q:_FL('UBORA organise-t-il une tontine pour tout le monde ?','Does UBORA run a tontine for everyone?'),
+     a:_FL('Non. UBORA ne crée, n’organise et ne gère aucune tontine, et ne réunit pas des inconnus dans une caisse commune. Ce sont les groupes qui existent déjà — votre famille, votre association, vos amis — qui tiennent leur propre tontine et utilisent UBORA pour en garder la trace. Vous restez maîtres de qui participe et de la façon dont l’argent circule.',
+             'No. UBORA does not create, organize or manage any tontine, and does not gather strangers into a common pot. It is the groups that already exist — your family, your association, your friends — that run their own tontine and use UBORA to keep track of it. You stay in charge of who takes part and how the money moves.')},
+    {q:_FL('Quelle différence entre une « tontine » et une « réunion » ?','What is the difference between a “tontine” and a “reunion”?'),
+     a:_FL('Une tontine : un montant fixe, une échéance régulière, et chacun reçoit la cagnotte à son tour. Une réunion : des montants variables, on se retrouve en séances, et le pot du jour va au bénéficiaire désigné. UBORA gère les deux — vous choisissez ce qui ressemble à votre groupe.',
+             'A tontine: a fixed amount, a regular due date, and each person receives the pot in turn. A reunion: variable amounts, you meet in sessions, and the day’s pot goes to the designated beneficiary. UBORA handles both — you choose what fits your group.')},
+    {s:_FL('Au-delà de la tontine','Beyond the tontine')},
+    {q:_FL('À quoi servent les « Événements » ?','What are “Events” for?'),
+     a:_FL('Au-delà des comptes, UBORA aide les groupes à vivre : la rubrique Événements permet d’organiser des rencontres, des célébrations et des séances, de gérer les invitations et, si besoin, la billetterie. Arriver en terre étrangère, c’est souvent d’abord la solitude ; se retrouver autour d’un événement, c’est retrouver une communauté. UBORA veut être ce lien autant que ce registre.',
+             'Beyond keeping accounts, UBORA helps groups to live: the Events section lets you organize gatherings, celebrations and sessions, manage invitations and, if needed, ticketing. Arriving in a foreign land often means loneliness first; coming together around an event means finding a community again. UBORA aims to be that bond as much as that ledger.')},
+    {q:_FL('À quoi sert l’onglet « Partage » ?','What is the “Sharing” tab for?'),
+     a:_FL('Partage documente les dépenses communes du quotidien — au sein d’un ménage, entre amis, à l’occasion d’une sortie ou d’un projet partagé. Chacun note ce qu’il a payé, et UBORA calcule qui doit quoi à qui pour équilibrer les comptes simplement. Comme toujours, l’argent ne passe pas par UBORA : il fait le décompte, vous réglez entre vous.',
+             'Sharing documents everyday shared expenses — within a household, among friends, for an outing or a joint project. Everyone records what they paid, and UBORA computes who owes whom to settle up simply. As always, money never passes through UBORA: it does the maths, you settle among yourselves.')},
+    {q:_FL('Une association ou une fédération peut-elle utiliser UBORA ?','Can an association or a federation use UBORA?'),
+     a:_FL('Oui, c’est même pensé pour ça. Une association peut tenir plusieurs cercles, et une fédération peut regrouper plusieurs associations sous une même vue d’ensemble. Des paliers dédiés existent pour les grandes structures (voir Tarifs). UBORA accompagne ainsi le petit cercle familial comme le réseau organisé, sans changer d’outil.',
+             'Yes — it is built for that. An association can run several circles, and a federation can bring several associations together under one overview. Dedicated tiers exist for larger structures (see Pricing). UBORA thus supports the small family circle and the organized network alike, without changing tools.')},
+    {s:_FL('Argent & régulation','Money & regulation')},
+    {q:_FL('Est-ce que UBORA prend ou touche à mon argent ?','Does UBORA take or touch my money?'),
+     a:_FL('Jamais. L’argent ne passe pas par UBORA : il circule directement entre les membres, comme il l’a toujours fait (de la main à la main, Mobile Money, virement…). UBORA ne détient aucun fonds, ne prélève aucune commission sur les cotisations et n’a aucun accès à vos moyens de paiement. Son rôle se limite à tenir le registre.',
+             'Never. Money does not pass through UBORA: it moves directly between members, as it always has (hand to hand, Mobile Money, bank transfer…). UBORA holds no funds, takes no commission on contributions, and has no access to your payment methods. Its role is limited to keeping the ledger.')},
+    {q:_FL('Est-ce une banque, une assurance, un placement ? Est-ce régulé par la FINMA ?','Is it a bank, an insurance, a fund? Is it regulated by FINMA?'),
+     a:_FL('Non — à ce jour, UBORA n’est ni une banque, ni une assurance, ni un placement collectif, et n’est pas enregistrée auprès de la FINMA. UBORA est un outil de registre et de confiance : il ne reçoit pas de dépôts, ne promet aucun rendement et ne couvre aucun risque. Ce que votre groupe fait de son argent relève de vous et de vos accords entre membres.',
+             'No — as of today, UBORA is neither a bank, nor an insurer, nor a collective investment scheme, and is not registered with FINMA. UBORA is a ledger and trust tool: it takes no deposits, promises no return and covers no risk. What your group does with its money is up to you and your agreements among members.')},
+    {s:_FL('Vie privée & données','Privacy & data')},
+    {q:_FL('Mes données sont-elles en sécurité et privées ?','Is my data secure and private?'),
+     a:_FL('Vos données sont hébergées en Suisse (région de Zurich) et protégées par des règles d’accès strictes : au sein d’un groupe, chaque membre voit ses propres informations, et seul le bureau voit l’ensemble du groupe. UBORA ne vend ni ne loue vos données à personne. Le détail figure sur notre page Confidentialité.',
+             'Your data is hosted in Switzerland (Zurich region) and protected by strict access rules: within a group, each member sees their own information, and only the committee sees the whole group. UBORA neither sells nor rents your data to anyone. Details are on our Privacy page.')},
+    {q:_FL('L’administrateur d’UBORA a-t-il accès aux données personnelles des groupes ?','Does the UBORA administrator have access to groups’ personal data?'),
+     a:_FL('En tant que responsable du service, UBORA dispose techniquement d’un accès aux données pour faire fonctionner la plateforme, assurer le support et répondre à ses obligations légales — comme tout éditeur de logiciel. Mais le service est conçu pour cloisonner l’information (chaque membre voit ses données, le bureau voit son groupe), et UBORA n’utilise pas vos données personnelles à d’autres fins, ne les revend pas et ne les partage pas. Ces engagements sont détaillés dans notre page Confidentialité.',
+             'As the party responsible for the service, UBORA technically has access to data in order to run the platform, provide support and meet its legal obligations — like any software provider. But the service is designed to compartmentalize information (each member sees their own data, the committee sees its group), and UBORA does not use your personal data for other purposes, does not resell it and does not share it. These commitments are detailed on our Privacy page.')},
+    {q:_FL('Est-il normal qu’on me demande mon adresse e-mail à la connexion ?','Is it normal that I’m asked for my email when I sign in?'),
+     a:_FL('Oui, c’est normal et attendu. Votre adresse e-mail sert à vous identifier (votre connexion), à recevoir les invitations de votre groupe et les rappels d’échéance. Elle n’est ni vendue ni partagée, et sert uniquement au fonctionnement du service.',
+             'Yes, it is normal and expected. Your email address is used to identify you (your sign-in), to receive your group’s invitations and due-date reminders. It is neither sold nor shared, and serves only to run the service.')},
+    {s:_FL('Compte & usage','Account & usage')},
+    {q:_FL('Comment rejoindre une tontine existante ?','How do I join an existing tontine?'),
+     a:_FL('Le bureau de votre groupe vous envoie une invitation (par e-mail ou par un code personnel). Vous cliquez sur le lien ou saisissez votre code, et vous rejoignez le cercle — vous voyez alors votre part et l’historique qui vous concerne. On ne peut pas rejoindre un groupe sans y être invité : c’est le groupe qui garde la main.',
+             'Your group’s committee sends you an invitation (by email or a personal code). You click the link or enter your code, and you join the circle — you then see your own share and the history that concerns you. You cannot join a group without being invited: the group stays in control.')},
+    {q:_FL('Que se passe-t-il si quelqu’un ne paie pas ?','What happens if someone doesn’t pay?'),
+     a:_FL('Comme UBORA ne gère pas l’argent, il n’impose aucune sanction — ce n’est pas un gendarme. En revanche, le registre rend les choses visibles : on voit clairement qui a versé et confirmé, et qui est en retard. Cette transparence, avec les rappels automatiques, aide le groupe à régler la situation selon ses propres règles.',
+             'Since UBORA does not handle the money, it imposes no penalty — it is not a police officer. What it does is make things visible: you can clearly see who has paid and confirmed, and who is late. That transparency, together with automatic reminders, helps the group resolve the situation by its own rules.')},
+    {s:_FL('Attestation','Attestation')},
+    {q:_FL('À quoi sert l’attestation ? Une banque est-elle obligée de l’accepter ?','What is the attestation for? Is a bank required to accept it?'),
+     a:_FL('L’attestation est un relevé de ce qu’UBORA a vérifié à votre nom — votre ancienneté, votre régularité de cotisation — avec une référence qu’un tiers (banque, bailleur) peut vérifier en ligne. Sa force grandit avec votre discipline : tant que votre historique est jeune, c’est un simple relevé d’inscription ; il devient une attestation à mesure que vous cotisez régulièrement. UBORA atteste seulement ses écritures : ce n’est pas un avis financier ni une garantie, et aucune institution n’est obligée de l’accepter. C’est une preuve de sérieux, pas un document bancaire.',
+             'The attestation is a statement of what UBORA has verified in your name — your seniority, your contribution regularity — with a reference a third party (bank, landlord) can verify online. Its strength grows with your discipline: while your history is young, it is a simple enrollment statement; it becomes an attestation as you contribute regularly. UBORA attests only its own records: it is not financial advice nor a guarantee, and no institution is obliged to accept it. It is proof of seriousness, not a banking document.')}
+  ];
+  const body=QA.map(function(x){return x.s
+    ? `<h2 class="section-h" style="margin-top:24px">${x.s}</h2>`
+    : `<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:6px">${x.q}</div><div class="lead" style="margin:0">${x.a}</div></div></div>`;}).join('');
+  const videoSlot=`<div class="panel" style="margin-top:6px"><div style="padding:22px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+  const contact=`<div class="panel" style="margin-top:22px"><div style="padding:16px 18px;text-align:center"><div style="font-weight:700">${_FL('Une question restée sans réponse ?','Still have a question?')}</div><div class="msub" style="margin-top:4px">${_FL('Écrivez-nous à','Write to us at')} <a href="mailto:contact@caroletchatcho.com" style="color:var(--gold)">contact@caroletchatcho.com</a></div></div></div>`;
+  app().innerHTML=back+`<div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">FAQ</h1><p class="lead">${_FL('Les questions que l’on nous pose le plus souvent.','The questions we are asked most often.')}</p>${videoSlot}${body}${contact}${footer()}`;
+}
 
 function viewPrivacy(){
   return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
@@ -7476,7 +7570,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.59';
+const UBORA_BUILD='v8.60';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -7986,7 +8080,7 @@ async function boot(){
     }
 
     const{data}=await sb.auth.getUser();
-    if(!data.user){ state.view='auth'; render(); showBackendBadge(); return; }
+    if(!data.user){ state.view='landing'; render(); showBackendBadge(); return; }
 
     state.user=authDispName(data.user); state.uid=data.user.id; state.email=data.user.email||data.user.phone||'';
     state_reunions=[]; state_contacts=[]; state_outbox=[]; state_caisses=[];
