@@ -4880,7 +4880,7 @@ const UBORA_ISSUER={
   rue:'Rue de la Pierre-à-Mazel 11',
   ville:'2000 Neuchâtel, Suisse',
   ide:'CHE-347.852.058',
-  email:'carole@caroletchatcho.com',
+  email:'contact@caroletchatcho.com',
   web:'ubora.caroletchatcho.com'
 };
 function issuerBlock(){
@@ -7092,7 +7092,7 @@ function cgvBascule(){
 function cgvTexte(){
   if(cgvLangue()==='en') return `<div class="cgv-just">
   <h2 class="section-h">1. Who provides the service</h2>
-  <p class="lead">UBORA-Tontine is published by <b>Imara</b>, sole proprietorship of Carole Keutchakeu Tchatcho, in Switzerland. Contact: <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
+  <p class="lead">UBORA-Tontine is published by <b>Imara</b>, sole proprietorship of Carole Keutchakeu Tchatcho, in Switzerland. Contact: <a href="mailto:contact@caroletchatcho.com" style="color:inherit">contact@caroletchatcho.com</a>.</p>
 
   <h2 class="section-h">2. What UBORA does — and does not do</h2>
   <p class="lead">UBORA-Tontine is a <b>ledger</b>: it records payments, confirmations and turns. <b>UBORA never holds your funds</b>, does not move them, does not invest them, and takes <b>no commission on your contributions</b>. Money circulates directly between members, by whatever means they choose.</p>
@@ -7129,7 +7129,7 @@ function cgvTexte(){
 
   return `<div class="cgv-just">
   <h2 class="section-h">1. Qui vous fournit le service</h2>
-  <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:carole@caroletchatcho.com" style="color:inherit">carole@caroletchatcho.com</a>.</p>
+  <p class="lead">UBORA-Tontine est édité par <b>Imara</b>, entreprise individuelle de Carole Keutchakeu Tchatcho, en Suisse. Contact : <a href="mailto:contact@caroletchatcho.com" style="color:inherit">contact@caroletchatcho.com</a>.</p>
 
   <h2 class="section-h">2. Ce que fait UBORA — et ce qu'il ne fait pas</h2>
   <p class="lead">UBORA-Tontine est un <b>registre</b> : il tient le compte des versements, des confirmations et des tours. <b>UBORA ne détient jamais vos fonds</b>, ne les transporte pas, ne les place pas et ne prélève <b>aucune commission sur vos cotisations</b>. L'argent circule directement entre les membres, par les moyens qu'ils choisissent.</p>
@@ -7194,7 +7194,7 @@ function viewCGVGate(){
     <div class="panel" style="margin-top:14px"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>`;
 }
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
-function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="state.view='privacy';render();window.scrollTo(0,0);return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
 function viewLanding(){
   const gold='#C9A84C';
@@ -7291,15 +7291,15 @@ function viewFAQ(){
 }
 
 function viewPrivacy(){
-  return `<a class="backlink" href="#" onclick="go('home');return false">\u2039 Retour</a>
-  <div class="kicker">REGISTRE DE CONFIANCE</div><h1 class="page-title">Confidentialit\u00E9</h1>
+  return `<a class="backlink" href="#" onclick="go(state.uid?'home':'landing');return false">‹ ${_FL('Retour','Back')}</a>
+  <div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">${_FL('Confidentialité','Privacy')}</h1>
   <div class="panel"><div style="padding:18px 22px;line-height:1.75">
-    <p><b>Ce que nous collectons.</b> Votre nom d\u2019affichage, votre e-mail ou t\u00E9l\u00E9phone de connexion, vos consentements (newsletter, annonces), et les donn\u00E9es de fonctionnement des tontines, caisses et \u00E9v\u00E9nements auxquels vous participez (montants d\u00E9clar\u00E9s, tours, \u00E9ch\u00E9ances). UBORA ne d\u00E9tient aucun fonds et ne collecte aucune donn\u00E9e bancaire.</p>
-    <p><b>O\u00F9 vivent ces donn\u00E9es.</b> Elles sont h\u00E9berg\u00E9es chez Supabase (base de donn\u00E9es s\u00E9curis\u00E9e). Les e-mails sont exp\u00E9di\u00E9s via Resend depuis l\u2019adresse UBORA. La mesure d\u2019audience utilise Plausible, sans cookies et sans profilage.</p>
-    <p><b>Ce que nous en faisons.</b> Faire fonctionner le registre (rappels d\u2019\u00E9ch\u00E9ance, invitations, gouvernance) et, uniquement avec votre consentement explicite, vous adresser la newsletter et les annonces de l\u2019univers UBORA. Chaque message contient un moyen simple de retirer votre consentement (r\u00E9pondre STOP).</p>
-    <p><b>Vos droits (nLPD / RGPD).</b> Acc\u00E8s, rectification, effacement, retrait du consentement \u00E0 tout moment\u00A0: \u00E9crivez \u00E0 <a href="mailto:carole@caroletchatcho.com">carole@caroletchatcho.com</a>. Les modifications de gouvernance des tontines sont journalis\u00E9es de mani\u00E8re permanente \u00E0 des fins de contr\u00F4le qualit\u00E9 entre membres.</p>
-    <p><b>Publicité et cookies.</b> Ce site affiche des annonces via Google AdSense. Google et ses partenaires peuvent déposer des cookies pour diffuser et mesurer ces annonces. Pour les visiteurs de l’Espace économique européen, du Royaume-Uni et de la Suisse, un message de consentement s’affiche avant tout cookie publicitaire — vous pouvez refuser ou modifier vos choix à tout moment. Ces cookies publicitaires sont distincts du fonctionnement du registre : UBORA, lui, ne vend ni ne loue vos données. Pour le détail de l’usage des données par Google, consultez les règles de confidentialité et conditions de Google.</p>
-    <p class="msub">UBORA \u00B7 registre de confiance \u00B7 Suisse</p>
+    <p><b>${_FL('Ce que nous collectons.','What we collect.')}</b> ${_FL('Votre nom d’affichage, votre e-mail ou téléphone de connexion, vos consentements (newsletter, annonces), et les données de fonctionnement des tontines, caisses et événements auxquels vous participez (montants déclarés, tours, échéances). UBORA ne détient aucun fonds et ne collecte aucune donnée bancaire.','Your display name, your sign-in email or phone, your consents (newsletter, announcements), and the operating data of the tontines, funds and events you take part in (declared amounts, rounds, due dates). UBORA holds no funds and collects no banking data.')}</p>
+    <p><b>${_FL('Où vivent ces données.','Where this data lives.')}</b> ${_FL('Elles sont hébergées chez Supabase (base de données sécurisée). Les e-mails sont expédiés via Resend depuis l’adresse UBORA. La mesure d’audience utilise Plausible, sans cookies et sans profilage.','It is hosted with Supabase (a secure database). Emails are sent via Resend from the UBORA address. Audience measurement uses Plausible, without cookies and without profiling.')}</p>
+    <p><b>${_FL('Ce que nous en faisons.','What we do with it.')}</b> ${_FL('Faire fonctionner le registre (rappels d’échéance, invitations, gouvernance) et, uniquement avec votre consentement explicite, vous adresser la newsletter et les annonces de l’univers UBORA. Chaque message contient un moyen simple de retirer votre consentement (répondre STOP).','Running the ledger (due-date reminders, invitations, governance) and, only with your explicit consent, sending you the newsletter and announcements from the UBORA world. Every message includes a simple way to withdraw your consent (reply STOP).')}</p>
+    <p><b>${_FL('Vos droits (nLPD / RGPD).','Your rights (nFADP / GDPR).')}</b> ${_FL('Accès, rectification, effacement, retrait du consentement à tout moment : écrivez à ','Access, rectification, erasure, withdrawal of consent at any time: write to ')}<a href="mailto:contact@caroletchatcho.com">contact@caroletchatcho.com</a>. ${_FL('Les modifications de gouvernance des tontines sont journalisées de manière permanente à des fins de contrôle qualité entre membres.','Changes to tontine governance are permanently logged for quality-control purposes among members.')}</p>
+    <p><b>${_FL('Publicité et cookies.','Advertising and cookies.')}</b> ${_FL('Ce site affiche des annonces via Google AdSense. Google et ses partenaires peuvent déposer des cookies pour diffuser et mesurer ces annonces. Pour les visiteurs de l’Espace économique européen, du Royaume-Uni et de la Suisse, un message de consentement s’affiche avant tout cookie publicitaire — vous pouvez refuser ou modifier vos choix à tout moment. Ces cookies publicitaires sont distincts du fonctionnement du registre : UBORA, lui, ne vend ni ne loue vos données. Pour le détail de l’usage des données par Google, consultez les règles de confidentialité et conditions de Google.','This site displays ads via Google AdSense. Google and its partners may set cookies to serve and measure these ads. For visitors from the European Economic Area, the United Kingdom and Switzerland, a consent message is shown before any advertising cookie — you can refuse or change your choices at any time. These advertising cookies are separate from the operation of the ledger: UBORA itself neither sells nor rents your data. For details on how Google uses data, see Google’s privacy policy and terms.')}</p>
+    <p class="msub">${_FL('UBORA · registre de confiance · Suisse','UBORA · trust ledger · Switzerland')}</p>
   </div></div>${footer()}`;
 }
 function viewRecolte(){
@@ -7583,7 +7583,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.63';
+const UBORA_BUILD='v8.64';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
