@@ -3223,7 +3223,7 @@ h1{text-align:center;font-size:26px;margin:6px 0 2px;color:#5a4620}
   <div class="legal">${e(T.legal)}</div>
 </div>
 <div class="noprint"><button class="pbtn" onclick="window.print()">${e(T.print)}</button></div>
-widget-snippet.html </body></html>`;
+</body></html>`;
 }
 function repAttPDF(ref){
   ref=((ref||'')+'').trim(); if(!ref)return;
@@ -7583,7 +7583,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.66';
+const UBORA_BUILD='v8.67';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -8119,5 +8119,158 @@ async function boot(){
 }
 boot();
 </script>
+
+<!-- === Widget de support UBORA (v8.67) === -->
+<!-- ============================================================
+     WIDGET DE SUPPORT UBORA — bulle flottante
+     À coller juste avant </body> dans index.html.
+     N'interfère avec aucune structure existante : IIFE isolée,
+     ses propres styles préfixés .uba-, aucune variable globale créée
+     à part window.UBORA_SUPPORT_URL (à définir juste avant, ou en dur
+     ci-dessous une fois la fonction déployée).
+     ============================================================ -->
+<style>
+  .uba-fab{position:fixed;right:20px;bottom:20px;z-index:9999;width:56px;height:56px;border-radius:50%;
+    background:var(--indigo-deep,#161B3D);border:1px solid var(--gold,#9A7230);color:var(--gold-bright,#C9A84C);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(20,15,5,.28);
+    font-size:24px;transition:transform .2s ease}
+  .uba-fab:hover{transform:scale(1.06)}
+  .uba-fab .uba-dot{position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;
+    background:var(--gold-bright,#C9A84C);border:2px solid var(--indigo-deep,#161B3D)}
+  .uba-panel{position:fixed;right:20px;bottom:86px;z-index:9999;width:min(370px,calc(100vw - 32px));
+    height:min(560px,calc(100vh - 140px));background:var(--card,#FCF8EF);border:1px solid var(--line-strong,rgba(140,95,40,.42));
+    border-radius:18px;box-shadow:0 20px 50px rgba(20,15,5,.32);display:none;flex-direction:column;overflow:hidden;
+    font-family:'DM Sans',system-ui,sans-serif}
+  .uba-panel.open{display:flex}
+  .uba-head{background:var(--indigo-deep,#161B3D);color:var(--gold-l,#F5E6C0);padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between}
+  .uba-head b{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:#F2DFA0}
+  .uba-head span{display:block;font-size:11px;color:#9aa0c4;margin-top:1px}
+  .uba-close{background:transparent;border:none;color:#C9A84C;font-size:20px;cursor:pointer;line-height:1;padding:2px 4px}
+  .uba-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--card2,#FFFDF8)}
+  .uba-msg{max-width:84%;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.5}
+  .uba-msg.bot{align-self:flex-start;background:var(--gold-l,#F5E6C0);color:var(--ink,#2A2018);border-bottom-left-radius:3px}
+  .uba-msg.user{align-self:flex-end;background:var(--indigo,#23306E);color:#F4ECDB;border-bottom-right-radius:3px}
+  .uba-msg.typing{align-self:flex-start;background:var(--gold-l,#F5E6C0);color:var(--mid,#6E6457);font-style:italic}
+  .uba-foot{border-top:1px solid var(--line,rgba(140,95,40,.22));padding:10px;display:flex;gap:8px;background:var(--card,#FCF8EF)}
+  .uba-input{flex:1;border:1px solid var(--line,rgba(140,95,40,.22));border-radius:20px;padding:9px 14px;
+    font-family:inherit;font-size:13.5px;color:var(--ink,#2A2018);background:#fff;outline:none}
+  .uba-input:focus{border-color:var(--gold,#9A7230)}
+  .uba-send{border:none;border-radius:50%;width:38px;height:38px;background:var(--indigo-deep,#161B3D);
+    color:var(--gold-bright,#C9A84C);cursor:pointer;font-size:16px;flex-shrink:0}
+  .uba-send:disabled{opacity:.4;cursor:default}
+  .uba-note{font-size:10.5px;color:var(--faint,#A79E8C);text-align:center;padding:6px 10px 10px}
+</style>
+
+<button class="uba-fab" id="uba-fab" aria-label="Assistant UBORA">
+  <span id="uba-fab-icon">💬</span><span class="uba-dot" id="uba-fab-dot"></span>
+</button>
+
+<div class="uba-panel" id="uba-panel">
+  <div class="uba-head">
+    <div><b id="uba-t-title">Assistant UBORA</b><span id="uba-t-sub">Registre de confiance · réponses automatiques</span></div>
+    <button class="uba-close" id="uba-close">✕</button>
+  </div>
+  <div class="uba-body" id="uba-body"></div>
+  <div class="uba-foot">
+    <input class="uba-input" id="uba-input" type="text" placeholder="Écrivez votre question…" />
+    <button class="uba-send" id="uba-send">➤</button>
+  </div>
+  <div class="uba-note" id="uba-note">Assistant automatique · pour un échange personnalisé : contact@caroletchatcho.com</div>
+</div>
+
+<script>
+(function(){
+  // URL de la fonction Edge — à remplacer une fois déployée.
+  var SUPPORT_URL = (window.UBORA_SUPABASE_URL || '') + '/functions/v1/support-chat';
+  var SUPPORT_ANON = window.UBORA_SUPABASE_ANON || '';
+
+  var STR = {
+    fr: { title:'Assistant UBORA', sub:'Registre de confiance · réponses automatiques',
+          placeholder:'Écrivez votre question…', note:'Assistant automatique · pour un échange personnalisé : contact@caroletchatcho.com',
+          greet:'Bonjour. Je suis l\u2019assistant UBORA — je peux répondre à vos questions sur le fonctionnement de la plateforme (tontines, Ma Case, Entraide, Partage, tarifs…).',
+          typing:'…', error:'Une erreur est survenue. Réessayez, ou écrivez à contact@caroletchatcho.com.' },
+    en: { title:'UBORA Assistant', sub:'Trust registry · automated answers',
+          placeholder:'Type your question…', note:'Automated assistant · for a personal reply: contact@caroletchatcho.com',
+          greet:'Hello. I\u2019m the UBORA assistant — I can answer your questions about how the platform works (tontines, My Case, Mutual aid, Sharing, pricing…).',
+          typing:'…', error:'Something went wrong. Please try again, or write to contact@caroletchatcho.com.' }
+  };
+
+  function lang(){
+    try{ var s=localStorage.getItem('ubora_lang'); if(s==='en'||s==='fr') return s; }catch(e){}
+    return (window._lang==='en') ? 'en' : 'fr';
+  }
+
+  var history = [];
+  var opened = false;
+  var L = STR[lang()];
+
+  var fab=document.getElementById('uba-fab'), panel=document.getElementById('uba-panel'),
+      body=document.getElementById('uba-body'), input=document.getElementById('uba-input'),
+      send=document.getElementById('uba-send'), close=document.getElementById('uba-close'),
+      note=document.getElementById('uba-note'), title=document.getElementById('uba-t-title'),
+      sub=document.getElementById('uba-t-sub');
+
+  function applyLang(){
+    L = STR[lang()];
+    title.textContent = L.title; sub.textContent = L.sub;
+    input.placeholder = L.placeholder; note.textContent = L.note;
+  }
+
+  function addMsg(text, who){
+    var d = document.createElement('div');
+    d.className = 'uba-msg ' + who;
+    d.textContent = text;
+    body.appendChild(d);
+    body.scrollTop = body.scrollHeight;
+    return d;
+  }
+
+  function openPanel(){
+    applyLang();
+    panel.classList.add('open');
+    if(!opened){
+      opened = true;
+      addMsg(L.greet, 'bot');
+    }
+    input.focus();
+  }
+
+  fab.addEventListener('click', function(){
+    if(panel.classList.contains('open')){ panel.classList.remove('open'); }
+    else { openPanel(); }
+  });
+  close.addEventListener('click', function(){ panel.classList.remove('open'); });
+
+  async function sendMsg(){
+    var text = input.value.trim();
+    if(!text) return;
+    input.value=''; send.disabled = true;
+    addMsg(text, 'user');
+    history.push({role:'user', content:text});
+    var typingEl = addMsg(L.typing, 'typing');
+    try{
+      var r = await fetch(SUPPORT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json', 'apikey':SUPPORT_ANON, 'Authorization':'Bearer '+SUPPORT_ANON},
+        body: JSON.stringify({ message:text, history: history.slice(-6) })
+      });
+      var j = await r.json();
+      typingEl.remove();
+      if(!r.ok || !j.reply){ addMsg(L.error, 'bot'); }
+      else { addMsg(j.reply, 'bot'); history.push({role:'assistant', content:j.reply}); }
+    }catch(e){
+      typingEl.remove();
+      addMsg(L.error, 'bot');
+    }finally{
+      send.disabled = false;
+    }
+  }
+
+  send.addEventListener('click', sendMsg);
+  input.addEventListener('keydown', function(e){ if(e.key==='Enter') sendMsg(); });
+})();
+</script>
+
 </body>
 </html>
