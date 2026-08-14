@@ -3311,7 +3311,7 @@ function viewImport(){
         </div></div>`; }).join('');
     const inc=rows.length-im.excluded.length;
     body=`${photoPanel}${seancePanel}<p class="msub">${tr('imp_preview_sub').replace('{n}',rows.length).replace('{k}',inc)}</p>
-      <div class="row-gap" style="margin:8px 0;align-items:center"><label class="msub">${tr('imp_cur')}</label> ${curSel} <span class="msub">${tr('imp_grid_hint')}</span></div>
+      <div class="field" style="margin:14px 0 8px"><label class="msub" style="font-weight:700;color:var(--ink)">${tr('imp_group')}</label><input type="text" value="${esc(im.group||'')}" oninput="state.imp.group=this.value" placeholder="${tr('imp_group_ph')}" style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--line);border-radius:10px"></div><div class="row-gap" style="margin:8px 0;align-items:center"><label class="msub">${tr('imp_cur')}</label> ${curSel} <span class="msub">${tr('imp_grid_hint')}</span></div>
       <div class="panel" style="margin-top:8px"><div style="padding:6px 14px">${list}</div></div>
       <div class="row" style="margin-top:14px"><button class="btn btn-gold" onclick="impInvite()">${tr('imp_invite_btn').replace('{k}',inc)}</button>
         <button class="btn btn-ghost" onclick="state.imp.step='map';render()">${tr('imp_back_map')}</button></div>`;
@@ -7583,7 +7583,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.69';
+const UBORA_BUILD='v8.70';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
