@@ -2123,6 +2123,23 @@ function impSetMap(role,idx){ state.imp.map[role]=idx; render(); }
 function impToPreview(){ if(state.imp.map.name<0){alert(tr('imp_need_name'));return;} state.imp.step='preview'; render(); }
 function impRows(){ const m=state.imp.map, R=state.imp.rows||[], ed=state.imp.edits||{}; return R.map((r,idx)=>{ const e=ed[idx]||{}; const bn=(m.name>=0?(r[m.name]||''):'').trim(), be=(m.email>=0?(r[m.email]||''):'').trim(), bp=(m.phone>=0?(r[m.phone]||''):'').trim(), bc=(m.city>=0?(r[m.city]||''):'').trim(), ba=(m.amount>=0?(r[m.amount]||''):'').trim(); return {name:e.name!=null?e.name:bn, contact:e.contact!=null?e.contact:(be||bp), city:bc, amount:e.amount!=null?e.amount:ba}; }); }
 function impToggle(i){ const e=state.imp.excluded, k=e.indexOf(i); if(k>=0)e.splice(k,1); else e.push(i); render(); }
+function impToCaisse(){if(!(state.imp.group||'').trim()){alert(tr('imp_need_group'));return;}if(!state.imp.consent){alert(tr('imp_need_consent'));return;}
+  const rows=impRows();const seen={};const foyers=[];
+  rows.forEach((x,i)=>{if(state.imp.excluded.indexOf(i)>=0)return;if(!x.name)return;const key=(x.contact||x.name).toLowerCase();if(seen[key])return;seen[key]=1;foyers.push({name:x.name,contact:x.contact||'\u2014',aJour:true});});
+  if(!foyers.length){alert(tr('imp_need_name'));return;}
+  const creator=state.user||tr('cc_you');const gname=(state.imp.group||'').trim();const cur=state.imp.cur||'XOF';
+  state_caisses.unshift({
+    id:newId('c'), caseId:state.imp.caseId||null, group:gname, name:gname, type:'deces', currency:cur, federation:null,
+    cotisation:{montant:0, frequence:'mensuelle'}, fonds:0,
+    bureau:[{name:creator,role:'president'},{name:'\u2014',role:'tresorier'},{name:'\u2014',role:'commissaire'}],
+    foyers:foyers, appels:[],
+    seed:[{ts:new Date().toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{day:'numeric',month:'long',year:'numeric'}),type:'a',what:tr('cc_seed_created').replace('{c}',creator).replace('{n}',gname)+'.'}],
+    consent:{by:(state.user||''),at:new Date().toISOString(),source:'import'}
+  });
+  const id=state_caisses[0].id;
+  if(BACKEND==='supabase'){db.saveCaisse(getC(id)).then(()=>openCaisse(id)).catch(e=>alert(_FL('Enregistrement \u00e9chou\u00e9 : ','Save failed: ')+(e.message||e)));return;}
+  saveLocal(); openCaisse(id);
+}
 function impInvite(){ if(!(state.imp.group||'').trim()){alert(tr('imp_need_group'));return;} if(!state.imp.consent){alert(tr('imp_need_consent'));return;} const rows=impRows(); const seen={}; const roster=[]; rows.forEach((x,i)=>{ if(state.imp.excluded.indexOf(i)>=0)return; if(!x.name)return; const key=(x.contact||x.name).toLowerCase(); if(seen[key])return; seen[key]=1; const isMail=/@/.test(x.contact||''); roster.push({name:x.name,contact:x.contact||'',amount:impParseAmount(x.amount),status:isMail?'invited':'nolink'}); }); state.imp.roster=roster; state.imp.step='done'; render(); }
 function impJoined(i){ if(state.imp.roster[i])state.imp.roster[i].status='joined'; render(); }
 function impDecline(i){ if(state.imp.roster[i])state.imp.roster[i].status='declined'; render(); }
@@ -3314,7 +3331,7 @@ function viewImport(){
       <div class="field" style="margin:14px 0 8px"><label class="msub" style="font-weight:700;color:var(--ink)">${tr('imp_group')}</label><input type="text" value="${esc(im.group||'')}" oninput="state.imp.group=this.value" placeholder="${tr('imp_group_ph')}" style="width:100%;margin-top:4px;padding:10px 12px;border:1px solid var(--line);border-radius:10px"></div><div class="row-gap" style="margin:8px 0;align-items:center"><label class="msub">${tr('imp_cur')}</label> ${curSel} <span class="msub">${tr('imp_grid_hint')}</span></div>
       <div class="panel" style="margin-top:8px"><div style="padding:6px 14px">${list}</div></div>
       <label style="display:flex;gap:8px;align-items:flex-start;margin:16px 0 8px;padding:10px 12px;border:1px solid rgba(201,168,76,.55);border-radius:10px;background:rgba(201,168,76,.14);font-size:12.5px;line-height:1.45"><input type="checkbox" ${im.consent?'checked':''} onchange="state.imp.consent=this.checked"> <span>${_FL('Je confirme avoir le droit de partager ces informations : les personnes concernées ont donné leur accord, ou je dispose d’une autre base légitime pour les inscrire.','I confirm I have the right to share this information: the people concerned have given their consent, or I have another legitimate basis for adding them.')}</span></label>
-      <div class="row" style="margin-top:6px">${im.seance?`<button class="btn btn-gold" onclick="impToReunion()">${tr('re_create_from_import')}</button>`:`<button class="btn btn-gold" onclick="impToTontine()">${tr('imp_to_tontine')}</button>`}
+      <div class="row" style="margin-top:6px">${im.seance?`<button class="btn btn-gold" onclick="impToReunion()">${tr('re_create_from_import')}</button>`:`<button class="btn btn-gold" onclick="impToTontine()">${tr('imp_to_tontine')}</button>`}<button class="btn btn-ghost" onclick="impToCaisse()">${_FL('Créer une caisse','Create a fund')}</button>
         <button class="btn btn-ghost" onclick="state.imp.step='map';render()">${tr('imp_back_map')}</button></div>`;
   } else {
     const roster=im.roster||[]; const active=roster.filter(r=>r.status!=='declined'); const out=roster.filter(r=>r.status==='declined');
@@ -7590,7 +7607,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.79';
+const UBORA_BUILD='v8.80';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
