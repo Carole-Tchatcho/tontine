@@ -4439,7 +4439,7 @@ function openCaisse(id){state.activeCaisse=id;state.view='caisse';state.caisseTa
 
 /* ---------- création d'une caisse / association (self-service) ---------- */
 let cDraft=null;
-function startCaisse(){cDraft={group:'',name:'',type:'deces',currency:'CAD',federation:'',pres:state.user,tres:'',comm:'',cot:'',freq:'mensuelle'};go('caissecreate');}
+function startCaisse(caseId){const _c=caseId?(state_cases||[]).find(x=>x.id===caseId):null; const _cn=_c?(((_c.data&&_c.data.name)||_c.name||'')):''; cDraft={caseId:caseId||null,group:_cn,name:'',type:'deces',currency:'CAD',federation:'',pres:state.user,tres:'',comm:'',cot:'',freq:'mensuelle'};go('caissecreate');}
 function editCaisse(id){ const c=getC(id); if(!c)return; cDraft={editId:id,group:c.group||'',name:c.name||'',type:c.type||'deces',currency:c.currency||'CAD',federation:c.federation||'',pres:'',tres:'',comm:'',cot:(c.cotisation&&c.cotisation.montant)||'',freq:(c.cotisation&&c.cotisation.frequence)||'mensuelle'}; go('caissecreate'); }
 function delCaisse(id){ if(!confirm(_FL('Supprimer cette caisse ? Cette action est définitive.','Delete this fund? This action is permanent.')))return;
   const done=()=>{ state_caisses=state_caisses.filter(c=>c.id!==id); go('entraide'); };
@@ -4462,12 +4462,13 @@ function cSave(){cRead();
     saveLocal(); openCaisse(eid); return;
   }
   const creator=cDraft.pres.trim()||state.user||tr('cc_you');
+  const _pc=cDraft.caseId?(state_cases||[]).find(x=>x.id===cDraft.caseId):null; const _foyers=(_pc&&_pc.members&&_pc.members.length)?_pc.members.map(function(m){return {name:m.name, contact:m.contact||'—', aJour:true};}):[{name:'Foyer '+creator, contact:'—', aJour:true}];
   state_caisses.unshift({
-    id:newId('c'), group:cDraft.group.trim(), name, type:cDraft.type, currency:cDraft.currency,
+    id:newId('c'), caseId:cDraft.caseId||null, group:cDraft.group.trim(), name, type:cDraft.type, currency:cDraft.currency,
     federation: (cDraft.federation||'').trim()||null,
     cotisation:{montant:Number(cDraft.cot)||0, frequence:cDraft.freq}, fonds:0,
     bureau:[{name:creator,role:'president'},{name:cDraft.tres.trim()||'—',role:'tresorier'},{name:cDraft.comm.trim()||'—',role:'commissaire'}],
-    foyers:[{name:'Foyer '+creator, contact:'—', aJour:true}],
+    foyers:_foyers,
     appels:[],
     seed:[{ts:new Date().toLocaleDateString(state.lang==='en'?'en-GB':'fr-FR',{day:'numeric',month:'long',year:'numeric'}),type:'a',
       what:tr('cc_seed_created').replace('{c}',creator).replace('{n}',name)+((cDraft.federation&&cDraft.federation!=='Aucun')?tr('cc_seed_net').replace('{f}',cDraft.federation):'.')}]
@@ -7589,7 +7590,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.78';
+const UBORA_BUILD='v8.79';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -7856,7 +7857,7 @@ function caseAbonnementPanel(c){
   const plein = nb>=5;
   const btnAbriter = plein
     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${_FL('5 cercles abrités · maximum atteint','5 hosted circles · limit reached')}</button>`
-    : `<button class="btn btn-ghost btn-sm" onclick="caseShareGrant('${c.id}')">${_FL('Abriter un cercle','Host a circle')}</button>`;
+    : `<button class="btn btn-ghost btn-sm" onclick="startCaisse('${c.id}')">${_FL('Créer une caisse','Create a fund')}</button><button class="btn btn-ghost btn-sm" onclick="caseShareGrant('${c.id}')">${_FL('Abriter un cercle','Host a circle')}</button>`;
   const bloc = `<h2 class="section-h">${_FL('Cercles abrités','Hosted circles')} (${nb}/5)</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${lignes}
       <div class="row-gap" style="margin-top:10px">${btnAbriter}</div>
