@@ -4728,14 +4728,14 @@ function caisseJournal(c){
 }
 
 function caisseDeclare(cId,aId,fi){
-  const c=getC(cId), a=c.appels.find(x=>x.id===aId); if(!a)return;
+  const c=getC(cId), a=c.appels.find(x=>x.id===aId); if(!a)return; if(caisseGeleBlock(c))return;
   const ref=prompt('R\u00E9f\u00E9rence de votre versement (facultatif) \u2014 ex.\u00A0: \u00AB Twint 14:32 \u00BB, \u00AB virement r\u00E9f. 8823 \u00BB, \u00AB esp\u00E8ces r\u00E9union du 12 \u00BB.\n\nElle aidera le tr\u00E9sorier \u00E0 rapprocher votre versement de son relev\u00E9.\n\nUBORA ne transporte aucun fonds\u00A0: vous versez comme d\u2019habitude.');
   if(ref===null)return;
   a.versements[fi]='declared';
   a.refs=a.refs||[]; if((ref||'').trim()) a.refs[fi]=(ref||'').trim().slice(0,120);
   cPersist(cId); render();
 }
-function caisseConfirm(cId,aId,fi){getC(cId).appels.find(a=>a.id===aId).versements[fi]='confirmed';state.flash='c:'+cId+':'+aId+':'+fi;cPersist(cId);render();}
+function caisseConfirm(cId,aId,fi){const c=getC(cId);if(caisseGeleBlock(c))return;c.appels.find(a=>a.id===aId).versements[fi]='confirmed';state.flash='c:'+cId+':'+aId+':'+fi;cPersist(cId);render();}
 function caisseUnconfirm(cId,aId,fi){
   const a=getC(cId).appels.find(x=>x.id===aId);
   a.versements[fi]='none'; if(a.refs)a.refs[fi]='';
@@ -4746,7 +4746,7 @@ function caisseHasCommissaire(c){if(!c)return false;return ((c.bureau||[]).conca
 function caisseRemis(cId,aId){const a=getC(cId).appels.find(x=>x.id===aId);
   if(!caisseReceptionsValidees(a)){alert(tr('cac_need_confirm'));return;}
   a.total=a.versements.filter(s=>s==='confirmed').length*a.montant; a.remis=true; a.statut='clos'; a.remisLe=tr('cj_today'); cPersist(cId); render();}
-function caisseCertify(cId,aId){const c=getC(cId);const a=c&&c.appels.find(x=>x.id===aId);
+function caisseCertify(cId,aId){const c=getC(cId);if(caisseGeleBlock(c))return;const a=c&&c.appels.find(x=>x.id===aId);
   if(!a||!a.remis||!caisseReceptionsValidees(a)||!caisseHasCommissaire(c)){alert(tr('cac_need_tresorier'));return;}
   a.certifie=true;cPersist(cId);render();}
 function caisseCreateAppel(cId){const c=getC(cId);
@@ -7635,7 +7635,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.82';
+const UBORA_BUILD='v8.83';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -7800,6 +7800,9 @@ function palierNom(t){
    explique. */
 function estGele(t){ return !!(t && !isPremium(t) && filled(t) > 12); }
 function geleBlock(t){ if(t && estGele(t)){ if(confirm(tr('gele_lock_msg'))){ go('tarifs'); } return true; } return false; }
+function caseGele(c){ return !!(c && !isPremium(c) && (c.members||[]).length > 30); }
+function caisseGele(x){ if(!x)return false; const pc=x.caseId&&(typeof state_cases!=='undefined')?state_cases.find(function(o){return o.id===x.caseId;}):null; return pc?caseGele(pc):((x.foyers||[]).length>30); }
+function caisseGeleBlock(x){ if(caisseGele(x)){ if(confirm(tr('gele_lock_msg'))){ go('tarifs'); } return true; } return false; }
 function geleNudge(t){ if(t && estGele(t)){ if(confirm(tr('gele_add_msg'))){ go('tarifs'); } } }
 function joursAvantEcheance(t){
   if(!isPremium(t)) return null;
