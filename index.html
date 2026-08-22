@@ -2679,17 +2679,18 @@ async function repCreateCaissesFromFunds(){
 }
 async function repCreateTontineFromMembers(){
   const r=state.reprise;if(!r||!r.ingest||r.ingest.tontineBusy)return;const ing=r.ingest;
-  const entry=repMembersEntry();if(!entry)return;
+  const entry=repMembersEntry();
   ing.tontineBusy=true;ing.tontineMsg='';render();
   try{
     const c=repResolveCase();
     const members=(c&&c.members&&c.members.length)?c.members.map(function(m){return {name:m.name,contact:m.contact||''};}):repAllMembers();
-    const ai=repMembersAmount(entry.grid);
+    const ai=entry?repMembersAmount(entry.grid):{amount:0};
     const draft={name:c.name,amount:(ai.amount||0),currency:(ing.tontineCur||'EUR'),frequency:'mensuelle',jourEcheance:null,places:Math.max(2,Math.min(30,members.length)),oName:(state.user||c.name||''),oContact:'',oCountry:(state.homeCountry||''),oMk:false,renforced:true,roster:members.map(function(m){return {name:m.name,contact:m.contact||'\u2014'};})};
     const tid=await db.create(draft);
     ing.tontineId=tid;
     const lt=(typeof state_tontines!=='undefined')?state_tontines.find(function(x){return x.id===tid;}):null;
     ing.tontineMsg=rt('mem_tont_ok').replace('{name}',c.name).replace('{code}',(lt&&lt.code)||'');
+    if(members.length){ const _lnk=location.origin+location.pathname+'?join='+((lt&&lt.code)||''); const _inv=members.map(function(m){return _FL('Bonjour ','Hi ')+(m.name||'')+_FL(', rejoignez la tontine « ',', join the tontine \u201c')+c.name+_FL(' » sur UBORA : ','\u201d on UBORA: ')+_lnk;}).join('\n\n'); try{navigator.clipboard.writeText(_inv);}catch(_e){} ing.tontineMsg+=' \u2014 '+_FL('Invitations des '+members.length+' membres copiées : collez-les (WhatsApp, e-mail, SMS) pour que chacun rejoigne.','Invitations for '+members.length+' members copied: paste them (WhatsApp, email, SMS) so each can join.'); }
   }catch(e){ing.tontineMsg=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
   ing.tontineBusy=false;render();
 }
@@ -7638,7 +7639,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.86';
+const UBORA_BUILD='v8.87';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
