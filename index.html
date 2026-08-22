@@ -2384,6 +2384,7 @@ function repResolveCase(){
 
 /* ---------- ingestion : annuaire -> membres ---------- */
 function repMembersEntry(){if(!repWB)return null;for(let i=0;i<repWB.length;i++){if(repWB[i].role==='members')return repWB[i];}return null;}
+function repAllMembers(){ if(!repWB) return []; const seen={}, out=[]; for(let i=0;i<repWB.length;i++){ const g=repWB[i]&&repWB[i].grid; if(!g)continue; let ms=[]; try{ ms=repExtractMembers(g)||[]; }catch(e){ ms=[]; } ms.forEach(function(m){ const k=repNorm(m&&m.name||''); if(k && !seen[k]){ seen[k]=1; out.push(m); } }); } return out; }
 function repExtractMembers(grid){
   const rows=grid.rows.filter(function(r){return r&&r.some(function(c){return String(c).trim();});});
   if(!rows.length)return [];
@@ -2402,7 +2403,7 @@ function repSetIngestTarget(id){if(state.reprise&&state.reprise.ingest)state.rep
 function repSetCaseName(v){if(state.reprise&&state.reprise.ingest)state.reprise.ingest.caseName=v;}
 async function repIngestMembers(){
   const r=state.reprise;if(!r||!r.ingest||r.ingest.saving)return;const ing=r.ingest;
-  const entry=repMembersEntry();if(!entry)return;const members=repExtractMembers(entry.grid);
+  const entry=repMembersEntry();const members=entry?repExtractMembers(entry.grid):repAllMembers();if(!members.length)return;
   ing.saving=true;ing.membersResult='';render();
   try{
     const c=repResolveCase();c.members=c.members||[];
@@ -2652,7 +2653,7 @@ async function repCreateCaissesFromFunds(){
   try{
     const c=repResolveCase();
     const entry=repMembersEntry();
-    const members=entry?repExtractMembers(entry.grid):[];
+    const members=(c&&c.members&&c.members.length)?c.members.map(function(m){return {name:m.name,contact:m.contact||''};}):repAllMembers();
     const foyers=members.map(function(m){return {name:m.name,contact:m.contact||'\u2014',aJour:true};});
     const creator=state.user||c.name||'';
     const funds=[];
@@ -2680,7 +2681,7 @@ async function repCreateTontineFromMembers(){
   ing.tontineBusy=true;ing.tontineMsg='';render();
   try{
     const c=repResolveCase();
-    const members=repExtractMembers(entry.grid);
+    const members=(c&&c.members&&c.members.length)?c.members.map(function(m){return {name:m.name,contact:m.contact||''};}):repAllMembers();
     const ai=repMembersAmount(entry.grid);
     const draft={name:c.name,amount:(ai.amount||0),currency:(ing.tontineCur||'EUR'),frequency:'mensuelle',jourEcheance:null,places:Math.max(2,Math.min(30,members.length)),oName:(state.user||c.name||''),oContact:'',oCountry:(state.homeCountry||''),oMk:false,renforced:true,roster:members.map(function(m){return {name:m.name,contact:m.contact||'\u2014'};})};
     const tid=await db.create(draft);
@@ -7635,7 +7636,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.83';
+const UBORA_BUILD='v8.85';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
