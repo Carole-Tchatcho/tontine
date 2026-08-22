@@ -2412,11 +2412,13 @@ async function repIngestMembers(){
     let added=0,dup=0,pending=0;const pendingList=[];
     for(let i=0;i<members.length;i++){const m=members[i];const k=repNorm(m.name);
       if(seen[k]){dup++;continue;}
-      if(c.members.length>=max){pending++;pendingList.push(m);continue;}
       c.members.push({name:m.name,contact:m.contact||'',role:m.role||''});seen[k]=1;added++;}
     if(typeof db!=='undefined'&&db&&db.saveCase){await db.saveCase(c);}
     r.pendingMembers=pendingList;ing.membersDone=true;
-    ing.membersResult=rt('ing_result_ok').replace('{x}',added).replace('{c}',c.name)+(dup?(' '+rt('ing_result_dup').replace('{d}',dup)):'')+(pending?(' '+rt('ing_result_pending').replace('{y}',pending).replace('{max}',max)):'');
+    const _funds=[];Object.keys(r.emp||{}).forEach(function(k){_funds.push({name:k,type:'solidarite'});});Object.keys(r.aide||{}).forEach(function(k){_funds.push({name:k,type:'deces'});});
+    const _fy=c.members.map(function(m){return {name:m.name,contact:m.contact||'\u2014',aJour:true};});const _cr=state.user||c.name||'';
+    for(let _i=0;_i<_funds.length;_i++){const _f=_funds[_i]; if((state_caisses||[]).some(function(x){return x.caseId===c.id&&(x.name===_f.name||x.group===_f.name);}))continue; const _cs={id:newId('c'),caseId:c.id,group:c.name,name:_f.name,type:_f.type,currency:'EUR',federation:null,cotisation:{montant:0,frequence:'mensuelle'},fonds:0,bureau:[{name:_cr,role:'president'},{name:'\u2014',role:'tresorier'},{name:'\u2014',role:'commissaire'}],foyers:_fy.slice(),appels:[],seed:[],consent:{by:(state.user||''),at:new Date().toISOString(),source:'reprise'}};state_caisses.unshift(_cs); if(typeof db!=='undefined'&&db&&db.saveCaisse){await db.saveCaisse(_cs);}}
+    ing.membersResult=rt('ing_result_ok').replace('{x}',added).replace('{c}',c.name)+(dup?(' '+rt('ing_result_dup').replace('{d}',dup)):'')+(pending?(' '+rt('ing_result_pending').replace('{y}',pending).replace('{max}',max)):''); if(!active && c.members.length>30){ing.membersResult+=' — '+_FL('Plus de 30 membres : tous enregistrés, mais l’usage du groupe est gelé tant que vous n’avez pas d’abonnement.','More than 30 members: all saved, but the group’s use is frozen until you subscribe.');}
   }catch(e){ing.membersResult=rt('ing_err').replace('{e}',String((e&&e.message)||e));}
   ing.saving=false;render();
 }
@@ -7636,7 +7638,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.85';
+const UBORA_BUILD='v8.86';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
