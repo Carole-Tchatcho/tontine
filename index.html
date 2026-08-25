@@ -2144,7 +2144,7 @@ function impInvite(){ if(!(state.imp.group||'').trim()){alert(tr('imp_need_group
 function impJoined(i){ if(state.imp.roster[i])state.imp.roster[i].status='joined'; render(); }
 function impDecline(i){ if(state.imp.roster[i])state.imp.roster[i].status='declined'; render(); }
 function impToTontine(){ if(!(state.imp.group||'').trim()){alert(tr('imp_need_group'));return;} if(!state.imp.consent){alert(tr('imp_need_consent'));return;} const active=(state.imp.roster||[]).filter(r=>r.status!=='declined'); if(!active.length){alert(tr('imp_need_name'));return;} const amts=active.map(r=>r.amount).filter(a=>a!=null&&a>0); let rep=''; if(amts.length){ const freq={}; amts.forEach(a=>{freq[a]=(freq[a]||0)+1;}); rep=Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]; } draft={consent:{by:(state.user||state.uid||''),at:new Date().toISOString(),source:'import'},name:state.imp.group||'',amount:rep||'',currency:state.imp.cur||'XOF',frequency:'mensuelle',places:Math.max(2,Math.min(30,active.length+1)),oName:state.user,oContact:'',oCountry:state.homeCountry,oMk:false,renforced:true,roster:active.map(r=>({name:r.name,contact:r.contact||'—'}))}; go('create'); }
-try{var _all=(location.hash||'')+(location.search||'');var _rjm=/joincase=([A-Za-z0-9]{4,})/.exec(_all);if(_rjm&&typeof localStorage!=='undefined'){localStorage.setItem('ubora_pending_join',_rjm[1]);}var _rv=/verifier=([A-Za-z0-9-]{4,})/.exec(_all);if(_rv){window._uboraVerify=_rv[1];}}catch(_e){}
+try{var _all=(location.hash||'')+(location.search||'');var _rjm=/joincase=([A-Za-z0-9]{4,})/.exec(_all);if(_rjm&&typeof localStorage!=='undefined'){localStorage.setItem('ubora_pending_join',_rjm[1]);}var _rjf=/joinfed=([A-Za-z0-9-]{4,})/.exec(_all);if(_rjf&&typeof localStorage!=='undefined'){localStorage.setItem('ubora_pending_joinfed',_rjf[1]);}var _rv=/verifier=([A-Za-z0-9-]{4,})/.exec(_all);if(_rv){window._uboraVerify=_rv[1];}}catch(_e){}
 /* ============================================================================
    UBORA — REPRISE D'HISTORIQUE  (Couches 0 + 1/2)
    Ajout pur. Prefixe rep et REP_. Lit Excel (.xlsx) ET Word (.docx), classe
@@ -3490,7 +3490,7 @@ function viewSeanceReleve(){
    ${footer()}`;
 }
 
-function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=window._uboraVerify;window._uboraVerify=null;state.att=state.att||{};state.att.verifyRef=_v;setTimeout(function(){go('attmembre');repVerify();},60);}if(typeof state!=='undefined'&&state.uid){try{var _pj=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_join');if(_pj){localStorage.removeItem('ubora_pending_join');state.repJoinCode=_pj;setTimeout(function(){go('casejoin');},60);}}catch(_e){}}if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
+function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=window._uboraVerify;window._uboraVerify=null;state.att=state.att||{};state.att.verifyRef=_v;setTimeout(function(){go('attmembre');repVerify();},60);}if(typeof state!=='undefined'&&state.uid){try{var _pj=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_join');if(_pj){localStorage.removeItem('ubora_pending_join');state.repJoinCode=_pj;setTimeout(function(){go('casejoin');},60);}try{var _pjf=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_joinfed');if(_pjf){localStorage.removeItem('ubora_pending_joinfed');state.pendingFedId=_pjf;setTimeout(function(){go('fedask');},90);}}catch(_ef){}}catch(_e){}}if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
   const cards=state_tontines.map(t=>{
     const r=t.rounds[t.currentRound];
     const conf=r?r.contribs.filter(s=>s==='confirmed').length:0;
@@ -6110,6 +6110,15 @@ async function fedDoInvite(fedId){
                'Give this code to the person. Valid 14 days, single use:'), code);
   }catch(e){ alert(e.message||e); }
 }
+function fedBulkInvite(fedId){
+  const raw=prompt(_FL('Collez les noms des groupes à inviter (un par ligne) :','Paste the group names to invite (one per line):'),'');
+  if(raw===null)return;
+  const groups=raw.split(/[\n,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+  if(!groups.length){alert(_FL('Aucun groupe.','No group.'));return;}
+  const lnk=location.origin+location.pathname+'#joinfed='+encodeURIComponent(fedId);
+  const msg=groups.map(function(g){return _FL('Bonjour, votre groupe « ','Hello, your group \u201c')+g+_FL(' » est invité à rejoindre notre fédération sur UBORA. Cliquez pour demander l\u2019adhésion (votre bureau reste libre d\u2019accepter) : ','\u201d is invited to join our federation on UBORA. Click to request membership (your board stays free to accept): ')+lnk;}).join('\n\n');
+  try{navigator.clipboard.writeText(msg);alert(_FL('Invitations des '+groups.length+' groupes copiées : collez-les (WhatsApp, e-mail) pour les envoyer.','Invitations for '+groups.length+' groups copied: paste them (WhatsApp, email) to send.'));}catch(e){prompt(_FL('Copiez les invitations :','Copy the invitations:'),msg);}
+}
 async function fedDoAsk(fedId){
   const a=document.getElementById('nf-assoc'), c=document.getElementById('nf-country');
   const assoc=a?String(a.value).trim():'', country=c?String(c.value).trim():'';
@@ -6148,7 +6157,7 @@ function viewFedHome(){
   }
   const mine=state_fed.mine||[], dir=state_fed.dir||[], bur=state_fed.bureau||[];
   const burIds=new Set(bur.map(b=>b.fed_id));
-  const mineHtml=mine.length?mine.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.fed_name)}</div><div class="msub">${esc(m.assoc_name)}${m.region?' · '+esc(m.region):''}</div></div><div class="right"><span class="pill p-paid">${_FL('admis','admitted')}</span></div></div>`).join('')
+  const mineHtml=mine.length?mine.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.fed_name)}</div><div class="msub">${esc(m.assoc_name)}${m.region?' · '+esc(m.region):''}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="fedBulkInvite('${m.fed_id}')">${_FL('Inviter en masse','Bulk invite')}</button> <span class="pill p-paid">${_FL('admis','admitted')}</span></div></div>`).join('')
     :`<div class="mrow"><span class="msub">${_FL('Vous n\'êtes membre d\'aucune fédération.','You are not a member of any federation.')}</span></div>`;
   const burHtml=bur.length?bur.map(b=>{const f=dir.find(x=>x.id===b.fed_id);
       return `<div class="mrow" onclick="openFed('${b.fed_id}')" style="cursor:pointer"><div class="stack"><div class="mname">${esc(f?f.name:b.fed_id)}</div><div class="msub">${esc(b.role||_FL('membre du bureau','board member'))}</div></div><div class="right">›</div></div>`;}).join('')
@@ -7639,7 +7648,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.87';
+const UBORA_BUILD='v8.88';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
