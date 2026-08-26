@@ -7651,7 +7651,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.91';
+const UBORA_BUILD='v8.92';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -7816,7 +7816,8 @@ function palierNom(t){
    explique. */
 function estGele(t){ return !!(t && !isPremium(t) && filled(t) > 12); }
 function geleBlock(t){ if(t && estGele(t)){ if(confirm(tr('gele_lock_msg'))){ go('tarifs'); } return true; } return false; }
-function caseGele(c){ return !!(c && !isPremium(c) && (c.members||[]).length > 30); }
+function caseCap(c){ if(!isPremium(c))return 30; var p=((c&&c.palier)||'').toLowerCase(); return p==='fagot'?100:(p==='baobab'?Infinity:30); }
+function caseGele(c){ return !!(c && (c.members||[]).length > caseCap(c)); }
 function caisseGele(x){ if(!x)return false; const pc=x.caseId&&(typeof state_cases!=='undefined')?state_cases.find(function(o){return o.id===x.caseId;}):null; return pc?caseGele(pc):((x.foyers||[]).length>30); }
 function caisseGeleBlock(x){ if(caisseGele(x)){ if(confirm(tr('gele_lock_msg'))){ go('tarifs'); } return true; } return false; }
 function geleNudge(t){ if(t && estGele(t)){ if(confirm(tr('gele_add_msg'))){ go('tarifs'); } } }
