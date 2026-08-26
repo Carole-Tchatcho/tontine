@@ -3490,7 +3490,7 @@ function viewSeanceReleve(){
    ${footer()}`;
 }
 
-function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=window._uboraVerify;window._uboraVerify=null;state.att=state.att||{};state.att.verifyRef=_v;setTimeout(function(){go('attmembre');repVerify();},60);}if(typeof state!=='undefined'&&state.uid){try{var _pj=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_join');if(_pj){localStorage.removeItem('ubora_pending_join');state.repJoinCode=_pj;setTimeout(function(){go('casejoin');},60);}try{var _pjf=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_joinfed');if(_pjf){localStorage.removeItem('ubora_pending_joinfed');state.pendingFedId=_pjf;setTimeout(function(){go('fedask');},90);}}catch(_ef){}}catch(_e){}}if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
+function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=window._uboraVerify;window._uboraVerify=null;state.att=state.att||{};state.att.verifyRef=_v;setTimeout(function(){go('attmembre');repVerify();},60);}if(typeof state!=='undefined'&&state.uid){try{var _pj=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_join');if(_pj){localStorage.removeItem('ubora_pending_join');state.repJoinCode=_pj;setTimeout(function(){go('casejoin');},60);}try{var _pjf=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_joinfed');if(_pjf){localStorage.removeItem('ubora_pending_joinfed');state.activeFedId=_pjf;state.pendingFedId=_pjf;setTimeout(function(){go('fedask');},140);}}catch(_ef){}}catch(_e){}}if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
   const cards=state_tontines.map(t=>{
     const r=t.rounds[t.currentRound];
     const conf=r?r.contribs.filter(s=>s==='confirmed').length:0;
@@ -6201,7 +6201,8 @@ function viewFedHome(){
 
 function viewFedAsk(){
   if(!state.uid){ go('fedhome'); return; }
-  const f=(state_fed.dir||[]).find(x=>x.id===state.activeFedId);
+  let f=(state_fed.dir||[]).find(x=>x.id===state.activeFedId);
+  if(!f && state.activeFedId){ f={id:state.activeFedId, name:_FL('cette fédération','this federation'), region:''}; }
   if(!f){ go('fedhome'); return; }
   app().innerHTML=`
     <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
@@ -7651,7 +7652,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.93';
+const UBORA_BUILD='v8.94';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
