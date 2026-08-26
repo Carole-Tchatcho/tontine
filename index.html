@@ -4603,7 +4603,7 @@ function caisseAppels(c){
   const cards=c.appels.map(a=>caisseAppelCard(c,a)).join('');
   return `<div class="asnote">${tr('cap_asnote')}</div>
     ${actions}${form}
-    ${cards||`<div class="panel"><div class="empty">${tr('cap_none')}</div></div>`}`;
+    ${cards||`<div class="panel"><div class="empty">${tr('cap_none')}<div style="margin-top:10px;font-size:.9em;line-height:1.55;opacity:.85">${role==='tresorier'?_FL('Pour commencer, cliquez « + Ouvrir un appel » ci-dessus (décès, naissance, événement…). Le bureau fixe un montant par foyer ; chaque foyer verse, le trésorier confirme.','To start, click "+ Open a call" above (death, birth, event…). The board sets an amount per household; each pays, the treasurer confirms.'):_FL('Aucune cotisation en cours. Pour en ouvrir une, passez en rôle « Trésorier·ère » avec le bouton ci-dessus.','No contribution in progress. To open one, switch to the "Treasurer" role using the button above.')}</div></div></div>`}`;
 }
 
 function caisseForm(c){
@@ -7648,7 +7648,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.88';
+const UBORA_BUILD='v8.89';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
