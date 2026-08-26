@@ -649,7 +649,7 @@
     </svg>
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
-    <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div>
+    <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A\u2212</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -7261,7 +7261,8 @@ function viewCGVGate(){
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
 function setTextZoom(m){ m=Math.max(1,Math.min(1.6,Math.round(m*100)/100)); try{document.documentElement.style.zoom=String(m);localStorage.setItem('ubora_zoom',String(m));}catch(e){} var el=document.getElementById('zoomPct'); if(el)el.textContent=Math.round(m*100)+'%'; }
 function bumpZoom(d){ var cur=1; try{cur=parseFloat(localStorage.getItem('ubora_zoom'))||1;}catch(e){} setTextZoom(cur+d); }
-function footer(){return `<div class="footer"><div class="zoomctl" style="text-align:center;margin:2px 0 12px;font-size:.85rem;opacity:.85">${_FL('Taille du texte','Text size')} · <button type="button" onclick="bumpZoom(-0.1)" aria-label="${_FL('Réduire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:7px;padding:2px 10px;cursor:pointer;font-weight:700;line-height:1.2">A−</button> <span id="zoomPct" style="display:inline-block;min-width:44px;font-variant-numeric:tabular-nums">${(function(){try{return Math.round((parseFloat(localStorage.getItem('ubora_zoom'))||1)*100);}catch(e){return 100;}})()}%</span> <button type="button" onclick="bumpZoom(0.1)" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:7px;padding:2px 10px;cursor:pointer;font-weight:700;line-height:1.2">A+</button></div>${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.getFullYear() > new Date().getFullYear()+50) return _FL('acc\u00e8s permanent','permanent access'); return _FL('actif jusqu\u2019au','active until')+' '+d.toLocaleDateString((typeof state!=='undefined'&&state.lang==='en')?'en-GB':'fr-CH'); }
+function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
 
 function viewLanding(){
   const gold='#C9A84C';
@@ -7561,7 +7562,7 @@ function dashPremium(t,isOrg){
   if(BACKEND!=='supabase')return '';
   const on=isPremium(t);
   const nom=palierNom(t);
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine \u00B7 ${on?esc(nom):'Fekeng'}</h3>${on?`<span class="pill p-paid">${esc(nom)} \u00B7 actif jusqu\u2019au ${new Date(t.premium_until).toLocaleDateString('fr-CH')}</span>`:`<span class="pill p-due">palier gratuit</span>`}</div>
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>UBORA Tontine \u00B7 ${on?esc(nom):'Fekeng'}</h3>${on?`<span class="pill p-paid">${esc(nom)} \u00B7 ${premiumLabel(t.premium_until)}</span>`:`<span class="pill p-due">palier gratuit</span>`}</div>
     <div style="padding:14px 22px">
       <div style="text-align:center;margin:6px 0 10px">${palierSVG(t,46)}</div>
       ${on?`<p class="msub">Merci\u00A0! Votre cercle est au palier <b>${esc(nom)}</b>\u00A0: attestations illimit\u00E9es, rappels pr\u00EAts \u00E0 envoyer et exports comptables sont actifs.</p>`
@@ -7650,7 +7651,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.90';
+const UBORA_BUILD='v8.91';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
