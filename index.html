@@ -777,6 +777,22 @@ prof_delete_confirm:'This action is permanent. All your Registry data will be de
 prof_delete_hint:'This action is permanent and removes your access to the Registry.',
 prof_logout:'Log out'
 });
+Object.assign(I18N.fr,{
+prof_consents_h:'Vos consentements',
+prof_future:'M’informer des futurs projets UBORA',
+prof_future_hint:'Recevez des nouvelles des prochains services UBORA. Si vous supprimez votre compte, seuls votre nom et votre e-mail sont conservés à cette seule fin — désinscription possible à tout moment.',
+prof_cross:'Contribuer à mon score de confiance depuis UBORA Invest',
+prof_cross_hint:'Autorise certaines données d’UBORA Invest à nourrir votre score de confiance sur le Registre. Cette contribution s’activera dès que la passerelle sera en place.',
+prof_delete_retain:'Vous avez choisi d’être informé·e des futurs projets : votre nom et votre e-mail seront conservés à cette seule fin. Désactivez « M’informer des futurs projets » avant de supprimer si vous ne le souhaitez pas.'
+});
+Object.assign(I18N.en,{
+prof_consents_h:'Your consents',
+prof_future:'Keep me informed about future UBORA projects',
+prof_future_hint:'Get news about upcoming UBORA services. If you delete your account, only your name and email are kept for this sole purpose — you can unsubscribe at any time.',
+prof_cross:'Contribute to my trust score from UBORA Invest',
+prof_cross_hint:'Allows certain UBORA Invest data to feed your trust score on the Registry. This contribution activates once the bridge is in place.',
+prof_delete_retain:'You chose to be informed about future projects: your name and email will be kept for that sole purpose. Turn off “Keep me informed about future UBORA projects” before deleting if you don’t want this.'
+});
 
 function freqLabel(f){return tr('freq_'+f);}
 function typeCaisseLabel(t){return tr('tc_'+t);}
@@ -2121,12 +2137,14 @@ async function profilLoad(){
   state._profilLoaded=true;
   try{
     if(typeof sb!=='undefined' && sb && state.uid){
-      const {data:pr}=await sb.from('profiles').select('consent_matching,visible_in_matching,text_size,nom').eq('id',state.uid).maybeSingle();
+      const {data:pr}=await sb.from('profiles').select('consent_matching,visible_in_matching,text_size,nom,consent_future_projects,consent_cross_platform_sharing').eq('id',state.uid).maybeSingle();
       if(pr){
         state.consent_matching=!!pr.consent_matching;
         state.visible_in_matching=(pr.visible_in_matching!==false);
         state.udVisible=state.visible_in_matching;
         state.text_size=pr.text_size||'normal';
+        state.consent_future_projects=!!pr.consent_future_projects;
+        state.consent_cross_platform_sharing=!!pr.consent_cross_platform_sharing;
         if(pr.nom && !state.user) state.user=pr.nom;
       }
       try{ const {data:u}=await sb.auth.getUser(); if(u && u.user) state.email=u.user.email; }catch(e){}
@@ -2138,6 +2156,18 @@ async function profilLoad(){
 }
 async function profilSave(field,val){
   try{ if(typeof sb!=='undefined' && sb && state.uid){ const patch={}; patch[field]=val; await sb.from('profiles').update(patch).eq('id',state.uid); } }catch(e){}
+}
+var CONSENT_COLS={
+  future:{flag:'consent_future_projects',at:'consent_future_projects_at',rev:'consent_future_projects_revoked_at',st:'consent_future_projects'},
+  cross:{flag:'consent_cross_platform_sharing',at:'consent_cross_platform_at',rev:'consent_cross_platform_revoked_at',st:'consent_cross_platform_sharing'}
+};
+async function profilConsent(kind){
+  var c=CONSENT_COLS[kind]; if(!c)return;
+  var next=!state[c.st]; state[c.st]=next;
+  var patch={}; patch[c.flag]=next;
+  if(next){ patch[c.at]=new Date().toISOString(); } else { patch[c.rev]=new Date().toISOString(); }
+  try{ if(typeof sb!=='undefined' && sb && state.uid){ await sb.from('profiles').update(patch).eq('id',state.uid); } }catch(e){}
+  render();
 }
 function profilToggle(field){
   const cur = field==='visible_in_matching' ? (state.visible_in_matching!==false) : !!state[field];
@@ -2156,7 +2186,8 @@ function profilExport(){
   }catch(e){ try{ alert(_FL('Export indisponible ici.','Export unavailable here.')); }catch(_e){} }
 }
 async function profilDelete(){
-  if(!confirm(tr('prof_delete_confirm'))) return;
+  var _msg=tr('prof_delete_confirm')+(state.consent_future_projects?('\n\n'+tr('prof_delete_retain')):'');
+  if(!confirm(_msg)) return;
   try{
     if(typeof sb!=='undefined' && sb && state.uid){
       const {error}=await sb.functions.invoke('delete-account');
@@ -2196,6 +2227,13 @@ function viewProfil(){
     '</div></div>'+
     '<h2 class="section-h">'+tr('prof_blocked_h')+'</h2>'+
     '<div class="panel"><div style="padding:6px 16px 10px">'+blockedHtml+'</div></div>'+
+    '<h2 class="section-h">'+tr('prof_consents_h')+'</h2>'+
+    '<div class="panel"><div style="padding:6px 16px 10px">'+
+      '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr('prof_future')+'</div><div class="prof-hint">'+tr('prof_future_hint')+'</div></div>'+
+        '<button type="button" class="prof-sw'+(state.consent_future_projects?' on':'')+'" role="switch" aria-checked="'+(state.consent_future_projects?'true':'false')+'" onclick="profilConsent(\'future\')"><span class="prof-knob"></span></button></div>'+
+      '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr('prof_cross')+'</div><div class="prof-hint">'+tr('prof_cross_hint')+'</div></div>'+
+        '<button type="button" class="prof-sw'+(state.consent_cross_platform_sharing?' on':'')+'" role="switch" aria-checked="'+(state.consent_cross_platform_sharing?'true':'false')+'" onclick="profilConsent(\'cross\')"><span class="prof-knob"></span></button></div>'+
+    '</div></div>'+
     '<h2 class="section-h">'+tr('prof_prefs_h')+'</h2>'+
     '<div class="panel"><div style="padding:10px 16px 12px">'+
       '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr('prof_lang')+'</div></div>'+
