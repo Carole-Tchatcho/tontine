@@ -649,6 +649,8 @@
 .prof-acct{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)}
 .prof-acct span:last-child{font-weight:600;color:var(--ink,#2A2018);text-align:right;word-break:break-word}
 @media (prefers-reduced-motion:reduce){.prof-sw,.prof-sw .prof-knob{transition:none}}
+.hutil{order:2;margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.hutil .langsw,.hutil .zoomsw{order:0;margin-left:0}
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216" crossorigin="anonymous"></script> </head>
@@ -665,8 +667,8 @@
     </svg>
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
-    <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
-    <button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button>
+    <div class="hutil"><div class="langsw"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
+    <button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
