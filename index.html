@@ -651,6 +651,28 @@
 @media (prefers-reduced-motion:reduce){.prof-sw,.prof-sw .prof-knob{transition:none}}
 .hutil{order:2;margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .hutil .langsw,.hutil .zoomsw{order:0;margin-left:0}
+/* ===== V2 — Messagerie ===== */
+.chat-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.chat-head-name{font-weight:700;color:var(--ink,#2A2018)}
+.chat-head-act{margin-left:auto;font-size:.85rem}
+.chat-thread{max-height:56vh;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;border:1px solid var(--line,#e0cfa6);border-radius:12px;background:var(--card,#FCF8EF)}
+.chat-msg{display:flex}
+.chat-msg.me{justify-content:flex-end}
+.chat-bubble{max-width:78%;padding:9px 13px;border-radius:14px;font-size:14.5px;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.chat-msg.them .chat-bubble{background:#fff;border:1px solid rgba(0,0,0,.08);color:var(--ink,#2A2018);border-bottom-left-radius:4px}
+.chat-msg.me .chat-bubble{background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border-bottom-right-radius:4px}
+.chat-flag{color:#c98a2f}
+.chat-warn{font-size:.8rem;color:var(--mid,#6E6457);background:rgba(201,168,76,.09);border:1px solid rgba(201,168,76,.32);border-radius:10px;padding:8px 12px;margin:12px 0 8px;line-height:1.4}
+.chat-compose{display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;border:1px solid rgba(0,0,0,.18);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;resize:vertical;min-height:44px;background:#fff}
+.chat-closed,.chat-consent{margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(0,0,0,.03);color:var(--mid,#6E6457);font-size:.9rem;text-align:center}
+.chat-litem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid rgba(0,0,0,.05);padding:12px 6px;cursor:pointer;font:inherit}
+.chat-litem:last-child{border-bottom:0}
+.chat-litem:hover{background:rgba(140,95,40,.05)}
+.chat-ava{width:38px;height:38px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.chat-li-main{display:flex;flex-direction:column;min-width:0}
+.chat-li-name{font-weight:600;color:var(--ink,#2A2018)}
+.chat-li-sub{font-size:.82rem;color:var(--faint,#A79E8C)}
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216" crossorigin="anonymous"></script> </head>
@@ -668,7 +690,7 @@
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="hutil"><div class="langsw"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
-    <button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
+    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉</button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -732,6 +754,62 @@ const I18N={
     tc_deces:'Bereavement & repatriation',tc_solidarite:'Solidarity',tc_evenements:'Life events'}
 };
 function tr(k){const L=I18N[state.lang]||I18N.fr;return (k in L)?L[k]:(I18N.fr[k]||k);}
+/* --- V2 : messagerie (chat_*, mtc_* utilisés, sig_* utilisés) --- */
+Object.assign(I18N.fr,{
+chat_list_title:'Messages',
+chat_list_empty:'Aucune conversation pour l’instant. Elles naissent d’une mise en relation acceptée.',
+chat_warning:'Ne partagez jamais de coordonnées bancaires ou de mots de passe. UBORA ne peut garantir l’identité des autres membres. En cas de doute, signalez.',
+chat_input_ph:'Écrire un message…',
+chat_send:'Envoyer',
+chat_quota_left:'{n}/{max} messages aujourd’hui',
+chat_quota_reached:'Vous avez atteint votre limite de messages pour aujourd’hui. Revenez demain.',
+chat_scam_iban:'Ce message semble contenir des coordonnées bancaires ou une adresse de portefeuille. Les cotisations passent uniquement par le module tontine officiel.',
+chat_scam_urgency:'Ce message combine urgence et demande d’argent — restez prudent·e avant de répondre.',
+chat_scam_offplatform:'Attention : on vous propose de poursuivre l’échange ailleurs, tôt dans la conversation.',
+chat_block:'Bloquer',
+chat_block_confirm:'Bloquer ce membre ? Vous ne recevrez plus de messages de sa part.',
+chat_blocked_done:'Membre bloqué.',
+chat_report:'Signaler',
+chat_conversation_closed:'Cette conversation a été fermée.',
+mtc_incoming:'Quelqu’un qui avance au même rythme aimerait échanger.',
+mtc_accept:'Accepter',
+mtc_decline:'Ignorer',
+sig_cat_h:'Motif',
+sig_cat_harcelement:'Harcèlement',
+sig_cat_contenu:'Contenu inapproprié',
+sig_cat_identite:'Fausse identité',
+sig_cat_financier:'Sollicitation financière hors cadre',
+sig_cat_autre:'Autre',
+sig_submitted:'Signalement transmis. Nous l’examinons rapidement.'
+});
+Object.assign(I18N.en,{
+chat_list_title:'Messages',
+chat_list_empty:'No conversations yet. They start from an accepted introduction.',
+chat_warning:'Never share bank details or passwords. UBORA cannot guarantee other members’ identity. If in doubt, report.',
+chat_input_ph:'Write a message…',
+chat_send:'Send',
+chat_quota_left:'{n}/{max} messages today',
+chat_quota_reached:'You’ve reached your message limit for today. Come back tomorrow.',
+chat_scam_iban:'This message seems to contain bank details or a wallet address. Contributions only go through the official tontine module.',
+chat_scam_urgency:'This message combines urgency and a request for money — be cautious before replying.',
+chat_scam_offplatform:'Careful: you’re being asked to continue elsewhere, early in the conversation.',
+chat_block:'Block',
+chat_block_confirm:'Block this member? You will no longer receive messages from them.',
+chat_blocked_done:'Member blocked.',
+chat_report:'Report',
+chat_conversation_closed:'This conversation has been closed.',
+mtc_incoming:'Someone moving at the same pace would like to connect.',
+mtc_accept:'Accept',
+mtc_decline:'Dismiss',
+sig_cat_h:'Reason',
+sig_cat_harcelement:'Harassment',
+sig_cat_contenu:'Inappropriate content',
+sig_cat_identite:'Fake identity',
+sig_cat_financier:'Financial solicitation outside scope',
+sig_cat_autre:'Other',
+sig_submitted:'Report sent. We’ll review it shortly.'
+});
+
 /* --- V2 : écran Profil / Réglages --- */
 Object.assign(I18N.fr,{
 prof_title:'Profil et réglages',
@@ -2256,6 +2334,198 @@ function viewProfil(){
     footer();
 }
 
+/* ===== V2 — Messagerie (liste + fil + envoi + anti-arnaque + blocage) ===== */
+var CHAT_QUOTA=30;
+
+async function chatListLoad(){
+  state._chatListLoaded=true;
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      const {data:convs}=await sb.from('conversations')
+        .select('id,member_a,member_b,status,member_a_accepted_at,member_b_accepted_at,created_at')
+        .or('member_a.eq.'+state.uid+',member_b.eq.'+state.uid)
+        .neq('status','declined')
+        .order('created_at',{ascending:false});
+      const list=convs||[];
+      const otherIds=[]; list.forEach(function(c){ var o=c.member_a===state.uid?c.member_b:c.member_a; if(otherIds.indexOf(o)<0)otherIds.push(o); });
+      var names={};
+      if(otherIds.length){ const {data:profs}=await sb.from('profiles').select('id,nom').in('id',otherIds); (profs||[]).forEach(function(p){ names[p.id]=p.nom||'—'; }); }
+      state.chatConvs=list.map(function(c){ var other=c.member_a===state.uid?c.member_b:c.member_a; return {id:c.id,status:c.status,otherName:names[other]||'—'}; });
+    } else { state.chatConvs=[]; }
+  }catch(e){ state.chatConvs=state.chatConvs||[]; }
+  render();
+}
+
+function viewMessages(){
+  if(!state._chatListLoaded){ chatListLoad(); }
+  var convs=state.chatConvs||[];
+  var rows = convs.length
+    ? convs.map(function(c){
+        var tag = c.status==='pending' ? '<span class="chat-li-sub"> · '+_FL('en attente','pending')+'</span>'
+                : (c.status==='closed' ? '<span class="chat-li-sub"> · '+_FL('fermée','closed')+'</span>' : '');
+        return '<button type="button" class="chat-litem" onclick="chatOpen(\''+c.id+'\')">'+
+          '<span class="chat-ava">'+esc((c.otherName||'?').charAt(0).toUpperCase())+'</span>'+
+          '<span class="chat-li-main"><span class="chat-li-name">'+esc(c.otherName)+'</span>'+tag+'</span></button>';
+      }).join('')
+    : '<div class="prof-hint" style="padding:10px 4px">'+tr('chat_list_empty')+'</div>';
+  app().innerHTML =
+    '<div class="eyebrow">UBORA</div>'+
+    '<h1 class="page-title">'+tr('chat_list_title')+'</h1>'+
+    '<div class="panel"><div style="padding:6px 10px 8px">'+rows+'</div></div>'+
+    footer();
+}
+
+async function chatOpen(id){
+  state._chatListLoaded=false;
+  state.activeConv=id; state.chatMsgs=null; state.chatDraft=''; state.activeConvRow=null; state.activeConvName='';
+  await go('conversation');
+  await chatLoad(id);
+  chatSubscribe(id);
+}
+
+async function chatLoad(id){
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      const {data:conv}=await sb.from('conversations').select('id,member_a,member_b,status,member_a_accepted_at,member_b_accepted_at').eq('id',id).maybeSingle();
+      state.activeConvRow=conv||null;
+      if(conv){ var other=conv.member_a===state.uid?conv.member_b:conv.member_a;
+        const {data:p}=await sb.from('profiles').select('nom').eq('id',other).maybeSingle();
+        state.activeConvName=(p&&p.nom)||'—'; }
+      const {data:msgs}=await sb.from('messages').select('id,sender_id,body,created_at,flagged').eq('conversation_id',id).order('created_at',{ascending:true});
+      state.chatMsgs=msgs||[];
+      var start=new Date(); start.setHours(0,0,0,0);
+      const {count}=await sb.from('messages').select('id',{count:'exact',head:true}).eq('sender_id',state.uid).gte('created_at',start.toISOString());
+      state.chatSentToday=count||0;
+    }
+  }catch(e){ state.chatMsgs=state.chatMsgs||[]; }
+  render();
+}
+
+function chatSubscribe(id){
+  if(typeof sb==='undefined'||!sb||(typeof BACKEND!=='undefined'&&BACKEND!=='supabase'))return;
+  if(typeof unsubscribeActive==='function')unsubscribeActive();
+  try{
+    var ch=sb.channel('conv:'+id)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},function(){ chatLoad(id); })
+      .subscribe();
+    _unsub=function(){ try{sb.removeChannel(ch);}catch(e){} };
+  }catch(e){}
+}
+
+/* Détection proactive (§2.3) : jamais bloquant, on avertit avant l'envoi. */
+function chatScan(text){
+  var t=String(text||''); var low=t.toLowerCase();
+  if(/\b[a-z]{2}\d{2}(?:[ ]?[a-z0-9]){10,30}\b/i.test(t) || /(?:\d[ .-]?){13,19}/.test(t) || /\b0x[a-f0-9]{40}\b/i.test(t) || /\b(?:bc1|[13])[a-km-zA-HJ-NP-Z1-9]{25,39}\b/.test(t) || /(iban|bitcoin|usdt|crypto|wallet|portefeuille)/.test(low)) return 'iban_carte';
+  if(/(urgent|vite|rapidement|tout de suite|imm[ée]diat|asap)/.test(low) && /(argent|payer|paiement|virement|envoie|envoyer|somme|€|chf|euros?|francs?|dollars?)/.test(low)) return 'urgence_argent';
+  if(/(whatsapp|telegram|signal|snapchat|instagram|\+\d[\d ]{6,})/.test(low)) return 'sortie_plateforme';
+  return null;
+}
+
+async function chatSend(id){
+  var ta=document.getElementById('chat-input'); if(!ta)return;
+  var body=String(ta.value||'').trim();
+  if(!body)return;
+  if(body.length>2000){ alert(_FL('Message trop long (2000 caractères max).','Message too long (2000 chars max).')); return; }
+  if((state.chatSentToday||0)>=CHAT_QUOTA){ alert(tr('chat_quota_reached')); return; }
+  var reason=chatScan(body);
+  if(reason){
+    var wk = reason==='urgence_argent'?'chat_scam_urgency':(reason==='sortie_plateforme'?'chat_scam_offplatform':'chat_scam_iban');
+    if(!confirm(tr(wk)+'\n\n'+_FL('Envoyer quand même ?','Send anyway?'))) return;
+  }
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      var row={conversation_id:id,sender_id:state.uid,body:body,flagged:!!reason};
+      if(reason)row.flag_reason=reason;
+      const {error}=await sb.from('messages').insert(row);
+      if(error){ alert(_FL('Envoi impossible pour l’instant.','Could not send right now.')); return; }
+      ta.value=''; state.chatDraft=''; state.chatSentToday=(state.chatSentToday||0)+1;
+      await chatLoad(id);
+    }
+  }catch(e){ alert(_FL('Envoi impossible pour l’instant.','Could not send right now.')); }
+}
+
+async function chatAccept(id){
+  var conv=state.activeConvRow; if(!conv)return;
+  try{ if(typeof sb!=='undefined' && sb && state.uid){
+    var mineCol=conv.member_a===state.uid?'member_a_accepted_at':'member_b_accepted_at';
+    var otherCol=conv.member_a===state.uid?'member_b_accepted_at':'member_a_accepted_at';
+    var patch={}; patch[mineCol]=new Date().toISOString();
+    if(conv[otherCol])patch.status='active';
+    await sb.from('conversations').update(patch).eq('id',id);
+    await chatLoad(id);
+  }}catch(e){}
+}
+
+async function chatDecline(id){
+  try{ if(typeof sb!=='undefined' && sb && state.uid){ await sb.from('conversations').update({status:'declined'}).eq('id',id); } }catch(e){}
+  state._chatListLoaded=false; go('messages');
+}
+
+async function chatBlock(id){
+  var conv=state.activeConvRow; if(!conv)return;
+  if(!confirm(tr('chat_block_confirm')))return;
+  var other=conv.member_a===state.uid?conv.member_b:conv.member_a;
+  try{ if(typeof sb!=='undefined' && sb && state.uid){
+    await sb.from('member_blocks').insert({blocker_id:state.uid,blocked_id:other});
+    await sb.from('conversations').update({status:'closed'}).eq('id',id);
+  }}catch(e){}
+  alert(tr('chat_blocked_done'));
+  state._chatListLoaded=false; go('messages');
+}
+
+async function chatReport(id){
+  var conv=state.activeConvRow; if(!conv)return;
+  var keys=['harcelement','contenu_inapproprie','fausse_identite','sollicitation_financiere','autre'];
+  var labels=[tr('sig_cat_harcelement'),tr('sig_cat_contenu'),tr('sig_cat_identite'),tr('sig_cat_financier'),tr('sig_cat_autre')];
+  var msg=tr('sig_cat_h')+' :\n'+labels.map(function(l,i){return (i+1)+'. '+l;}).join('\n');
+  var pick=prompt(msg,'1'); if(pick==null)return;
+  var idx=parseInt(pick,10)-1; if(isNaN(idx)||idx<0||idx>=keys.length)return;
+  var other=conv.member_a===state.uid?conv.member_b:conv.member_a;
+  try{ if(typeof sb!=='undefined' && sb && state.uid){
+    await sb.from('reports').insert({reporter_id:state.uid,reported_id:other,conversation_id:id,category:keys[idx],source:'manuel'});
+  }}catch(e){}
+  alert(tr('sig_submitted'));
+}
+
+function viewConversation(){
+  var id=state.activeConv, conv=state.activeConvRow, name=state.activeConvName||'—', msgs=state.chatMsgs;
+  var iAccepted = conv ? (conv.member_a===state.uid?conv.member_a_accepted_at:conv.member_b_accepted_at) : true;
+  var otherAccepted = conv ? (conv.member_a===state.uid?conv.member_b_accepted_at:conv.member_a_accepted_at) : true;
+  var status = conv?conv.status:'active';
+  var msgsHtml;
+  if(msgs===null||msgs===undefined){ msgsHtml='<div class="prof-hint" style="padding:14px 4px">'+_FL('Chargement…','Loading…')+'</div>'; }
+  else if(!msgs.length){ msgsHtml='<div class="prof-hint" style="padding:14px 4px">'+_FL('Aucun message. Écrivez le premier.','No messages yet. Write the first.')+'</div>'; }
+  else { msgsHtml=msgs.map(function(m){
+      var mine=m.sender_id===state.uid;
+      var flag=m.flagged?'<span class="chat-flag" title="'+_FL('Signalé automatiquement','Auto-flagged')+'">\u26A0 </span>':'';
+      return '<div class="chat-msg '+(mine?'me':'them')+'"><div class="chat-bubble">'+flag+esc(m.body)+'</div></div>';
+    }).join(''); }
+  var footZone;
+  if(status==='closed'||status==='declined'){
+    footZone='<div class="chat-closed">'+tr('chat_conversation_closed')+'</div>';
+  } else if(status==='pending' && !iAccepted){
+    footZone='<div class="chat-consent"><div class="prof-hint" style="margin-bottom:10px">'+tr('mtc_incoming')+'</div>'+
+      '<div class="row-gap" style="justify-content:center"><button type="button" class="btn btn-gold btn-sm" onclick="chatAccept(\''+id+'\')">'+tr('mtc_accept')+'</button>'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="chatDecline(\''+id+'\')">'+tr('mtc_decline')+'</button></div></div>';
+  } else if(status==='pending' && iAccepted && !otherAccepted){
+    footZone='<div class="chat-closed">'+_FL('En attente de l’acceptation de l’autre membre.','Waiting for the other member to accept.')+'</div>';
+  } else {
+    var reached=(state.chatSentToday||0)>=CHAT_QUOTA;
+    var quota=tr('chat_quota_left').replace('{n}',(state.chatSentToday||0)).replace('{max}',CHAT_QUOTA);
+    footZone='<div class="chat-warn">'+tr('chat_warning')+'</div>'+
+      '<div class="chat-compose"><textarea id="chat-input" class="chat-input" rows="2" maxlength="2000" placeholder="'+esc(tr('chat_input_ph'))+'" oninput="state.chatDraft=this.value" '+(reached?'disabled':'')+'>'+esc(state.chatDraft||'')+'</textarea>'+
+      '<button type="button" class="btn btn-gold btn-sm" onclick="chatSend(\''+id+'\')" '+(reached?'disabled':'')+'>'+tr('chat_send')+'</button></div>'+
+      '<div class="prof-hint" style="text-align:right;margin-top:4px">'+(reached?tr('chat_quota_reached'):quota)+'</div>';
+  }
+  app().innerHTML =
+    '<div class="chat-head"><button type="button" class="linkbtn" onclick="goBack()">\u2039 '+tr('chat_list_title')+'</button>'+
+      '<span class="chat-head-name">'+esc(name)+'</span>'+
+      '<span class="chat-head-act"><button type="button" class="linkbtn" onclick="chatReport(\''+id+'\')">'+tr('chat_report')+'</button> \u00b7 <button type="button" class="linkbtn" onclick="chatBlock(\''+id+'\')">'+tr('chat_block')+'</button></span></div>'+
+    '<div class="chat-thread" id="chat-thread">'+msgsHtml+'</div>'+
+    footZone;
+  try{ var th=document.getElementById('chat-thread'); if(th)th.scrollTop=th.scrollHeight; }catch(e){}
+}
+
 function render(){
   if(_curSnap && !_navBack){ try{ if(JSON.parse(_curSnap).view!==state.view){ navStack.push(_curSnap); if(navStack.length>40)navStack.shift(); } }catch(e){} }
   document.querySelectorAll('.hnav button').forEach(b=>b.classList.remove('on'));
@@ -2264,7 +2534,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
-  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hp=document.getElementById('hdr-profil'); if(_hp){ var _nm=(state.user||'').trim(); _hp.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; }}
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hp=document.getElementById('hdr-profil'); if(_hp){ var _nm=(state.user||'').trim(); _hp.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; }}
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
@@ -2288,7 +2558,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
