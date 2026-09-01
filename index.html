@@ -690,7 +690,7 @@
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="hutil"><div class="langsw"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
-    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉</button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
+    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;position:relative;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉<span id="hdr-msg-dot" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:9px;background:#a3402f;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center">1</span></button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -2336,6 +2336,23 @@ function viewProfil(){
 
 /* ===== V2 — Messagerie (liste + fil + envoi + anti-arnaque + blocage) ===== */
 var CHAT_QUOTA=30;
+function chatBadgePaint(){ var el=document.getElementById('hdr-msg-dot'); if(!el)return; var n=state.chatUnread||0; el.textContent=n?(n>9?'9+':String(n)):''; el.style.display=n?'':'none'; }
+function chatSeen(){ try{ localStorage.setItem('ubora_chat_seen',String(Date.now())); }catch(e){} state.chatUnread=0; chatBadgePaint(); }
+async function chatBadgeInit(){
+  if(state._chatBadgeSub)return; if(typeof sb==='undefined'||!sb||!state.uid)return; state._chatBadgeSub=true;
+  try{ var seen=0; try{ seen=parseInt(localStorage.getItem('ubora_chat_seen')||'0',10)||0; }catch(e){}
+    var seenISO=new Date(seen).toISOString();
+    const {count}=await sb.from('messages').select('id',{count:'exact',head:true}).neq('sender_id',state.uid).gt('created_at',seenISO);
+    state.chatUnread=count||0;
+  }catch(e){ state.chatUnread=state.chatUnread||0; }
+  try{ var ch=sb.channel('chat-badge:'+state.uid)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},function(payload){
+      try{ var m=payload&&payload.new; if(m && m.sender_id!==state.uid && state.view!=='conversation'){ state.chatUnread=(state.chatUnread||0)+1; chatBadgePaint(); } }catch(e){} })
+    .subscribe();
+    window._uboraChatBadgeCh=ch;
+  }catch(e){}
+  chatBadgePaint();
+}
 
 async function chatListLoad(){
   state._chatListLoaded=true;
@@ -2357,6 +2374,7 @@ async function chatListLoad(){
 }
 
 function viewMessages(){
+  chatSeen();
   if(!state._chatListLoaded){ chatListLoad(); }
   var convs=state.chatConvs||[];
   var rows = convs.length
@@ -2415,9 +2433,9 @@ function chatSubscribe(id){
 /* Détection proactive (§2.3) : jamais bloquant, on avertit avant l'envoi. */
 function chatScan(text){
   var t=String(text||''); var low=t.toLowerCase();
-  if(/\b[a-z]{2}\d{2}(?:[ ]?[a-z0-9]){10,30}\b/i.test(t) || /(?:\d[ .-]?){13,19}/.test(t) || /\b0x[a-f0-9]{40}\b/i.test(t) || /\b(?:bc1|[13])[a-km-zA-HJ-NP-Z1-9]{25,39}\b/.test(t) || /(iban|bitcoin|usdt|crypto|wallet|portefeuille)/.test(low)) return 'iban_carte';
-  if(/(urgent|vite|rapidement|tout de suite|imm[ée]diat|asap)/.test(low) && /(argent|payer|paiement|virement|envoie|envoyer|somme|€|chf|euros?|francs?|dollars?)/.test(low)) return 'urgence_argent';
-  if(/(whatsapp|telegram|signal|snapchat|instagram|\+\d[\d ]{6,})/.test(low)) return 'sortie_plateforme';
+  if(/\b[a-z]{2}\d{2}(?:[ ]?[a-z0-9]){10,30}\b/i.test(t) || /(?:\d[ .-]?){13,19}/.test(t) || /\b0x[a-f0-9]{40}\b/i.test(t) || /\b(?:bc1|[13])[a-km-zA-HJ-NP-Z1-9]{25,39}\b/.test(t) || /(iban|\brib\b|bitcoin|usdt|crypto|wallet|portefeuille|coordonn[eé]es? bancaires?|carte bancaire|num[eé]ro de carte|compte bancaire)/.test(low)) return 'iban_carte';
+  if(/(urgent|vite|rapidement|tout de suite|imm[eé]diat|asap|d[eé]panne)/.test(low) && /(argent|payer|paiement|virement|envoie|envoyer|somme|pr[eê]te|pr[eê]ter|€|chf|euros?|francs?|dollars?)/.test(low)) return 'urgence_argent';
+  if(/(w[a-z]*ts[a-z]*app?|whatsap|telegram|signal\b|snap(chat)?|instagram|\binsta\b|messenger|facebook|\bfb\b|viber|wechat|ton num[eé]ro|num[eé]ro de t[eé]l|appelle[- ]?moi|\+\d[\d ]{6,})/.test(low)) return 'sortie_plateforme';
   return null;
 }
 
@@ -2534,7 +2552,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
-  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hp=document.getElementById('hdr-profil'); if(_hp){ var _nm=(state.user||'').trim(); _hp.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; }}
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hp=document.getElementById('hdr-profil'); if(_hp){ var _nm=(state.user||'').trim(); _hp.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; } if(typeof chatBadgeInit==='function'){chatBadgeInit();chatBadgePaint();} }
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
