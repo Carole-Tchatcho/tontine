@@ -633,6 +633,22 @@
 .att-issuer .ai-name{ font-weight:600; color:var(--ink,#2b2620); font-size:12px; letter-spacing:.01em; }
 .att-issuer .ai-l{ margin-top:1px; }
 @media print{ .att-issuer{ color:#555; border-bottom:1px solid #ccc; } }
+/* ===== V2 — Profil / Réglages ===== */
+.prof-row{display:flex;align-items:center;gap:14px;padding:11px 0}
+.prof-row + .prof-row{border-top:1px solid rgba(0,0,0,.06)}
+.prof-txt{flex:1;min-width:0}
+.prof-lbl{font-weight:600;color:var(--ink,#2A2018)}
+.prof-hint{font-size:.82rem;color:var(--faint,#A79E8C);margin-top:2px;line-height:1.4}
+.prof-sw{position:relative;width:46px;height:27px;border-radius:999px;border:1px solid var(--gold,#9A7230);background:var(--card,#FCF8EF);cursor:pointer;flex:none;padding:0;transition:background .2s ease-out,border-color .2s ease-out}
+.prof-sw .prof-knob{position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--gold,#9A7230);transition:transform .2s ease-out,background .2s ease-out}
+.prof-sw.on{background:var(--gold-bright,#C9A84C);border-color:var(--gold-bright,#C9A84C)}
+.prof-sw.on .prof-knob{transform:translateX(19px);background:#fff}
+.prof-seg{display:inline-flex;border:1px solid var(--gold,#9A7230);border-radius:9px;overflow:hidden;flex:none}
+.prof-seg button{background:none;border:0;padding:7px 15px;cursor:pointer;font-weight:600;color:var(--ink,#2A2018);font-size:.9rem}
+.prof-seg button.on{background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0)}
+.prof-acct{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.prof-acct span:last-child{font-weight:600;color:var(--ink,#2A2018);text-align:right;word-break:break-word}
+@media (prefers-reduced-motion:reduce){.prof-sw,.prof-sw .prof-knob{transition:none}}
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216" crossorigin="anonymous"></script> </head>
@@ -650,6 +666,7 @@
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="langsw" style="margin-left:auto"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
+    <button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;border-radius:8px;padding:2px 9px;cursor:pointer;margin-left:8px;font-weight:700;font-size:.95rem;line-height:1.35">≡</button>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -713,6 +730,54 @@ const I18N={
     tc_deces:'Bereavement & repatriation',tc_solidarite:'Solidarity',tc_evenements:'Life events'}
 };
 function tr(k){const L=I18N[state.lang]||I18N.fr;return (k in L)?L[k]:(I18N.fr[k]||k);}
+/* --- V2 : écran Profil / Réglages --- */
+Object.assign(I18N.fr,{
+prof_title:'Profil et réglages',
+prof_matching_h:'Confidentialité et mise en relation',
+prof_consent_matching:'Suggestions de mise en relation',
+prof_consent_matching_hint:'Recevoir des suggestions comme « Ils avancent avec vous ».',
+prof_visible:'Visible dans les suggestions',
+prof_visible_hint:'Être proposé·e à d’autres membres au même palier.',
+prof_blocked_h:'Membres bloqués',
+prof_blocked_none:'Aucun membre bloqué.',
+prof_unblock:'Débloquer',
+prof_prefs_h:'Préférences',
+prof_lang:'Langue',
+prof_text_size:'Taille du texte',
+prof_text_size_normal:'Normal',
+prof_text_size_large:'Grand',
+prof_account_h:'Informations de compte',
+prof_export:'Exporter mes données',
+prof_export_hint:'Vous recevez une copie de vos données de compte. L’export complet du registre (gratuit, sous 30 jours) reste disponible sur demande.',
+prof_delete_account:'Supprimer mon compte',
+prof_delete_confirm:'Cette action est définitive. Toutes vos données du Registre seront supprimées.',
+prof_delete_hint:'Cette action est définitive et supprime votre accès au Registre.',
+prof_logout:'Se déconnecter'
+});
+Object.assign(I18N.en,{
+prof_title:'Profile and settings',
+prof_matching_h:'Privacy and introductions',
+prof_consent_matching:'Match suggestions',
+prof_consent_matching_hint:'Receive suggestions like “They’re moving forward with you”.',
+prof_visible:'Visible in suggestions',
+prof_visible_hint:'Be suggested to other members at the same level.',
+prof_blocked_h:'Blocked members',
+prof_blocked_none:'No blocked members.',
+prof_unblock:'Unblock',
+prof_prefs_h:'Preferences',
+prof_lang:'Language',
+prof_text_size:'Text size',
+prof_text_size_normal:'Normal',
+prof_text_size_large:'Large',
+prof_account_h:'Account information',
+prof_export:'Export my data',
+prof_export_hint:'You receive a copy of your account data. A full registry export (free, within 30 days) remains available on request.',
+prof_delete_account:'Delete my account',
+prof_delete_confirm:'This action is permanent. All your Registry data will be deleted.',
+prof_delete_hint:'This action is permanent and removes your access to the Registry.',
+prof_logout:'Log out'
+});
+
 function freqLabel(f){return tr('freq_'+f);}
 function typeCaisseLabel(t){return tr('tc_'+t);}
 function setLang(l){state.lang=l;try{localStorage.setItem('ubora_lang',l);}catch(e){}render();}
@@ -2051,6 +2116,106 @@ function viewBientot(){
   const body=EN?`&laquo;&nbsp;${name}&nbsp;&raquo; is being built and will join the registry soon. In the meantime, the Tontine is fully active.`:`&laquo;&nbsp;${name}&nbsp;&raquo; est en cours de construction et rejoindra bient&ocirc;t le registre. En attendant, la Tontine est pleinement active.`;
   app().innerHTML=`<div class="eyebrow">UBORA</div><h1 class="page-title">${name}</h1><p class="lead">${lead}</p><div class="panel" style="text-align:center;padding:44px 24px"><div style="font-size:32px;opacity:.65;margin-bottom:10px">&#10022;</div><div class="page-title" style="font-size:23px;margin:0 0 8px">${soon}</div><div class="lead" style="margin:0 auto;max-width:440px">${body}</div></div>${footer()}`;
 }
+/* ===== V2 — Écran Profil / Réglages (ajout non destructif) ===== */
+async function profilLoad(){
+  state._profilLoaded=true;
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      const {data:pr}=await sb.from('profiles').select('consent_matching,visible_in_matching,text_size,nom').eq('id',state.uid).maybeSingle();
+      if(pr){
+        state.consent_matching=!!pr.consent_matching;
+        state.visible_in_matching=(pr.visible_in_matching!==false);
+        state.udVisible=state.visible_in_matching;
+        state.text_size=pr.text_size||'normal';
+        if(pr.nom && !state.user) state.user=pr.nom;
+      }
+      try{ const {data:u}=await sb.auth.getUser(); if(u && u.user) state.email=u.user.email; }catch(e){}
+      try{ const {data:bl}=await sb.from('member_blocks').select('id,blocked_id').eq('blocker_id',state.uid); state.profilBlocks=bl||[]; }catch(e){ state.profilBlocks=[]; }
+    }
+  }catch(e){}
+  try{ setTextZoom(state.text_size==='grand'?1.25:1.0); }catch(e){}
+  render();
+}
+async function profilSave(field,val){
+  try{ if(typeof sb!=='undefined' && sb && state.uid){ const patch={}; patch[field]=val; await sb.from('profiles').update(patch).eq('id',state.uid); } }catch(e){}
+}
+function profilToggle(field){
+  const cur = field==='visible_in_matching' ? (state.visible_in_matching!==false) : !!state[field];
+  const next=!cur; state[field]=next;
+  if(field==='visible_in_matching') state.udVisible=next;
+  profilSave(field,next); render();
+}
+function profilSetSize(sz){ state.text_size=sz; try{ setTextZoom(sz==='grand'?1.25:1.0); }catch(e){} profilSave('text_size',sz); render(); }
+function profilExport(){
+  const dump={ generated_at:new Date().toISOString(), profil:{ nom:state.user||null, email:state.email||null, uid:state.uid||null, consent_matching:!!state.consent_matching, visible_in_matching:(state.visible_in_matching!==false), text_size:state.text_size||'normal', langue:state.lang } };
+  try{
+    const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='ubora-mes-donnees-'+(new Date().toISOString().slice(0,10))+'.json';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },500);
+  }catch(e){ try{ alert(_FL('Export indisponible ici.','Export unavailable here.')); }catch(_e){} }
+}
+async function profilDelete(){
+  if(!confirm(tr('prof_delete_confirm'))) return;
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      const {error}=await sb.rpc('delete_my_account');
+      if(!error){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); return; }
+    }
+  }catch(e){}
+  const subj=_FL('Demande de suppression de compte','Account deletion request');
+  const body=_FL('Merci de supprimer définitivement mon compte et mes données du Registre.','Please permanently delete my account and my Registry data.')+' — '+(state.email||'')+' · '+(state.uid||'');
+  try{ window.location.href='mailto:contact@caroletchatcho.com?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body); }catch(e){}
+  setTimeout(function(){ try{ uboraLogout(); }catch(e){} },600);
+}
+async function profilUnblock(id){
+  try{ if(typeof sb!=='undefined' && sb && state.uid){ await sb.from('member_blocks').delete().eq('id',id); } }catch(e){}
+  state.profilBlocks=(state.profilBlocks||[]).filter(function(b){ return b.id!==id; });
+  render();
+}
+function profilRow(labelKey,hintKey,field,on){
+  return '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr(labelKey)+'</div>'+(hintKey?'<div class="prof-hint">'+tr(hintKey)+'</div>':'')+'</div>'+
+    '<button type="button" class="prof-sw'+(on?' on':'')+'" role="switch" aria-checked="'+(on?'true':'false')+'" onclick="profilToggle(\''+field+'\')"><span class="prof-knob"></span></button></div>';
+}
+function viewProfil(){
+  if(!state._profilLoaded){ profilLoad(); }
+  const cm=!!state.consent_matching;
+  const vis=(state.visible_in_matching!==false);
+  const big=(state.text_size==='grand');
+  const blocks=state.profilBlocks||[];
+  const blockedHtml = blocks.length
+    ? blocks.map(function(b){ return '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+esc(b.blocked_id)+'</div></div><button type="button" class="btn btn-ghost btn-sm" onclick="profilUnblock(\''+b.id+'\')">'+tr('prof_unblock')+'</button></div>'; }).join('')
+    : '<div class="prof-hint" style="padding:6px 2px">'+tr('prof_blocked_none')+'</div>';
+  app().innerHTML =
+    '<div class="eyebrow">UBORA</div>'+
+    '<h1 class="page-title">'+tr('prof_title')+'</h1>'+
+    '<h2 class="section-h">'+tr('prof_matching_h')+'</h2>'+
+    '<div class="panel"><div style="padding:6px 16px 10px">'+
+      profilRow('prof_consent_matching','prof_consent_matching_hint','consent_matching',cm)+
+      profilRow('prof_visible','prof_visible_hint','visible_in_matching',vis)+
+    '</div></div>'+
+    '<h2 class="section-h">'+tr('prof_blocked_h')+'</h2>'+
+    '<div class="panel"><div style="padding:6px 16px 10px">'+blockedHtml+'</div></div>'+
+    '<h2 class="section-h">'+tr('prof_prefs_h')+'</h2>'+
+    '<div class="panel"><div style="padding:10px 16px 12px">'+
+      '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr('prof_lang')+'</div></div>'+
+        '<div class="prof-seg"><button type="button" class="'+(state.lang!=='en'?'on':'')+'" onclick="setLang(\'fr\')">FR</button><button type="button" class="'+(state.lang==='en'?'on':'')+'" onclick="setLang(\'en\')">EN</button></div></div>'+
+      '<div class="prof-row"><div class="prof-txt"><div class="prof-lbl">'+tr('prof_text_size')+'</div></div>'+
+        '<div class="prof-seg"><button type="button" class="'+(!big?'on':'')+'" onclick="profilSetSize(\'normal\')">'+tr('prof_text_size_normal')+'</button><button type="button" class="'+(big?'on':'')+'" onclick="profilSetSize(\'grand\')">'+tr('prof_text_size_large')+'</button></div></div>'+
+    '</div></div>'+
+    '<h2 class="section-h">'+tr('prof_account_h')+'</h2>'+
+    '<div class="panel"><div style="padding:10px 16px 14px">'+
+      '<div class="prof-acct"><span class="prof-hint">'+_FL('Nom','Name')+'</span><span>'+esc(state.user||'—')+'</span></div>'+
+      '<div class="prof-acct"><span class="prof-hint">'+_FL('E-mail','Email')+'</span><span>'+esc(state.email||'—')+'</span></div>'+
+      '<div class="row-gap" style="margin-top:12px"><button type="button" class="btn btn-ghost btn-sm" onclick="profilExport()">'+tr('prof_export')+'</button></div>'+
+      '<div class="prof-hint" style="margin-top:6px">'+tr('prof_export_hint')+'</div>'+
+      '<div class="row-gap" style="margin-top:14px"><button type="button" class="btn btn-ghost btn-sm" onclick="profilDelete()" style="border-color:#a3402f;color:#a3402f">'+tr('prof_delete_account')+'</button></div>'+
+      '<div class="prof-hint" style="margin-top:6px">'+tr('prof_delete_hint')+'</div>'+
+    '</div></div>'+
+    '<div style="margin:18px 0 8px;text-align:center"><button type="button" class="btn btn-gold btn-sm" onclick="uboraLogout()">'+tr('prof_logout')+'</button></div>'+
+    footer();
+}
+
 function render(){
   if(_curSnap && !_navBack){ try{ if(JSON.parse(_curSnap).view!==state.view){ navStack.push(_curSnap); if(navStack.length>40)navStack.shift(); } }catch(e){} }
   document.querySelectorAll('.hnav button').forEach(b=>b.classList.remove('on'));
@@ -2059,7 +2224,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
-  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';});}
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';});}
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
@@ -2083,7 +2248,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
