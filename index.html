@@ -2609,6 +2609,8 @@ function matchSound(){
   }catch(e){}
 }
 
+/* Débloque l'audio dès la première interaction (Safari exige un geste utilisateur) */
+try{ ['pointerdown','touchstart','keydown'].forEach(function(ev){ document.addEventListener(ev,function(){ try{ var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; state._ac=state._ac||new AC(); if(state._ac.state==='suspended'){ state._ac.resume(); } }catch(e){} }); }); }catch(e){}
 async function matchLoad(){
   state._matchLoaded=true; state.matchSugs=state.matchSugs||[];
   try{
