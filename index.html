@@ -2432,6 +2432,7 @@ function viewMessages(){
   app().innerHTML =
     '<div class="eyebrow">UBORA</div>'+
     '<h1 class="page-title">'+tr('chat_list_title')+'</h1>'+
+    '<button type="button" class="chat-litem" onclick="go(\'match\')"><span class="chat-ava" style="background:var(--gold-bright,#C9A84C);color:var(--obsidian,#2A2017)">✦</span><span class="chat-li-main"><span class="chat-li-name">'+tr('mtc_title')+'</span><span class="chat-li-sub">'+tr('mtc_lead')+'</span></span></button>'+
     '<div class="panel"><div style="padding:6px 10px 8px">'+rows+'</div></div>'+
     footer();
 }
