@@ -753,6 +753,30 @@ function openExternal(url){
   try{ window.open(url,'_blank','noopener'); }
   catch(e){ try{ location.href=url; }catch(_e){} }
 }
+/* ---------- Livraison d'un fichier : web → téléchargement ; natif → feuille de partage ----------
+   En natif, écrit le fichier dans le cache de l'appareil puis ouvre le partage
+   natif (Enregistrer dans Fichiers, envoyer par mail/WhatsApp, imprimer/PDF de
+   là). Sans les modules natifs, ou sur le web, retombe sur le téléchargement
+   classique — le comportement web est donc strictement identique à aujourd'hui. */
+async function deliverFile(filename, mime, content, opts){
+  opts=opts||{};
+  try{
+    var P = IS_NATIVE && window.Capacitor && window.Capacitor.Plugins;
+    if(P && P.Filesystem && P.Share){
+      await P.Filesystem.writeFile({ path:filename, data:String(content), directory:'CACHE', encoding:'utf8' });
+      var u = await P.Filesystem.getUri({ path:filename, directory:'CACHE' });
+      await P.Share.share({ title:opts.title||filename, url:u.uri, dialogTitle:opts.dialogTitle||opts.title||'' });
+      return true;
+    }
+  }catch(e){ /* on retombe sur le téléchargement web ci-dessous */ }
+  try{
+    var blob=new Blob([content],{type:mime});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=filename; document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{URL.revokeObjectURL(a.href);}catch(_){} a.remove(); },120);
+    return true;
+  }catch(e){ return false; }
+}
 /* En natif, tout lien web vers un autre domaine passe par le navigateur in-app,
    pour ne jamais piéger l'utilisateur dans une page sans bouton retour.
    Les liens vers l'app elle-même (tontine.caroletchatcho.com) et mailto:/tel:
@@ -3997,9 +4021,20 @@ h1{text-align:center;font-size:26px;margin:6px 0 2px;color:#5a4620}
 }
 function repAttPDF(ref){
   ref=((ref||'')+'').trim(); if(!ref)return;
+  if(typeof sb==='undefined'||!sb){alert('Service indisponible.');return;}
+  if(IS_NATIVE){
+    /* Natif : pas de fenêtre pop-up. On récupère, on construit, on livre via le
+       partage natif (enregistrer, imprimer/PDF, envoyer). */
+    sb.rpc('verify_member_attestation',{p_ref:ref}).then(function(res){
+      if(res&&!res.error&&res.data){ var html=repAttDocHTML(res.data);
+        deliverFile('justificatif-'+ref+'.html','text/html;charset=utf-8',html,{title:_FL('Justificatif','Certificate')}); }
+      else{ alert(_FL('Référence introuvable.','Reference not found.')); }
+    }).catch(function(e){ alert(String((e&&e.message)||e)); });
+    return;
+  }
+  /* Web : comportement actuel inchangé (fenêtre ouverte avant la requête, anti-bloqueur). */
   var w=null; try{w=window.open('','_blank');}catch(e){}
   if(w){try{w.document.write('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:26px;color:#6b5a34">'+_FL('Préparation du justificatif…','Preparing certificate…')+'</body>');}catch(e){}}
-  if(typeof sb==='undefined'||!sb){if(w){try{w.document.body.innerHTML='Service indisponible.';}catch(_){}}return;}
   sb.rpc('verify_member_attestation',{p_ref:ref}).then(function(res){
     if(res&&!res.error&&res.data){var html=repAttDocHTML(res.data);
       if(w){try{w.document.open();w.document.write(html);w.document.close();}catch(e){}}
@@ -6029,7 +6064,7 @@ function viewAttestation(){
       </div>
     </div>
     <div class="row-gap no-print" style="margin-top:16px">
-      <button class="btn btn-gold btn-sm" onclick="window.print()">${tr('at_print')}</button>
+      <button class="btn btn-gold btn-sm" onclick="attPrint()">${tr('at_print')}</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAttestation()">${icon('dl')}${tr('at_download')}</button>
     </div>
     ${footer()}`;
@@ -6064,10 +6099,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:7px 2px;bord
 ${bureau?`<h3>${esc(tr('at_bureau_h'))}</h3>${bureau}`:''}
 <div class="foot"><span class="fp"></span><span>${esc(tr('at_issued'))} · ${esc(tr('at_on'))} ${esc(today)}</span></div>
 </div></body></html>`;
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'}),el=document.createElement('a');
-  el.href=URL.createObjectURL(blob);el.download='attestation-confiance.html';
-  document.body.appendChild(el);el.click();setTimeout(()=>{URL.revokeObjectURL(el.href);el.remove();},120);
+  deliverFile('attestation-confiance.html','text/html;charset=utf-8',html,{title:tr('at_title'),dialogTitle:tr('at_title')});
 }
+/* Bouton « Imprimer / PDF » : impression du navigateur sur le web (inchangé) ;
+   en natif, il n'y a pas de boîte d'impression → on livre l'attestation via le
+   partage, d'où l'utilisateur peut imprimer, enregistrer en PDF ou envoyer. */
+function attPrint(){ if(IS_NATIVE){ downloadAttestation(); } else { try{window.print();}catch(e){} } }
 
 /* ---------- apex : la méthode UBORA, investir ensemble (seuil indigo) ---------- */
 /* --- conversion de devises (taux indicatifs — un taux réel sera utilisé en production) --- */
