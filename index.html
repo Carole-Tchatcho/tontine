@@ -741,6 +741,60 @@ const IS_NATIVE = (()=>{ try{
       || location.protocol==='capacitor:'
       || location.protocol==='ionic:';
 }catch(e){ return false; } })();
+/* ---------- Liens externes : web → onglet ; natif → navigateur in-app ---------- */
+function openExternal(url){
+  if(!url) return;
+  try{
+    if(IS_NATIVE && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser){
+      window.Capacitor.Plugins.Browser.open({ url:url });
+      return;
+    }
+  }catch(e){}
+  try{ window.open(url,'_blank','noopener'); }
+  catch(e){ try{ location.href=url; }catch(_e){} }
+}
+/* En natif, tout lien web vers un autre domaine passe par le navigateur in-app,
+   pour ne jamais piéger l'utilisateur dans une page sans bouton retour.
+   Les liens vers l'app elle-même (tontine.caroletchatcho.com) et mailto:/tel:
+   sont laissés tels quels. Délégué : couvre aussi le contenu généré dynamiquement. */
+if(IS_NATIVE){
+  document.addEventListener('click', function(ev){
+    var t=ev.target; var a=(t&&t.closest)?t.closest('a[href]'):null;
+    if(!a) return;
+    var href=a.getAttribute('href')||'';
+    if(!/^https?:\/\//i.test(href)) return;
+    if(href.indexOf('tontine.caroletchatcho.com')>-1) return;
+    ev.preventDefault();
+    openExternal(href);
+  }, true);
+}
+/* ---------- Deep links natifs (liens d'invitation / vérification) ----------
+   Sur le web, l'URL d'arrivée (#joincase=…, #verifier=…) est déjà lue au
+   chargement. En natif, l'app s'ouvre sur son propre écran : c'est l'OS qui
+   transmet le lien via l'événement appUrlOpen. On extrait le même paramètre,
+   on le range à l'identique, puis on laisse l'accueil faire l'aiguillage
+   habituel (pending_join → casejoin, _uboraVerify → attmembre). */
+function uboraHandleDeepLink(url){
+  if(!url) return;
+  try{
+    var m;
+    m=/joincase=([A-Za-z0-9]{4,})/.exec(url);
+    if(m){ try{localStorage.setItem('ubora_pending_join',m[1]);}catch(e){} }
+    m=/joinfed=([A-Za-z0-9-]{4,})/.exec(url);
+    if(m){ try{localStorage.setItem('ubora_pending_joinfed',m[1]);}catch(e){} }
+    m=/verifier=([A-Za-z0-9-]{4,})/.exec(url);
+    if(m){ window._uboraVerify=m[1]; }
+    if(typeof go==='function'){ go('home'); }
+  }catch(e){}
+}
+if(IS_NATIVE){
+  try{
+    var _App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if(_App && _App.addListener){
+      _App.addListener('appUrlOpen', function(data){ uboraHandleDeepLink((data&&data.url)||''); });
+    }
+  }catch(e){}
+}
 /* Devises UBORA — alignées sur le HTML initial (CUR_ORDER / CUR_LABELS) */
 const CUR_ORDER=['CHF','EUR','USD','GBP','CAD','XAF','XOF','NGN','MAD','ZAR'];
 const CUR_LABEL={CHF:'CHF',EUR:'EUR (€)',USD:'USD ($)',GBP:'GBP (£)',CAD:'CAD (CA$)',XAF:'FCFA Afrique centrale (XAF)',XOF:'FCFA Afrique de l\u2019Ouest (XOF)',NGN:'NGN (naira)',MAD:'MAD (dirham)',ZAR:'ZAR (rand)'};
@@ -4822,7 +4876,7 @@ function orderEditorHtml(t){
   const hist=(t.orderLog&&t.orderLog.length)?`<div class="msub" style="margin-top:10px;font-weight:600">${tr('dg_order_hist')}</div>`+t.orderLog.map(l=>`<div class="msub">${tr('dg_order_moved').replace('{who}',esc(l.who)).replace('{d}',l.ts)}</div>`).join(''):'';
   return `<div style="margin-top:14px;border-top:1px solid rgba(0,0,0,.08);padding-top:12px"><div class="msub" style="font-weight:600">${tr('dg_order_h')}</div><div class="msub" style="margin-bottom:8px">${tr('dg_order_hint')}${hasBureau?' '+tr('dg_order_hint_bureau'):''}</div>${rowsO}${pend}${hist}</div>`;
 }
-function bridgeClick(){window.open('https://ubora.caroletchatcho.com','_blank','noopener');}
+function bridgeClick(){openExternal('https://ubora.caroletchatcho.com');}
 function copyRefLink(ev){const link=location.origin+location.pathname+'#ref='+encodeURIComponent((state.user||'amb').toString().slice(0,8));
   try{navigator.clipboard.writeText(link);}catch(e){}
   const b=ev.currentTarget,o=b.textContent;b.textContent=tr('di_link_copied');setTimeout(()=>b.textContent=o,1500);}
