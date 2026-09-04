@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>UBORA · Registre de tontine — prototype v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -633,6 +633,10 @@
 .att-issuer .ai-name{ font-weight:600; color:var(--ink,#2b2620); font-size:12px; letter-spacing:.01em; }
 .att-issuer .ai-l{ margin-top:1px; }
 @media print{ .att-issuer{ color:#555; border-bottom:1px solid #ccc; } }
+/* ===== App native — zones sûres (encoche / Dynamic Island / barre home) ===== */
+header{padding-top:env(safe-area-inset-top)}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+#app{padding-bottom:env(safe-area-inset-bottom)}
 /* ===== V2 — Profil / Réglages ===== */
 .prof-row{display:flex;align-items:center;gap:14px;padding:11px 0}
 .prof-row + .prof-row{border-top:1px solid rgba(0,0,0,.06)}
@@ -690,7 +694,7 @@
 @media (prefers-reduced-motion:reduce){.mtc-dot,.mtc-diamond{animation:none;opacity:1}}
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216" crossorigin="anonymous"></script> </head>
+<script>(function(){try{var n=(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform())||location.protocol==='capacitor:'||location.hostname==='localhost';if(!n){var s=document.createElement('script');s.async=true;s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216';s.crossOrigin='anonymous';document.head.appendChild(s);}}catch(e){}})();</script> </head>
 <body>
 
 <header>
@@ -730,6 +734,13 @@
 <script>
 /* ---------- état (mono-poste, en mémoire, aucune persistance) ---------- */
 const FREQ={mensuelle:'tous les mois',quinzaine:'tous les 15 jours',hebdo:'toutes les semaines'};
+/* ---------- Environnement natif (Capacitor) — source unique de vérité ---------- */
+const IS_NATIVE = (()=>{ try{
+  return (window.Capacitor && typeof window.Capacitor.isNativePlatform==='function'
+          && window.Capacitor.isNativePlatform())
+      || location.protocol==='capacitor:'
+      || location.protocol==='ionic:';
+}catch(e){ return false; } })();
 /* Devises UBORA — alignées sur le HTML initial (CUR_ORDER / CUR_LABELS) */
 const CUR_ORDER=['CHF','EUR','USD','GBP','CAD','XAF','XOF','NGN','MAD','ZAR'];
 const CUR_LABEL={CHF:'CHF',EUR:'EUR (€)',USD:'USD ($)',GBP:'GBP (£)',CAD:'CAD (CA$)',XAF:'FCFA Afrique centrale (XAF)',XOF:'FCFA Afrique de l\u2019Ouest (XOF)',NGN:'NGN (naira)',MAD:'MAD (dirham)',ZAR:'ZAR (rand)'};
@@ -8073,7 +8084,7 @@ function viewAuth(){
       </div>
     </div></div>${footer()}`;
 }
-async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_join')||'';}catch(e){} const _redir=location.origin+location.pathname+(_pj?('?join='+encodeURIComponent(_pj)):''); const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:_redir}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
+async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_join')||'';}catch(e){} const _base = IS_NATIVE ? 'https://tontine.caroletchatcho.com/' : (location.origin+location.pathname); const _redir=_base+(_pj?('?join='+encodeURIComponent(_pj)):''); const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:_redir}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
