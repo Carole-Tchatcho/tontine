@@ -10,7 +10,7 @@
 <style>
   /* Aucun \u00E9l\u00E9ment ne doit pouvoir rendre la page plus large que l'\u00E9cran :
      personne ne fait glisser son \u00E9cran vers la droite pour trouver un onglet. */
-  html,body{max-width:100%;overflow-x:hidden}
+  html,body{max-width:100%}
   :root{
     --bg:#F4ECDB; --card:#FCF8EF; --card2:#FFFDF8;
     --ink:#2A2018; --mid:#6E6457; --faint:#A79E8C;
@@ -30,7 +30,7 @@
     -webkit-font-smoothing:antialiased;padding-bottom:60px}
   h1,h2,h3,.serif{font-family:'Cormorant Garamond',Georgia,serif}
   .mid{color:var(--mid)} .faint{color:var(--faint)}
-  .wrap{max-width:960px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px;overflow-x:hidden}
 
   header{background:linear-gradient(180deg,#ECDBBC,#E4CBAE);color:#5E4428;position:sticky;top:0;z-index:20;
     width:100%;
@@ -470,17 +470,11 @@
     .hnav .dot{position:absolute;top:2px;right:calc(50% - 20px)}
     .mrow{flex-wrap:wrap}
     .mrow .right{margin-left:49px;width:100%}
-    /* Sur téléphone, la navbar passe en barre fixe EN BAS. Le badge de statut
-       (« Connectée ») est lui aussi fixé en bas : sans précaution il recouvre la
-       barre et donne l'illusion qu'il n'y a pas de menu. On le remonte au-dessus
-       de la barre, et on réserve la place pour que rien ne soit masqué. */
-    body{padding-bottom:112px}
-    #ub-backend-badge{
-      bottom:calc(64px + env(safe-area-inset-bottom))!important;
-      left:8px!important; right:8px!important;
-      justify-content:center; font-size:10.5px!important; padding:5px 10px!important;
-      opacity:.97}
     .hnav{z-index:60}
+    /* La bulle de l'assistant flottait à bottom:20px fixe et chevauchait le
+       dernier onglet de la barre de nav basse. On la remonte au-dessus. */
+    .uba-fab{bottom:calc(90px + env(safe-area-inset-bottom))!important}
+    .uba-panel{bottom:calc(156px + env(safe-area-inset-bottom))!important}
   }
   /* attestation de confiance */
   .attest-doc{background:linear-gradient(180deg,#FFFDF7,#F7EFDC);border:1px solid #D9C79F;border-radius:16px;padding:28px 30px;margin-top:8px;box-shadow:0 6px 24px rgba(120,90,40,.12)}
@@ -709,7 +703,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="hutil"><div class="langsw"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
-    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;position:relative;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉<span id="hdr-msg-dot" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:9px;background:#a3402f;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center">1</span></button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit">C</button></div>
+    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;position:relative;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉<span id="hdr-msg-dot" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:9px;background:#a3402f;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center">1</span></button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;position:relative;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit"><span id="hdr-profil-letter">C</span><span id="hdr-profil-dot" title="Session active" aria-hidden="true" style="display:none;position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--green,#1E6B42);border:1.5px solid var(--card,#FCF8EF)"></span></button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -2463,6 +2457,7 @@ function viewProfil(){
       '<div class="prof-hint" style="margin-top:6px">'+tr('prof_delete_hint')+'</div>'+
     '</div></div>'+
     '<div style="margin:18px 0 8px;text-align:center"><button type="button" class="btn btn-gold btn-sm" onclick="uboraLogout()">'+tr('prof_logout')+'</button></div>'+
+    '<div style="text-align:center;font-size:11px;color:var(--faint,#A79E8C);opacity:.75;margin-bottom:6px">'+UBORA_BUILD+'</div>'+
     footer();
 }
 
@@ -2804,7 +2799,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
-  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hp=document.getElementById('hdr-profil'); if(_hp){ var _nm=(state.user||'').trim(); _hp.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; } if(typeof chatBadgeInit==='function'){chatBadgeInit();chatBadgePaint();} }
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hpl=document.getElementById('hdr-profil-letter'); if(_hpl){ var _nm=(state.user||'').trim(); _hpl.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; } if(typeof chatBadgeInit==='function'){chatBadgeInit();chatBadgePaint();} }
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
@@ -8793,29 +8788,16 @@ async function uboraLogout(keepJoin){
   location.reload();
 }
 function showBackendBadge(err){
+  /* Anciennement une bande noire fixe en bas de l'écran (« Connectée ·
+     v8.94 · email · se déconnecter »). Remplacée par une pastille
+     verte discrète sur l'avatar profil : le statut se lit d'un coup d'œil,
+     sans occuper d'espace ni répéter un texte que l'écran Profil dit déjà. */
   try{
-    var old=document.getElementById('ub-backend-badge'); if(old)old.remove();
-    /* Le badge disait « Base connect\u00E9e » en or, du m\u00EAme ton rassurant, qu\u2019on
-       soit identifi\u00E9 ou pas. Or il dit deux choses distinctes : que le SERVEUR
-       r\u00E9pond, et que VOUS \u00EAtes reconnue. Confondre les deux fait chercher une
-       panne l\u00E0 o\u00F9 il n\u2019y en a pas \u2014 on ne voit rien, on croit \u00E0 un bug, alors
-       qu\u2019on est simplement d\u00E9connect\u00E9. Deux \u00E9tats, deux couleurs. */
     var ok=(BACKEND==='supabase');
     var moi=!!(ok&&state.uid);
-    var d=document.createElement('div'); d.id='ub-backend-badge';
-    var skin = !ok  ? 'background:#3A2410;color:#FAFAF7;border:1px solid #D98A4E'
-             : moi  ? 'background:#13151A;color:#C9A84C;border:1px solid #C9A84C'
-                    : 'background:#13151A;color:#8A8172;border:1px dashed #6E6659';
-    d.style.cssText='position:fixed;bottom:10px;left:10px;z-index:9999;font:12px "DM Sans",system-ui,sans-serif;padding:6px 12px;border-radius:20px;letter-spacing:.02em;pointer-events:auto;display:flex;gap:10px;align-items:center;'+skin;
-    var etat = !ok  ? '\u26A0 Mode d\u00E9mo local \u2014 rien n\u2019est enregistr\u00E9 en base'
-             : moi  ? '\u25CF Connect\u00E9e'
-                    : '\u25CB Non connect\u00E9 \u00B7 base joignable';
-    var html=etat+' \u00B7 '+UBORA_BUILD;
-    if(moi&&state.email){ html+=' \u00B7 <span style="color:#FAFAF7">'+state.email+'</span> \u00B7 <a href="#" onclick="uboraLogout();return false" style="color:#D9C07E;text-decoration:underline">se d\u00E9connecter</a>'; }
-    else if(ok&&!moi){ html+=' \u00B7 <a href="#" onclick="go(\'auth\');return false" style="color:#D9C07E;text-decoration:underline">se connecter</a>'; }
-    d.innerHTML=html;
-    if(err){ d.title=String((err&&err.message)||err); }
-    document.body.appendChild(d);
+    var dot=document.getElementById('hdr-profil-dot');
+    if(dot) dot.style.display=moi?'block':'none';
+    if(err){ try{console.warn('[UBORA backend]',err);}catch(e){} }
   }catch(e){}
 }
 
