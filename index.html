@@ -4939,31 +4939,53 @@ function viewDeal(){
 }
 function viewUDRoom(){
   if(BACKEND==='supabase'){
-    const _lvl=myLevel(), _elite=_lvl>=3;
-    if(!_elite){
-      const _st=aggregateStats(state.user);
-      const _rows=criteriaFor(3,_st).map(c=>`<div class="crit ${c.met?'met':'unmet'}"><span class="ck ${c.met?'ok':'no'}">${c.met?'\u2713':'\u25CB'}</span><span>${c.label}</span></div>`).join('');
-      app().innerHTML=`
-        <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
-        <div class="eyebrow">PRIVATE ROOM</div>
-        <h1 class="page-title">La salle est ferm\u00E9e \u2014 pour l\u2019instant.</h1>
-        <p class="lead">La Private Room \u2014 le <b>cercle de r\u00E9flexion</b> d\u2019UBORA \u2014 on peut y pr\u00E9tendre \u00E0 partir du niveau <b>Tontine Elite</b>. Elle se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.</p>
-        <div class="panel"><div style="padding:16px 22px">
-          <div class="unlock"><b>Pour atteindre Tontine Elite\u00A0:</b></div>${_rows}
-          <div class="hint" style="margin-top:10px">Votre niveau actuel\u00A0: <b>${esc(LEVELS[_lvl].name)}</b> \u00B7 calcul\u00E9 sur votre historique r\u00E9el (versements confirm\u00E9s, ponctualit\u00E9, tontines).</div>
+    const _lvl=myLevel();
+    const _member=_lvl>=3;        // Tontine Elite et plus
+    const _antichambre=_lvl===2;  // Ambassadeur : antichambre
+    const _st=aggregateStats(state.user);
+    const _rows=criteriaFor(3,_st).map(c=>`<div class="crit ${c.met?'met':'unmet'}"><span class="ck ${c.met?'ok':'no'}">${c.met?'\u2713':'\u25CB'}</span><span>${c.label}</span></div>`).join('');
+    const _head=`
+      <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
+      <div style="text-align:center;margin:6px 0 2px">${cenacleSym(46)}</div>
+      <div class="eyebrow" style="text-align:center">LE C\u00C9NACLE</div>
+      <h1 class="page-title" style="text-align:center;margin-top:2px">Le C\u00e9nacle</h1>
+      <p class="lead" style="text-align:center;font-style:italic">l\u00e0 o\u00f9 la constance se met \u00e0 penser.</p>`;
+    if(_member){
+      app().innerHTML=_head+`
+        <div class="panel"><div style="padding:18px 22px">
+          <p>Votre r\u00e9gularit\u00e9 vous a ouvert cette porte. Le C\u00e9nacle est un <b>lieu de r\u00e9flexion et de formation</b> entre pairs \u2014 <b>aucun membre au-dessus d\u2019un autre</b>. On y \u00e9tudie la m\u00e9thode UBORA, on y confronte des lectures document\u00e9es, on y apprend \u00e0 lire un bilan\u2026 et l\u2019on y apprend \u00e0 <b>conduire sans \u00e9craser</b>.</p>
+          <div class="asnote" style="margin:12px 0">Ce qui se r\u00e9fl\u00e9chit au C\u00e9nacle reste au C\u00e9nacle. Contenu \u00e9ducatif uniquement \u2014 UBORA ne collecte aucun fonds, ne g\u00e8re aucun portefeuille, ne recommande aucun placement.</div>
+          <h2 class="section-h">Ce que l\u2019on y vit</h2>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>Le th\u00e8me du cycle</b> \u2014 un focus qui change \u00e0 chaque p\u00e9riode (lire un bilan, comprendre un taux\u2026).</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>La s\u00e9ance \u00e0 h\u00f4te tournant</b> \u2014 chacun anime \u00e0 son tour\u00a0: on s\u2019exerce \u00e0 diriger, entre pairs, sans dominer.</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>Le fonds</b> \u2014 une biblioth\u00e8que d\u2019analyses document\u00e9es, partag\u00e9e entre pairs.</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>La parole</b> \u2014 chacun s\u2019exprime \u00e0 \u00e9galit\u00e9.</span></div>
+          <p style="margin-top:14px">En manifestant votre int\u00e9r\u00eat, vous rejoignez les <b>membres fondateurs pressentis</b> du C\u00e9nacle. Vous serez contact\u00e9\u00b7e personnellement \u00e0 l\u2019ouverture \u2014 aucun engagement.</p>
+          <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="udInterest()">\u2713 Manifester mon int\u00e9r\u00eat</button></div>
         </div></div>${footer()}`;
       return;
     }
-    app().innerHTML=`
-      <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
-      <div class="eyebrow">PRIVATE ROOM \u00B7 CERCLE DE R\u00C9FLEXION</div>
-      <h1 class="page-title">Bienvenue, membre Elite.</h1>
-      <p class="lead">Votre r\u00E9gularit\u00E9 vous a ouvert cette porte. La Private Room est un <b>cercle de r\u00E9flexion et de formation</b> entre membres exemplaires\u00A0: on y \u00E9tudie la m\u00E9thode UBORA, on y partage des analyses document\u00E9es, on y apprend \u00E0 lire un bilan.</p>
-      <div class="panel"><div style="padding:18px 22px">
-        <p>\u00AB Ubora Deal \u00BB d\u00E9signe l\u2019esprit du cercle\u00A0: d\u00E9cider ensemble, avec m\u00E9thode, jamais au feeling. <b>Chaque membre investit lui-m\u00EAme, par ses propres moyens, sous sa seule responsabilit\u00E9.</b></p>
-        <div class="asnote" style="margin:12px 0">UBORA ne collecte aucun fonds, ne g\u00E8re aucun portefeuille, ne recommande aucun titre et ne promet aucun rendement. Contenu \u00E9ducatif uniquement \u2014 UBORA n\u2019est pas enregistr\u00E9e aupr\u00E8s de la FINMA. Tout investissement comporte un risque de perte en capital.</div>
-        <p>En manifestant votre int\u00E9r\u00EAt, vous rejoignez la liste des membres fondateurs pressentis du cercle. Vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture \u2014 aucun engagement.</p>
-        <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="udInterest()">\u2713 Manifester mon int\u00E9r\u00EAt</button></div>
+    if(_antichambre){
+      app().innerHTML=_head+`
+        <div class="reassure" style="margin-top:6px;text-align:center"><b>Il vous reste une marche.</b> Vous \u00eates Ambassadeur \u2014 le C\u00e9nacle s\u2019ouvre au niveau <b>Tontine Elite</b>.</div>
+        <div class="panel"><div style="padding:16px 22px">
+          <div class="hint" style="margin-bottom:8px">Un aper\u00e7u de l\u2019ambiance \u2014 le contenu, lui, reste entre membres\u00a0:</div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>Le th\u00e8me du cycle</b> \u00b7 en ce moment\u00a0: \u00ab lire un bilan \u00bb</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>La s\u00e9ance \u00e0 h\u00f4te tournant</b> \u00b7 apprendre \u00e0 diriger sans \u00e9craser</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>Le fonds</b> \u00b7 analyses document\u00e9es entre pairs</span></div>
+          <div class="crit met"><span class="ck ok">\u25C6</span><span><b>La parole</b> \u00b7 chacun \u00e0 \u00e9galit\u00e9</span></div>
+          <div class="asnote" style="margin-top:12px">Ce qui se r\u00e9fl\u00e9chit au C\u00e9nacle reste au C\u00e9nacle.</div>
+        </div></div>
+        <div class="panel"><div style="padding:16px 22px">
+          <div class="unlock"><b>Votre derni\u00e8re marche vers Tontine Elite\u00a0:</b></div>${_rows}
+        </div></div>${footer()}`;
+      return;
+    }
+    app().innerHTML=_head+`
+      <div class="reassure" style="margin-top:6px;text-align:center">Le C\u00e9nacle s\u2019ouvre au niveau <b>Tontine Elite</b>. Il se m\u00e9rite par la r\u00e9gularit\u00e9, jamais par le paiement.</div>
+      <div class="panel"><div style="padding:16px 22px">
+        <div class="unlock"><b>Votre chemin vers Tontine Elite\u00a0:</b></div>${_rows}
+        <div class="hint" style="margin-top:10px">Votre niveau actuel\u00a0: <b>${esc(LEVELS[_lvl].name)}</b> \u00b7 calcul\u00e9 sur votre historique r\u00e9el (versements confirm\u00e9s, ponctualit\u00e9, tontines).</div>
       </div></div>${footer()}`;
     return;
   }
@@ -5021,24 +5043,20 @@ function aggregateStats(name){
 }
 function privateRoomDoor(){
   const lvl=myLevel(), open=lvl>=3;
-  return `<div class="panel click" onclick="go('match')" style="margin-top:18px;cursor:pointer;overflow:hidden;
-      background:linear-gradient(135deg,#13151A 0%,#1E2128 60%,#2A2118 100%);border:1px solid rgba(201,168,76,${open?'.55':'.28'})">
+  return `<div class="panel click" onclick="go('udroom')" style="margin-top:18px;cursor:pointer;overflow:hidden;
+      background:linear-gradient(135deg,#13151A 0%,#1E2128 60%,#241C12 100%);border:1px solid rgba(201,168,76,${open?'.55':'.28'})">
     <div style="display:flex;align-items:center;gap:18px;padding:22px 24px">
-      <div style="flex:0 0 auto;text-align:center;filter:${open?'none':'grayscale(.6)'};opacity:${open?'1':'.55'}">
-        ${ngameSVG(52)}
-        <!-- Un glyphe qu'on ne peut pas nommer ne se transmet pas : celui qui
-             le voit sans savoir son nom ne le reconnaîtra pas ailleurs. Le
-             Kwèn est nommé sur les tontines premium ; le Ngâme doit l'être ici. -->
-        <div style="margin-top:6px;letter-spacing:.16em;font-size:9.5px;color:#C9A84C;opacity:.85">NGÂME</div>
+      <div style="flex:0 0 auto;text-align:center;filter:${open?'none':'grayscale(.5)'};opacity:${open?'1':'.6'}">
+        ${cenacleSym(50)}
       </div>
       <div style="flex:1;min-width:0">
-        <div style="letter-spacing:.2em;font-size:10.5px;color:#C9A84C">${open?'PRIVATE ROOM \u00B7 ACC\u00C8S OUVERT':'PRIVATE ROOM \u00B7 SUR M\u00C9RITE'}</div>
+        <div style="letter-spacing:.2em;font-size:10.5px;color:#C9A84C">${open?'LE C\u00C9NACLE \u00b7 ACC\u00c8S OUVERT':'LE C\u00C9NACLE \u00b7 R\u00c9SERV\u00c9 \u00b7 TONTINE ELITE'}</div>
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#FAFAF7;margin-top:4px;line-height:1.15">
-          ${open?'Le cercle vous attend.':'La salle o\u00F9 l\u2019on apprend \u00E0 d\u00E9cider.'}</div>
+          ${open?'Le C\u00e9nacle vous attend.':'L\u00e0 o\u00f9 la constance se met \u00e0 penser.'}</div>
         <div style="color:#b9b9b4;font-size:13.5px;margin-top:7px;line-height:1.6">
-          ${open?'Cercle de r\u00E9flexion des membres <b style="color:#C9A84C">Tontine Elite</b>\u00A0: on y \u00E9change ses arbitrages, on confronte ses lectures du march\u00E9, on apprend de l\u2019exp\u00E9rience des autres. La r\u00E9flexion pr\u00E9c\u00E8de la d\u00E9cision \u2014 comme l\u2019araign\u00E9e Ng\u00E2me qui lit les signes avant de tisser.'
-                :'Un cercle de r\u00E9flexion et de formation, auquel on peut pr\u00E9tendre \u00E0 partir du niveau <b style="color:#C9A84C">Tontine Elite</b>. Il se m\u00E9rite par la r\u00E9gularit\u00E9, jamais par le paiement.'}</div>
-        <div style="margin-top:12px;color:#C9A84C;font-size:13px;font-weight:600">${open?'Entrer dans la salle \u2192':'Voir les crit\u00E8res \u2192'}</div>
+          ${open?'Un lieu de r\u00e9flexion et de formation entre membres <b style="color:#C9A84C">Tontine Elite</b>, \u00e0 \u00e9galit\u00e9\u00a0: on y confronte ses lectures, on apprend \u00e0 d\u00e9cider \u2014 et \u00e0 conduire sans \u00e9craser.'
+                :'Un lieu de r\u00e9flexion et de formation, accessible d\u00e8s le niveau <b style="color:#C9A84C">Tontine Elite</b>. Il se m\u00e9rite par la r\u00e9gularit\u00e9, jamais par le paiement.'}</div>
+        <div style="margin-top:12px;color:#C9A84C;font-size:13px;font-weight:600">${open?'Entrer dans le C\u00e9nacle \u2192':'Voir les crit\u00e8res \u2192'}</div>
       </div>
       ${open?'':`<div style="flex:0 0 auto;font-size:22px;opacity:.5">\uD83D\uDD12</div>`}
     </div>
@@ -5046,6 +5064,7 @@ function privateRoomDoor(){
       <path d="M0 4 Q 12.5 0, 25 4 T 50 4 T 75 4 T 100 4 T 125 4 T 150 4 T 175 4 T 200 4 T 225 4 T 250 4 T 275 4 T 300 4 T 325 4 T 350 4 T 375 4 T 400 4" stroke="#C9A84C" stroke-width="1.1" fill="none"/>
     </svg></div>`;
 }
+
 function viewPyramide(){
   const s=aggregateStats(state.user);
   const cur=state.serverLevel?Math.max(0,LEVELS.findIndex(L=>L.name===state.serverLevel)):myLevel();
@@ -8383,8 +8402,8 @@ async function stripeBuy(evId,idx){
 }
 async function udInterest(){
   try{
-    await db.sendEmail('carole@caroletchatcho.com','UD Room \u2014 manifestation d\u2019int\u00E9r\u00EAt (Elite)',
-      '<p>Un membre <b>Tontine Elite</b> manifeste son int\u00E9r\u00EAt pour la Private Room.</p>'
+    await db.sendEmail('carole@caroletchatcho.com','Le C\u00e9nacle \u2014 manifestation d\u2019int\u00E9r\u00EAt (Tontine Elite)',
+      '<p>Un membre <b>Tontine Elite</b> manifeste son int\u00E9r\u00EAt pour Le C\u00e9nacle.</p>'
       +'<p>Nom\u00A0: <b>'+esc(state.user||'\u2014')+'</b><br>Contact\u00A0: <b>'+esc(state.email||'\u2014')+'</b><br>Date\u00A0: '+new Date().toLocaleString('fr-CH')+'</p>');
     alert('Int\u00E9r\u00EAt enregistr\u00E9 \u2713 \u2014 vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture de la salle.');
   }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
@@ -8518,6 +8537,14 @@ function kwenBand(){ /* frise de rassemblement, sous l'en-tête d'une tontine Pr
       stroke="#C9A84C" stroke-width="1.3" fill="none" opacity=".6"/>
   </svg>`;
 }
+function cenacleSym(size,color){size=size||60;color=color||'#C9A84C';
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" aria-hidden="true">'
+    +'<path d="M50 20 C 64 42 64 55 50 61 C 36 55 36 42 50 20 Z" fill="'+color+'"/>'
+    +'<path d="M22 66 Q 36 60 50 66 T 78 66" stroke="'+color+'" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+    +'<path d="M50 92 C 64 70 64 57 50 52 C 36 57 36 70 50 92 Z" fill="'+color+'" opacity="0.42"/>'
+    +'</svg>';
+}
+
 /* ---------- Ngâme — l'araignée des Grassfields (glyphe héraldique) ----------
    Sagesse, patience, lecture des signes avant d'agir (l'araignée-mygale
    divinatoire). Elle marque la Private Room d'Ubora-Deal — le cercle de
