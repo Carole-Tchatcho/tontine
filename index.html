@@ -4940,7 +4940,8 @@ function viewDeal(){
 function viewUDRoom(){
   if(BACKEND==='supabase'){
     const _lvl=myLevel();
-    const _member=_lvl>=3;        // Tontine Elite et plus
+    const _adminPreview=(typeof isUboraAdmin==='function' && isUboraAdmin() && _lvl<3);
+    const _member=(_lvl>=3)||_adminPreview;  // Tontine Elite et plus (ou aper\u00e7u admin)
     const _antichambre=_lvl===2;  // Ambassadeur : antichambre
     const _st=aggregateStats(state.user);
     const _rows=criteriaFor(3,_st).map(c=>`<div class="crit ${c.met?'met':'unmet'}"><span class="ck ${c.met?'ok':'no'}">${c.met?'\u2713':'\u25CB'}</span><span>${c.label}</span></div>`).join('');
@@ -4952,6 +4953,7 @@ function viewUDRoom(){
       <p class="lead" style="text-align:center;font-style:italic">l\u00e0 o\u00f9 la constance se met \u00e0 penser.</p>`;
     if(_member){
       app().innerHTML=_head+`
+        ${_adminPreview?'<div class="reassure" style="margin-top:6px;text-align:center;border:1px dashed rgba(201,168,76,.55)">Aper\u00e7u admin \u2014 vous voyez l\u2019int\u00e9rieur r\u00e9serv\u00e9 aux membres Tontine Elite.</div>':''}
         <div class="panel"><div style="padding:18px 22px">
           <p>Votre r\u00e9gularit\u00e9 vous a ouvert cette porte. Le C\u00e9nacle est un <b>lieu de r\u00e9flexion et de formation</b> entre pairs \u2014 <b>aucun membre au-dessus d\u2019un autre</b>. On y \u00e9tudie la m\u00e9thode UBORA, on y confronte des lectures document\u00e9es, on y apprend \u00e0 lire un bilan\u2026 et l\u2019on y apprend \u00e0 <b>conduire sans \u00e9craser</b>.</p>
           <div class="asnote" style="margin:12px 0">Ce qui se r\u00e9fl\u00e9chit au C\u00e9nacle reste au C\u00e9nacle. Contenu \u00e9ducatif uniquement \u2014 UBORA ne collecte aucun fonds, ne g\u00e8re aucun portefeuille, ne recommande aucun placement.</div>
