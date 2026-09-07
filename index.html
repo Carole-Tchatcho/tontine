@@ -1698,7 +1698,7 @@ function userLevel(name){
   if(BACKEND!=='supabase' && name && name===state.user && state.demoLevel!=null) return state.demoLevel;
   return name ? computeLevel(aggregateStats(name)) : 0;
 }
-function myLevel(){ return userLevel(state.user); }
+function myLevel(){ if(typeof isUboraAdmin==='function' && isUboraAdmin() && state.adminViewAs!=null && state.adminViewAs!==undefined) return state.adminViewAs; return userLevel(state.user); }
 function levelOf(t,idx){ const m=t.members[idx]; return m?userLevel(m.name):0; }
 function ambBadge(cls){ return `<svg class="amb-badge ${cls||''}" width="18" height="18" viewBox="0 0 40 40"><title>Ambassadeur UBORA</title><polygon points="20,5 35,33 5,33" fill="none" stroke="#C9A84C" stroke-width="3"/><polygon points="20,14 29,30 11,30" fill="none" stroke="#9A7230" stroke-width="1.6"/></svg>`; }
 function criteriaFor(idx,s){
@@ -2792,6 +2792,7 @@ function viewMatch(){
 }
 
 function render(){
+  ensureAdminBar();
   if(_curSnap && !_navBack){ try{ if(JSON.parse(_curSnap).view!==state.view){ navStack.push(_curSnap); if(navStack.length>40)navStack.shift(); } }catch(e){} }
   document.querySelectorAll('.hnav button').forEach(b=>b.classList.remove('on'));
   {const NAVK={'nav-home':'nav_tontines','nav-entraide':'nav_entraide','nav-events':'nav_events','nav-notif':'nav_rappels','nav-partage':'nav_partage','nav-case':'nav_case'};
@@ -2823,7 +2824,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -4938,22 +4939,21 @@ function viewDeal(){
     ${footer()}`;
 }
 function viewUDRoom(){
-  if(BACKEND==='supabase'){
+  {  /* Le Cénacle — rendu unique, quel que soit le backend */
     const _lvl=myLevel();
-    const _adminPreview=(typeof isUboraAdmin==='function' && isUboraAdmin() && _lvl<3);
-    const _member=(_lvl>=3)||_adminPreview;  // Tontine Elite et plus (ou aper\u00e7u admin)
+    const _member=(_lvl>=3);  // Tontine Elite et plus (admin : utiliser la barre « voir comme »)
     const _antichambre=_lvl===2;  // Ambassadeur : antichambre
     const _st=aggregateStats(state.user);
     const _rows=criteriaFor(3,_st).map(c=>`<div class="crit ${c.met?'met':'unmet'}"><span class="ck ${c.met?'ok':'no'}">${c.met?'\u2713':'\u25CB'}</span><span>${c.label}</span></div>`).join('');
     const _head=`
       <button class="backlink" onclick="go('pyramide')">\u2039 Niveaux</button>
-      <div style="text-align:center;margin:6px 0 2px">${cenacleSym(46)}</div>
+      ${cenacleSalle()}
       <div class="eyebrow" style="text-align:center">LE C\u00C9NACLE</div>
       <h1 class="page-title" style="text-align:center;margin-top:2px">Le C\u00e9nacle</h1>
       <p class="lead" style="text-align:center;font-style:italic">l\u00e0 o\u00f9 la constance se met \u00e0 penser.</p>`;
     if(_member){
       app().innerHTML=_head+`
-        ${_adminPreview?'<div class="reassure" style="margin-top:6px;text-align:center;border:1px dashed rgba(201,168,76,.55)">Aper\u00e7u admin \u2014 vous voyez l\u2019int\u00e9rieur r\u00e9serv\u00e9 aux membres Tontine Elite.</div>':''}
+        ${(typeof isUboraAdmin==='function'&&isUboraAdmin())?'<div style="text-align:center;margin:4px 0 8px"><button class="btn btn-ghost btn-sm" onclick="go(\'cenacleadmin\')">Voir les demandes (admin)</button></div>':''}
         <div class="panel"><div style="padding:18px 22px">
           <p>Votre r\u00e9gularit\u00e9 vous a ouvert cette porte. Le C\u00e9nacle est un <b>lieu de r\u00e9flexion et de formation</b> entre pairs \u2014 <b>aucun membre au-dessus d\u2019un autre</b>. On y \u00e9tudie la m\u00e9thode UBORA, on y confronte des lectures document\u00e9es, on y apprend \u00e0 lire un bilan\u2026 et l\u2019on y apprend \u00e0 <b>conduire sans \u00e9craser</b>.</p>
           <div class="asnote" style="margin:12px 0">Ce qui se r\u00e9fl\u00e9chit au C\u00e9nacle reste au C\u00e9nacle. Contenu \u00e9ducatif uniquement \u2014 UBORA ne collecte aucun fonds, ne g\u00e8re aucun portefeuille, ne recommande aucun placement.</div>
@@ -4991,22 +4991,8 @@ function viewUDRoom(){
       </div></div>${footer()}`;
     return;
   }
-  const vis=!!state.udVisible;
-  const dir=UD_MEMBERS.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${esc(m.sector)} \u00b7 ${esc(m.city)}</div></div></div>`).join('');
-  const matches=UD_MATCHES.map((m,i)=>`<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div><div class="mname">${esc(m.name)}</div><div class="msub">${tr('ud_match_reason').replace('{s}',esc(m.sector)).replace('{c}',esc(m.city))}</div></div><span class="pill p-now">${tr('ud_match_badge')}</span></div><textarea id="ud-msg-${i}" rows="2" style="width:100%;margin-top:10px;padding:8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px">${tr('ud_match_tpl').replace('{n}',esc(m.name))}</textarea><div class="row-gap" style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="udSend(${i})">${tr('ud_send')}</button></div></div></div>`).join('');
-  const meets=UD_MEETS.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${tr(m.titleKey)}</div><div class="msub">${m.date} \u00b7 ${esc(m.city)}</div></div><div class="right"><span class="pill p-paid">${tr('ud_meet_closed')}</span></div></div>`).join('');
-  app().innerHTML=`
-    <button class="backlink" onclick="go('deal')">\u2039 ${tr('ud_title')}</button>
-    <div class="eyebrow">${tr('ud_room_eyebrow')}</div>
-    <h1 class="page-title">${tr('ud_room_title')}</h1>
-    <p class="lead">${tr('ud_room_lead')}</p>
-    <div class="releve-actions"><button class="btn ${vis?'btn-gold':'btn-ghost'} btn-sm" onclick="udToggleVisible()">${vis?tr('ud_visible_on'):tr('ud_visible_off')}</button></div>
-    <h2 class="section-h">${tr('ud_match_h')}</h2>${matches}
-    <h2 class="section-h">${tr('ud_dir_h')}</h2><div class="panel"><div style="padding:8px 16px">${dir}</div></div>
-    <h2 class="section-h">${tr('ud_meet_h')}</h2><div class="panel"><div style="padding:8px 16px">${meets}</div></div>
-    <p class="msub" style="margin-top:14px">${tr('ud_reg_note2')}</p>
-    ${footer()}`;
 }
+
 
 function viewCercle(){
   app().innerHTML=`
@@ -8425,6 +8411,7 @@ async function udInterest(){
     await db.sendEmail('carole@caroletchatcho.com','Le C\u00e9nacle \u2014 manifestation d\u2019int\u00E9r\u00EAt (Tontine Elite)',
       '<p>Un membre <b>Tontine Elite</b> manifeste son int\u00E9r\u00EAt pour Le C\u00e9nacle.</p>'
       +'<p>Nom\u00A0: <b>'+esc(state.user||'\u2014')+'</b><br>Contact\u00A0: <b>'+esc(state.email||'\u2014')+'</b><br>Date\u00A0: '+new Date().toLocaleString('fr-CH')+'</p>');
+    try{ if(typeof sb!=='undefined'&&sb){ var _uid=(typeof sbUid==='function')?await sbUid():null; await sb.from('cenacle_interet').insert({uid:_uid||null, nom:state.user||null, email:state.email||null, niveau:userLevel(state.user)}); } }catch(_e){}
     alert('Int\u00E9r\u00EAt enregistr\u00E9 \u2713 \u2014 vous serez contact\u00E9\u00B7e personnellement \u00E0 l\u2019ouverture de la salle.');
   }catch(e){ alert('Envoi impossible\u00A0: '+(e.message||e)); }
 }
@@ -8557,6 +8544,135 @@ function kwenBand(){ /* frise de rassemblement, sous l'en-tête d'une tontine Pr
       stroke="#C9A84C" stroke-width="1.3" fill="none" opacity=".6"/>
   </svg>`;
 }
+function cenacleSalle(){
+  return `<div style="border-radius:14px;overflow:hidden;margin:2px 0 10px;box-shadow:0 10px 30px rgba(0,0,0,.35)"><svg viewBox="0 0 1200 640" xmlns="http://www.w3.org/2000/svg" font-family="Georgia,serif" width="100%" style="display:block;height:auto">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#221a0a"/><stop offset="0.6" stop-color="#1a130c"/><stop offset="1" stop-color="#120d14"/></linearGradient>
+    <radialGradient id="glow" cx="50%" cy="20%" r="60%"><stop offset="0" stop-color="#e6bd63" stop-opacity="0.30"/><stop offset="1" stop-color="#e6bd63" stop-opacity="0"/></radialGradient>
+    <radialGradient id="lamppool" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f0c766" stop-opacity="0.42"/><stop offset="1" stop-color="#f0c766" stop-opacity="0"/></radialGradient>
+    <pattern id="books" width="94" height="120" patternUnits="userSpaceOnUse">
+      <rect width="94" height="120" fill="#150e05"/>
+      <rect x="3" y="10" width="12" height="110" fill="#b8933f"/><rect x="17" y="20" width="9" height="100" fill="#e6dcc0"/>
+      <rect x="28" y="5" width="14" height="115" fill="#7a3b2e"/><rect x="45" y="16" width="8" height="104" fill="#9a6a33"/>
+      <rect x="55" y="8" width="13" height="112" fill="#2a2742"/><rect x="70" y="26" width="7" height="94" fill="#caa24a"/>
+      <rect x="79" y="12" width="10" height="108" fill="#6E4E26"/><rect x="46" y="112" width="40" height="8" fill="#8a6a34"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="640" fill="url(#wall)"/><rect width="1200" height="640" fill="url(#glow)"/>
+
+  <rect x="78" y="52" width="1044" height="330" rx="6" fill="#2a1d0c"/>
+  <rect x="92" y="66" width="1016" height="96" fill="url(#books)"/><rect x="88" y="162" width="1024" height="8" rx="2" fill="#7a5a28"/>
+  <rect x="92" y="178" width="1016" height="96" fill="url(#books)"/><rect x="88" y="274" width="1024" height="8" rx="2" fill="#7a5a28"/>
+  <rect x="92" y="290" width="1016" height="80" fill="url(#books)"/>
+
+  <!-- niche + emblème + plaque gravée -->
+  <rect x="524" y="150" width="152" height="192" rx="12" fill="#0e0a12"/>
+  <rect x="524" y="150" width="152" height="192" rx="12" fill="none" stroke="#7a5a28" stroke-width="2"/>
+  <g transform="translate(600,232)"><path d="M0 -30 C 14 -6 14 4 0 10 C -14 4 -14 -6 0 -30 Z" fill="#E0C36B"/><path d="M-22 14 Q -9 9 0 14 T 22 14" stroke="#E0C36B" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 34 C 14 14 14 4 0 -1 C -14 4 -14 14 0 34 Z" fill="#E0C36B" opacity="0.42"/></g>
+  <text x="600" y="322" text-anchor="middle" fill="#C9A84C" font-size="15" letter-spacing="5" opacity="0.92">LE CÉNACLE</text>
+
+  <!-- échelle -->
+  <g transform="translate(1015,66) rotate(9)" stroke="#8a6a34" stroke-width="6" stroke-linecap="round">
+    <line x1="0" y1="0" x2="0" y2="300"/><line x1="34" y1="0" x2="34" y2="300"/>
+    <line x1="0" y1="40" x2="34" y2="40" stroke-width="5"/><line x1="0" y1="95" x2="34" y2="95" stroke-width="5"/><line x1="0" y1="150" x2="34" y2="150" stroke-width="5"/><line x1="0" y1="205" x2="34" y2="205" stroke-width="5"/><line x1="0" y1="260" x2="34" y2="260" stroke-width="5"/>
+  </g>
+
+  <!-- sol + tapis Ndop -->
+  <rect x="0" y="430" width="1200" height="210" fill="#0d0906"/>
+  <ellipse cx="600" cy="558" rx="500" ry="70" fill="#3a2c16"/><ellipse cx="600" cy="558" rx="500" ry="70" fill="none" stroke="#C9A84C" stroke-width="2" opacity="0.6"/>
+  <g fill="#C9A84C" opacity="0.4"><path d="M180 558 l10 -7 l10 7 l-10 7 Z"/><path d="M320 566 l10 -7 l10 7 l-10 7 Z"/><path d="M470 570 l10 -7 l10 7 l-10 7 Z"/><path d="M620 570 l10 -7 l10 7 l-10 7 Z"/><path d="M770 566 l10 -7 l10 7 l-10 7 Z"/><path d="M910 558 l10 -7 l10 7 l-10 7 Z"/></g>
+
+  <!-- FAUTEUILS FANTÔMES (pénombre : la salle en compte plus) -->
+  <g opacity="0.32">
+    <g transform="translate(160,452) rotate(-12) scale(0.8)"><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46 Z" fill="#0c0e18"/><path d="M-62 -66 Q-82 -66 -82 -34 L-82 4 Q-82 16 -64 16 L-64 -64 Z" fill="#0a0c15"/><rect x="-58" y="2" width="116" height="34" rx="14" fill="#101322"/></g>
+    <g transform="translate(1050,452) rotate(14) scale(0.8)"><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46 Z" fill="#0c0e18"/><path d="M62 -66 Q82 -66 82 -34 L82 4 Q82 16 64 16 L64 -64 Z" fill="#0a0c15"/><rect x="-58" y="2" width="116" height="34" rx="14" fill="#101322"/></g>
+  </g>
+
+  <!-- lampe + flaque -->
+  <ellipse cx="210" cy="540" rx="150" ry="42" fill="url(#lamppool)"/>
+  <rect x="205" y="330" width="6" height="210" fill="#6E4E26"/><path d="M180 330 L232 330 L222 372 L190 372 Z" fill="#E0C36B" opacity="0.9"/><ellipse cx="206" cy="330" rx="26" ry="6" fill="#caa24a"/>
+
+  <!-- plante (droite) -->
+  <g transform="translate(1015,470)">
+    <path d="M-26 60 L26 60 L20 112 L-20 112 Z" fill="#8a6a34"/><ellipse cx="0" cy="60" rx="26" ry="7" fill="#a07d3e"/>
+    <g stroke="#415a2f" stroke-width="7" fill="none" stroke-linecap="round">
+      <path d="M0 58 C -30 20 -52 -8 -70 -44"/><path d="M0 58 C 30 20 52 -8 70 -44"/>
+      <path d="M0 58 C -14 6 -22 -34 -26 -80"/><path d="M0 58 C 14 6 22 -34 26 -80"/><path d="M0 58 C 0 8 0 -34 0 -90"/>
+    </g>
+    <g stroke="#4f6b39" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.8">
+      <path d="M0 58 C -18 24 -30 4 -40 -22"/><path d="M0 58 C 18 24 30 4 40 -22"/>
+    </g>
+  </g>
+
+  <!-- fauteuils bergère principaux -->
+  <g transform="translate(360,470) rotate(-6) scale(0.92)"><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46 Z" fill="#1a1d33"/><path d="M-62 -66 Q-82 -66 -82 -34 L-82 4 Q-82 16 -64 16 L-64 -64 Z" fill="#161a30"/><path d="M62 -66 Q82 -66 82 -34 L82 4 Q82 16 64 16 L64 -64 Z" fill="#161a30"/><rect x="-58" y="2" width="116" height="34" rx="14" fill="#262c48"/><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46" fill="none" stroke="#C9A84C" stroke-width="1.7" opacity="0.5"/><rect x="-52" y="44" width="9" height="18" fill="#100b06"/><rect x="43" y="44" width="9" height="18" fill="#100b06"/></g>
+  <g transform="translate(760,486) rotate(9) scale(0.9)"><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46 Z" fill="#181b2f"/><path d="M-62 -66 Q-82 -66 -82 -34 L-82 4 Q-82 16 -64 16 L-64 -64 Z" fill="#14172c"/><path d="M62 -66 Q82 -66 82 -34 L82 4 Q82 16 64 16 L64 -64 Z" fill="#14172c"/><rect x="-58" y="2" width="116" height="34" rx="14" fill="#242a44"/><path d="M-62 46 L-62 -78 Q-62 -118 -22 -118 L22 -118 Q62 -118 62 -78 L62 46" fill="none" stroke="#C9A84C" stroke-width="1.7" opacity="0.5"/><rect x="-52" y="44" width="9" height="18" fill="#100b06"/><rect x="43" y="44" width="9" height="18" fill="#100b06"/></g>
+
+  <!-- table + livre -->
+  <g transform="translate(560,556)"><ellipse cx="0" cy="0" rx="46" ry="15" fill="#241a0e"/><ellipse cx="0" cy="-2" rx="46" ry="15" fill="none" stroke="#C9A84C" stroke-width="1.2" opacity="0.55"/><path d="M-20 -6 L0 -10 L0 -3 L-20 1 Z" fill="#e6dcc0"/><path d="M20 -6 L0 -10 L0 -3 L20 1 Z" fill="#d8cbaa"/><rect x="-2" y="0" width="4" height="30" fill="#241a0e"/></g>
+</svg></div>`;
+}
+function ensureAdminBar(){
+  try{
+    if(typeof isUboraAdmin!=='function' || !isUboraAdmin()){ var ex=document.getElementById('admin-bar'); if(ex)ex.remove(); return; }
+    var bar=document.getElementById('admin-bar');
+    if(!bar){ bar=document.createElement('div'); bar.id='admin-bar';
+      bar.style.cssText='position:fixed;left:12px;bottom:12px;z-index:9998;background:#161B3D;color:#EDE1C6;border:1px solid #C9A84C;border-radius:12px;padding:8px 10px;font:12px Georgia,serif;box-shadow:0 8px 24px rgba(0,0,0,.4)';
+      document.body.appendChild(bar);
+    }
+    var lv=(state.adminViewAs!=null&&state.adminViewAs!==undefined)?state.adminViewAs:-1;
+    var names=['Découverte','Bâtisseur','Ambassadeur','Tontine Elite','Ubora Deal','Le Cercle'];
+    var opts='<option value="-1"'+(lv===-1?' selected':'')+'>Réel</option>';
+    for(var i=0;i<names.length;i++){ opts+='<option value="'+i+'"'+(lv===i?' selected':'')+'>'+names[i]+'</option>'; }
+    bar.innerHTML='<span style="color:#C9A84C;letter-spacing:1px">ADMIN · voir comme :</span> '
+      +'<select onchange="adminSetView(this.value)" style="background:#0f1330;color:#EDE1C6;border:1px solid #C9A84C;border-radius:6px;padding:2px 4px;font:12px Georgia,serif">'+opts+'</select> '
+      +'<button onclick="go(\'cenacleadmin\')" style="background:#C9A84C;color:#161B3D;border:none;border-radius:6px;padding:3px 8px;font:12px Georgia,serif;cursor:pointer;margin-left:4px">Demandes Cénacle</button>';
+  }catch(e){}
+}
+function adminSetView(v){ v=parseInt(v,10); state.adminViewAs=(isNaN(v)||v<0)?null:v; render(); }
+
+function viewCenacleAdmin(){
+  if(typeof isUboraAdmin!=='function' || !isUboraAdmin()){ go('home'); return; }
+  app().innerHTML=`
+    <button class="backlink" onclick="go('udroom')">‹ Le Cénacle</button>
+    <div class="eyebrow">ADMIN · LE CÉNACLE</div>
+    <h1 class="page-title">Demandes d'adhésion</h1>
+    <p class="lead">Les personnes ayant manifesté leur intérêt. Vous retenez (Accepter) ou écartez (Rejeter) chaque demande.</p>
+    <div class="panel"><div style="padding:14px 20px"><div id="ci-list" class="hint">Chargement…</div></div></div>${footer()}`;
+  cenacleLoadInterets();
+}
+async function cenacleLoadInterets(){
+  var el=document.getElementById('ci-list'); if(!el)return;
+  try{
+    const{data,error}=await sb.from('cenacle_interet').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    if(!data||!data.length){ el.innerHTML='<div class="hint">Aucune demande pour le moment.</div>'; return; }
+    el.innerHTML=data.map(ciRow).join('');
+  }catch(e){ el.innerHTML='<div class="hint">Erreur de chargement : '+esc(e.message||String(e))+'</div>'; }
+}
+function ciRow(r){
+  var st=r.statut||'en_attente';
+  var badge = st==='accepte' ? '<span style="color:#2e7d4f;font-weight:600">✓ Accepté</span>'
+            : st==='rejete'  ? '<span style="color:#a23;font-weight:600">✕ Rejeté</span>'
+            : '<span style="color:#9A7230">• En attente</span>';
+  var lv=(typeof LEVELS!=='undefined'&&r.niveau!=null&&LEVELS[r.niveau])?LEVELS[r.niveau].name:('niveau '+(r.niveau!=null?r.niveau:'?'));
+  var d=r.created_at?new Date(r.created_at).toLocaleString('fr-CH'):'';
+  var actions = (st==='en_attente')
+    ? `<button class="btn btn-gold btn-sm" onclick="cenacleSetStatut('${r.id}','accepte')">Accepter</button> <button class="btn btn-ghost btn-sm" onclick="cenacleSetStatut('${r.id}','rejete')">Rejeter</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="cenacleSetStatut('${r.id}','en_attente')">Remettre en attente</button>`;
+  return `<div style="border-bottom:1px solid rgba(0,0,0,.08);padding:12px 0">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div><b>${esc(r.nom||'—')}</b> · ${esc(r.email||'—')}<div style="font-size:12.5px;color:#6b5a34">${esc(lv)} · ${esc(d)}</div></div>
+      <div>${badge}</div>
+    </div>
+    <div style="margin-top:8px">${actions}</div>
+  </div>`;
+}
+async function cenacleSetStatut(id,st){
+  try{ const{error}=await sb.from('cenacle_interet').update({statut:st}).eq('id',id); if(error)throw error; cenacleLoadInterets(); }
+  catch(e){ alert('Action impossible : '+(e.message||e)); }
+}
+
 function cenacleSym(size,color){size=size||60;color=color||'#C9A84C';
   return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 100 100" aria-hidden="true">'
     +'<path d="M50 20 C 64 42 64 55 50 61 C 36 55 36 42 50 20 Z" fill="'+color+'"/>'
