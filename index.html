@@ -2674,6 +2674,24 @@ function viewConversation(){
 
 /* ===== V2 — Mise en relation « Ils avancent avec vous » ===== */
 
+/* Son de montée de niveau — distinct de la convergence : arpège majeur ascendant. */
+function levelSound(){
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    state._ac=state._ac||new AC(); var ac=state._ac;
+    if(ac.state==='suspended'){ try{ac.resume();}catch(e){} }
+    var t=ac.currentTime, notes=[523.25,659.25,783.99,1046.5];
+    notes.forEach(function(f,i){
+      var o=ac.createOscillator(), g=ac.createGain();
+      o.type='triangle'; o.frequency.setValueAtTime(f,t+i*0.09);
+      g.gain.setValueAtTime(0.0001,t+i*0.09);
+      g.gain.exponentialRampToValueAtTime(0.14,t+i*0.09+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+i*0.09+0.34);
+      o.connect(g).connect(ac.destination); o.start(t+i*0.09); o.stop(t+i*0.09+0.42);
+    });
+  }catch(e){}
+}
+
 /* Son de convergence (Web Audio) — distinct du palier : deux notes se rejoignent. */
 function matchSound(){
   try{
@@ -2830,7 +2848,7 @@ function render(){
   const fresh = screen!==_lastScreen; _lastScreen=screen;
   if(a){a.classList.remove('fresh'); if(fresh){void a.offsetWidth; a.classList.add('fresh');}}
   animateCounts(fresh);
-  const lvl=myLevel();
+  const lvl=(typeof userLevel==='function')?userLevel(state.user):myLevel();
   if(_lastLevel!=null && lvl>_lastLevel && !document.querySelector('#celo')) celebrate(lvl);
   _lastLevel=lvl;
   if(state.flash){setTimeout(()=>{state.flash=null;},700);}
@@ -5145,6 +5163,7 @@ function selectLevel(i){ state.selectedLevel=i; render(); }
 function userHasMk(name){return state_tontines.some(t=>t.members.some(m=>m&&m.name===name&&m.mk));}
 function celebrate(idx){
   if(idx<0||idx>=LEVELS.length||document.querySelector('#celo'))return;
+  try{levelSound();}catch(e){}
   const L=LEVELS[idx];
   let parts='';
   for(let i=0;i<16;i++){const l=(Math.random()*100).toFixed(1),d=(Math.random()*0.8).toFixed(2),
@@ -8046,11 +8065,11 @@ function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!st
 function viewLanding(){
   const gold='#C9A84C';
   const stat=(v,l)=>`<div style="padding:0 18px"><div style="font-family:Georgia,serif;font-size:26px;color:${gold};font-weight:600">${v}</div><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:5px">${l}</div></div>`;
-  const band=`<div class="panel" style="margin:18px 0"><div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;padding:18px 20px;text-align:center">
+  const band=(typeof isUboraAdmin==='function'&&isUboraAdmin())?`<div class="panel" style="margin:18px 0"><div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-items:center;padding:18px 20px;text-align:center">
     ${stat(repFmtNum(1000)+'+', _FL('personnes suivies','people tracked'))}
     ${stat(repFmtNum(42), _FL('groupes &amp; associations','groups &amp; associations'))}
     ${stat(_FL('Suisse','Switzerland'), _FL('données hébergées','data hosted'))}
-  </div></div>`;
+  </div></div>`:'';
   const card=(t,d)=>`<div class="ub-tile"><div class="tt">${t}</div><div class="td">${d}</div></div>`;
   const cards=
      card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
@@ -8617,18 +8636,26 @@ function ensureAdminBar(){
     if(typeof isUboraAdmin!=='function' || !isUboraAdmin()){ var ex=document.getElementById('admin-bar'); if(ex)ex.remove(); return; }
     var bar=document.getElementById('admin-bar');
     if(!bar){ bar=document.createElement('div'); bar.id='admin-bar';
-      bar.style.cssText='position:fixed;left:12px;bottom:12px;z-index:9998;background:#161B3D;color:#EDE1C6;border:1px solid #C9A84C;border-radius:12px;padding:8px 10px;font:12px Georgia,serif;box-shadow:0 8px 24px rgba(0,0,0,.4)';
+      bar.style.cssText='position:fixed;left:12px;bottom:12px;z-index:9998;background:#161B3D;color:#EDE1C6;border:1px solid #C9A84C;border-radius:12px;font:12px Georgia,serif;box-shadow:0 8px 24px rgba(0,0,0,.4)';
       document.body.appendChild(bar);
     }
+    if(state._adminMin){
+      bar.style.padding='6px 9px';
+      bar.innerHTML=`<button onclick="adminToggleMin()" style="background:none;border:none;color:#C9A84C;font:12px Georgia,serif;cursor:pointer;letter-spacing:1px">⚙ ADMIN ▸</button>`;
+      return;
+    }
+    bar.style.padding='8px 10px';
     var lv=(state.adminViewAs!=null&&state.adminViewAs!==undefined)?state.adminViewAs:-1;
     var names=['Découverte','Bâtisseur','Ambassadeur','Tontine Elite','Ubora Deal','Le Cercle'];
-    var opts='<option value="-1"'+(lv===-1?' selected':'')+'>Réel</option>';
-    for(var i=0;i<names.length;i++){ opts+='<option value="'+i+'"'+(lv===i?' selected':'')+'>'+names[i]+'</option>'; }
-    bar.innerHTML='<span style="color:#C9A84C;letter-spacing:1px">ADMIN · voir comme :</span> '
-      +'<select onchange="adminSetView(this.value)" style="background:#0f1330;color:#EDE1C6;border:1px solid #C9A84C;border-radius:6px;padding:2px 4px;font:12px Georgia,serif">'+opts+'</select> '
-      +'<button onclick="go(\'cenacleadmin\')" style="background:#C9A84C;color:#161B3D;border:none;border-radius:6px;padding:3px 8px;font:12px Georgia,serif;cursor:pointer;margin-left:4px">Demandes Cénacle</button>';
+    var opts=`<option value="-1"${lv===-1?' selected':''}>Réel</option>`;
+    for(var i=0;i<names.length;i++){ opts+=`<option value="${i}"${lv===i?' selected':''}>${names[i]}</option>`; }
+    bar.innerHTML=`<span style="color:#C9A84C;letter-spacing:1px">ADMIN · voir comme :</span> `
+      +`<select onchange="adminSetView(this.value)" style="background:#0f1330;color:#EDE1C6;border:1px solid #C9A84C;border-radius:6px;padding:2px 4px;font:12px Georgia,serif">${opts}</select> `
+      +`<button onclick="go('cenacleadmin')" style="background:#C9A84C;color:#161B3D;border:none;border-radius:6px;padding:3px 8px;font:12px Georgia,serif;cursor:pointer;margin-left:4px">Demandes Cénacle</button>`
+      +`<button onclick="adminToggleMin()" title="Réduire" style="background:none;border:none;color:#C9A84C;cursor:pointer;margin-left:6px;font-size:15px;line-height:1">–</button>`;
   }catch(e){}
 }
+function adminToggleMin(){ state._adminMin=!state._adminMin; ensureAdminBar(); }
 function adminSetView(v){ v=parseInt(v,10); state.adminViewAs=(isNaN(v)||v<0)?null:v; render(); }
 
 function viewCenacleAdmin(){
