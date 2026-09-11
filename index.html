@@ -8160,7 +8160,7 @@ function viewFAQ(){
 }
 
 function viewPrivacy(){
-  return `<a class="backlink" href="#" onclick="go(state.uid?'home':'landing');return false">‹ ${_FL('Retour','Back')}</a>
+  app().innerHTML=`<a class="backlink" href="#" onclick="go(state.uid?'home':'landing');return false">‹ ${_FL('Retour','Back')}</a>
   <div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">${_FL('Confidentialité','Privacy')}</h1>
   <div class="panel"><div style="padding:18px 22px;line-height:1.75">
     <p><b>${_FL('Ce que nous collectons.','What we collect.')}</b> ${_FL('Votre nom d’affichage, votre e-mail ou téléphone de connexion, vos consentements (newsletter, annonces), et les données de fonctionnement des tontines, caisses et événements auxquels vous participez (montants déclarés, tours, échéances). UBORA ne détient aucun fonds et ne collecte aucune donnée bancaire.','Your display name, your sign-in email or phone, your consents (newsletter, announcements), and the operating data of the tontines, funds and events you take part in (declared amounts, rounds, due dates). UBORA holds no funds and collects no banking data.')}</p>
