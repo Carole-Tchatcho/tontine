@@ -9065,6 +9065,16 @@ async function boot(){
     else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} }
   }catch(e){}
 
+  /* Lien direct vers une page publique : #privacy / #confidentialite (politique)
+     ou #cgv / #conditions (conditions). URL stable pour les boutiques. */
+  try{ var _hh=(location.hash||'').toLowerCase();
+    if(/#(privacy|confidentialite)/.test(_hh) || /#(cgv|conditions)/.test(_hh)){
+      if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
+      state.view = /#(cgv|conditions)/.test(_hh) ? 'cgv' : 'privacy';
+      render(); showBackendBadge(); return;
+    }
+  }catch(e){}
+
   if(BACKEND!=='supabase'){ loadLocal(); render(); showBackendBadge(); return; }   /* mode démo : restaure les essais locaux */
 
   /* Un tiers arrive par ?v=CODE : il n'a pas de compte, il n'en aura jamais,
