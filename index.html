@@ -314,11 +314,9 @@ html,body{margin:0;background:#11162F}
   @keyframes celBadge{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
 
   .tier:hover{transform:translateY(-2px) scale(1.012);filter:brightness(1.05);box-shadow:0 12px 26px -12px rgba(42,32,23,.6)}
-  .apex-jewel{display:flex;justify-content:center;margin-bottom:2px;perspective:900px}
-  .apex-badge{width:104px;height:auto;transform-origin:50% 50%;animation:sealTurn 16s ease-in-out infinite;filter:drop-shadow(0 3px 9px rgba(42,32,23,.20))}
-  @keyframes sealTurn{0%,100%{transform:rotateY(-24deg)}50%{transform:rotateY(24deg)}}
-  @media (prefers-reduced-motion:reduce){.apex-badge{animation:none;transform:rotateY(0)}}
-  .seal-name{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.05em;color:var(--gold-bright);text-align:center;margin-top:10px;line-height:1.12}
+  .apex-jewel{display:flex;justify-content:center;margin-bottom:2px}
+  .apex-badge{width:112px;height:auto;mix-blend-mode:multiply}
+  .seal-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:.05em;color:var(--gold-bright);text-align:center;margin-top:8px;line-height:1.12}
   .seal-sub{font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);text-align:center;margin-top:4px;opacity:.78}
   .apex-jewel .gem{transform-origin:50% 50%;animation:gemTurn 7s ease-in-out infinite, gemGlow 4.5s ease-in-out infinite}
   .apex-jewel .rune{font-family:'Cormorant Garamond',serif;font-size:8px;letter-spacing:1.2px;fill:#6E4E26;opacity:.95}
@@ -1701,8 +1699,8 @@ Object.assign(I18N.en,{
 });
 Object.assign(I18N.fr,{hm_level_eyebrow:'Votre niveau',hm_level_cta:'Voir mon parcours →',hm_level_sub:'Calculé sur l\u2019ensemble de vos cercles — jamais déclaré.'});
 Object.assign(I18N.en,{hm_level_eyebrow:'Your level',hm_level_cta:'See my path →',hm_level_sub:'Computed across all your circles — never self-declared.'});
-Object.assign(I18N.fr,{py_seal_name:'Imara · Ubora · Umoja',py_seal_sub:'le sceau de la maison'});
-Object.assign(I18N.en,{py_seal_name:'Imara · Ubora · Umoja',py_seal_sub:'the seal of the house'});
+Object.assign(I18N.fr,{py_seal_name:'Imara · Akili · Umoja',py_seal_sub:'le sceau de la maison'});
+Object.assign(I18N.en,{py_seal_name:'Imara · Akili · Umoja',py_seal_sub:'the seal of the house'});
 Object.assign(I18N.fr,{ap_cur_label:'Devise d\u2019affichage',ap_capacity_h:'Votre capacité personnelle',ap_capital_l:'Capital de départ — vos cercles',ap_monthly_l:'Apport mensuel — capacité démontrée',ap_per_month:'mois',ap_sim_note:'Ces deux montants — capital de départ et apport mensuel — sont reportés tels quels dans le simulateur, dans votre devise.',ap_sim_cta:'Simuler ma fortune sur 20 ans →',ap_fx_note:'Conversion entre devises à titre indicatif ; un taux réel sera appliqué en production.'});
 Object.assign(I18N.en,{ap_cur_label:'Display currency',ap_capacity_h:'Your personal capacity',ap_capital_l:'Starting capital — your circles',ap_monthly_l:'Monthly contribution — proven capacity',ap_per_month:'mo',ap_sim_note:'Both amounts — starting capital and monthly contribution — carry straight into the simulator, in your currency.',ap_sim_cta:'Simulate my 20-year wealth →',ap_fx_note:'Currency conversion is indicative; a real rate will be applied in production.'});
 Object.assign(I18N.fr,{ap_master_note:'Devise par défaut : celle de votre pays de résidence ({c}). Vous êtes maître — choisissez celle qui vous parle.',ap_calc_note:'Votre calculateur ne gère pas encore {c} ; la simulation s\u2019ouvrira en {l}.',reg_country:'Pays de résidence',reg_country_hint:'Détermine votre devise par défaut — vous pourrez toujours en changer.'});
@@ -5240,7 +5238,9 @@ function viewPyramide(){
     <p class="lead">${tr('py_lead')}</p>
     <div class="row" style="margin-top:10px"><span class="level-badge" style="background:${lv.bg};color:${lv.color}">◆ ${lv.name}</span></div>
     <div class="pyr-cap" style="margin-top:18px">${tr('py_cap')}</div>
-    <div class="apex-jewel"><img class="apex-badge" src="triangle-cercle-badge.png" alt="" aria-hidden="true"></div>
+    <div class="apex-jewel"><video class="apex-badge" autoplay loop muted playsinline aria-hidden="true">
+      <source src="triangle-cercle-badge.mp4" type="video/mp4">
+    </video></div>
     <div class="seal-name">${tr('py_seal_name')}</div>
     <div class="seal-sub">${tr('py_seal_sub')}</div>
     <div class="pyr">${tiers}</div>
@@ -8565,7 +8565,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.97';
+const UBORA_BUILD='v8.98';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
