@@ -2,11 +2,39 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<style id="ubora-intro-css">
+#ubora-intro{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(130% 100% at 50% 40%,#1B2044 0%,#11162F 55%,#0A0E22 100%);
+  transition:opacity .6s ease;}
+#ubora-intro.gone{opacity:0;pointer-events:none;}
+#ubora-intro svg{width:78%;max-width:420px;height:auto;overflow:visible;
+  font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;}
+#ubora-intro .halo{position:absolute;width:60%;height:34%;left:20%;top:24%;
+  background:radial-gradient(closest-side,rgba(224,195,107,.16),rgba(224,195,107,0));filter:blur(6px);}
+#ui-outer{transform-box:fill-box;transform-origin:center;opacity:0;animation:uiOuter 3s cubic-bezier(.22,1,.36,1) forwards;}
+@keyframes uiOuter{0%{opacity:0;transform:scale(.88)}30%{opacity:1;transform:scale(1)}100%{opacity:1;transform:scale(1)}}
+#ubora-intro .ui-dot{opacity:0;animation:uiDot 3s ease-out forwards;}
+@keyframes uiDot{0%,12%{opacity:0}26%{opacity:1}100%{opacity:1}}
+#ubora-intro .ui-lbl{transform-box:fill-box;transform-origin:center;opacity:0;fill:#C9A84C;font-size:15px;letter-spacing:3px;}
+#ui-I{animation:uiLbl 3s cubic-bezier(.22,1,.36,1) forwards;}
+#ui-A{animation:uiLbl 3s cubic-bezier(.22,1,.36,1) forwards;animation-delay:.12s;}
+#ui-U{animation:uiLbl 3s cubic-bezier(.22,1,.36,1) forwards;animation-delay:.24s;}
+@keyframes uiLbl{0%,30%{opacity:0;transform:scale(1.05)}46%{opacity:1;transform:scale(1)}100%{opacity:1;transform:scale(1)}}
+#ui-inner{transform-box:fill-box;transform-origin:center;opacity:0;animation:uiInner 3s cubic-bezier(.22,1,.36,1) forwards;}
+@keyframes uiInner{0%,50%{opacity:0;transform:scale(.6)}68%{opacity:.85;transform:scale(1)}100%{opacity:.85;transform:scale(1)}}
+#ui-word{opacity:0;transform:translateY(4px);animation:uiWord 3s cubic-bezier(.22,1,.36,1) forwards;}
+@keyframes uiWord{0%,66%{opacity:0;transform:translateY(4px)}88%{opacity:1;transform:translateY(0)}100%{opacity:1;transform:translateY(0)}}
+</style>
+<style id="ubora-critical">
+html,body{margin:0;background:#11162F}
+</style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>UBORA · Registre de tontine — prototype v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" media="print" onload="this.media='all';document.documentElement.classList.add('fonts-ready')">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"></noscript>
 <style>
   /* Aucun \u00E9l\u00E9ment ne doit pouvoir rendre la page plus large que l'\u00E9cran :
      personne ne fait glisser son \u00E9cran vers la droite pour trouver un onglet. */
@@ -690,6 +718,23 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
 <script>(function(){try{var n=(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform())||location.protocol==='capacitor:'||location.hostname==='localhost';if(!n){var s=document.createElement('script');s.async=true;s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6560650903881216';s.crossOrigin='anonymous';document.head.appendChild(s);}}catch(e){}})();</script> </head>
 <body>
+<div id="ubora-intro">
+  <div class="halo"></div>
+  <svg viewBox="0 0 400 560">
+    <polygon id="ui-outer" points="200,118 312.2,301.8 87.8,301.8" fill="none" stroke="#C9A84C" stroke-width="4" stroke-linejoin="round"/>
+    <circle class="ui-dot" cx="200" cy="118" r="5.5" fill="#E0C36B"/>
+    <circle class="ui-dot" cx="312.2" cy="301.8" r="5.5" fill="#E0C36B"/>
+    <circle class="ui-dot" cx="87.8" cy="301.8" r="5.5" fill="#E0C36B"/>
+    <polygon id="ui-inner" points="200,165.8 264.6,274.6 135.4,274.6" fill="none" stroke="#C9A84C" stroke-width="2.4" stroke-linejoin="round"/>
+    <text id="ui-I" class="ui-lbl" x="200" y="100" text-anchor="middle">IMARA</text>
+    <text id="ui-A" class="ui-lbl" x="78" y="330" text-anchor="middle">AKILI</text>
+    <text id="ui-U" class="ui-lbl" x="322" y="330" text-anchor="middle">UMOJA</text>
+    <g id="ui-word">
+      <text x="200" y="430" text-anchor="middle" fill="#E9DBB4" font-size="44" letter-spacing="7">UBORA</text>
+      <text x="200" y="460" text-anchor="middle" fill="#9A8A6A" font-size="12.5" letter-spacing="4">LE REGISTRE DE CONFIANCE</text>
+    </g>
+  </svg>
+</div>
 
 <header>
   <div class="hbar">
@@ -728,6 +773,8 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 <script>
 /* ---------- état (mono-poste, en mémoire, aucune persistance) ---------- */
 const FREQ={mensuelle:'tous les mois',quinzaine:'tous les 15 jours',hebdo:'toutes les semaines'};
+/* ---------- Compte demo (relecteurs Apple/Google) : e-mail + mot de passe, reserve a cette seule adresse ---------- */
+const DEMO_EMAIL='demo@caroletchatcho.com';
 /* ---------- Environnement natif (Capacitor) — source unique de vérité ---------- */
 const IS_NATIVE = (()=>{ try{
   return (window.Capacitor && typeof window.Capacitor.isNativePlatform==='function'
@@ -810,6 +857,14 @@ if(IS_NATIVE){
     var _App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if(_App && _App.addListener){
       _App.addListener('appUrlOpen', function(data){ uboraHandleDeepLink((data&&data.url)||''); });
+      /* Bouton retour matériel Android : navigue dans l'historique interne de
+         l'app au lieu de la fermer, sauf déjà à la racine (accueil/landing). */
+      _App.addListener('backButton', function(){
+        try{
+          var atRoot=(typeof navStack!=='undefined' && !navStack.length) && (!state.view || state.view==='home' || state.view==='landing');
+          if(atRoot){ _App.exitApp(); } else if(typeof goBack==='function'){ goBack(); }
+        }catch(e){ try{ _App.exitApp(); }catch(_e){} }
+      });
     }
   }catch(e){}
 }
@@ -2633,6 +2688,55 @@ async function chatReport(id){
   alert(tr('sig_submitted'));
 }
 
+/* ===== Signaler / Bloquer un membre — depuis la liste des membres d'une tontine =====
+   Portée stricte : le blocage n'affecte QUE le contact direct (messages/mise en
+   relation). Aucun effet sur les tontines, le registre, les rotations, les
+   attestations ou la participation aux mêmes cercles — ni côté bloqueur, ni
+   côté bloqué·e. Réutilise la table member_blocks déjà en place pour le
+   blocage depuis une conversation (chatBlock), pour ne pas dupliquer le
+   mécanisme. */
+async function ensureMemberBlocksLoaded(){
+  if(state._blocksLoaded)return; state._blocksLoaded=true;
+  try{
+    if(typeof sb!=='undefined' && sb && state.uid){
+      const{data}=await sb.from('member_blocks').select('id,blocked_id').eq('blocker_id',state.uid);
+      state.myBlocks=data||[];
+    } else state.myBlocks=[];
+  }catch(e){ state.myBlocks=state.myBlocks||[]; }
+  render();
+}
+function isMemberBlocked(uid){ return (state.myBlocks||[]).some(function(b){return b.blocked_id===uid;}); }
+
+async function memberBlockToggle(otherUid){
+  if(!otherUid || !state.uid || typeof sb==='undefined' || !sb) return;
+  var already=isMemberBlocked(otherUid);
+  if(already){
+    if(!confirm(_FL('Débloquer ce membre ? Vous pourrez de nouveau échanger des messages directs avec lui/elle.','Unblock this member? You will be able to exchange direct messages again.')))return;
+    try{
+      var row=(state.myBlocks||[]).find(function(b){return b.blocked_id===otherUid;});
+      if(row) await sb.from('member_blocks').delete().eq('id',row.id);
+    }catch(e){ alert(_FL('Action impossible pour l’instant.','Could not complete this action right now.')); return; }
+  } else {
+    if(!confirm(_FL('Bloquer ce membre ? Vous ne pourrez plus échanger de messages directs avec lui/elle. Cela n’a aucun effet sur vos tontines, votre registre ou votre participation aux mêmes cercles — vous continuez tous deux à utiliser UBORA normalement.','Block this member? You will no longer be able to exchange direct messages. This has no effect on your tontines, ledger, or shared circles — you both keep using UBORA normally.')))return;
+    try{
+      await sb.from('member_blocks').insert({blocker_id:state.uid,blocked_id:otherUid});
+      /* Ferme une conversation directe déjà ouverte entre les deux, le cas échéant — même effet que le blocage depuis le fil de discussion. */
+      const{data:convs}=await sb.from('conversations').select('id,status')
+        .or('and(member_a.eq.'+state.uid+',member_b.eq.'+otherUid+'),and(member_a.eq.'+otherUid+',member_b.eq.'+state.uid+')');
+      for(const c of (convs||[])){ if(c.status!=='closed'){ await sb.from('conversations').update({status:'closed'}).eq('id',c.id); } }
+    }catch(e){ alert(_FL('Action impossible pour l’instant.','Could not complete this action right now.')); return; }
+  }
+  state._blocksLoaded=false; await ensureMemberBlocksLoaded();
+}
+
+async function memberReport(otherUid){
+  if(!otherUid || !state.uid || typeof sb==='undefined' || !sb) return;
+  var motif=prompt(_FL('Motif du signalement (optionnel) :','Reason for the report (optional):'),'');
+  if(motif===null)return;
+  try{ await sb.from('member_reports').insert({reporter_uid:state.uid,reported_uid:otherUid,motif:motif||null}); }catch(e){}
+  alert(_FL('Signalement envoyé','Report sent'));
+}
+
 function viewConversation(){
   var id=state.activeConv, conv=state.activeConvRow, name=state.activeConvName||'—', msgs=state.chatMsgs;
   var iAccepted = conv ? (conv.member_a===state.uid?conv.member_a_accepted_at:conv.member_b_accepted_at) : true;
@@ -2747,6 +2851,9 @@ async function matchLoad(){
 
 async function matchMakeConversation(raw){
   try{
+    const{data:blocks}=await sb.from('member_blocks').select('id')
+      .or('and(blocker_id.eq.'+raw.member_a+',blocked_id.eq.'+raw.member_b+'),and(blocker_id.eq.'+raw.member_b+',blocked_id.eq.'+raw.member_a+')');
+    if(blocks && blocks.length) return; /* l'un des deux a bloqué l'autre : pas de mise en relation */
     const {data:conv}=await sb.from('conversations').insert({
       member_a:raw.member_a, member_b:raw.member_b, status:'active', origin:'match_suggestion',
       origin_match_id:raw.id, member_a_accepted_at:new Date().toISOString(), member_b_accepted_at:new Date().toISOString()
@@ -2842,7 +2949,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte}[state.view]||viewHome)();
+  else ({home:viewHome,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -4549,6 +4656,7 @@ function viewDash(){
 }
 
 function dashGroup(t){
+  if(!state._blocksLoaded) ensureMemberBlocksLoaded();
   const r=t.rounds[t.currentRound];
   const conf=r.contribs.filter((s,idx)=>s==='confirmed'&&t.members[idx]).length;
   const collected=conf*t.amount, pot=t.places*t.amount, pct=pot?Math.round(collected/pot*100):0;
@@ -4584,10 +4692,15 @@ function dashGroup(t){
     else if(s==='none') action=`${(i===t.me)?`<button class="btn btn-gold btn-sm" onclick="memberDeclare('${t.id}',${i})">${tr('dg_pay')}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="orgConfirm('${t.id}',${i})">${tr('dg_mark_recv')}</button>${(BACKEND==='supabase'&&m.contact&&m.contact.indexOf('@')>0)?`<button class="btn btn-ghost btn-sm" onclick="sendReminderEmail('${t.id}',${i})">${tr('dg_remind')}</button>`:''}`;
     else action=`<button class="btn btn-ghost btn-sm" onclick="orgUnconfirm('${t.id}',${i})">${tr('cancel')}</button>`;
     }
+    const canModerate=m._userId && m._userId!==state.uid;
+    const modLine=canModerate?`<div class="msub" style="margin-top:4px">
+        <button type="button" class="linkbtn" onclick="memberReport('${m._userId}')">${_FL('Signaler','Report')}</button>
+        \u00b7 <button type="button" class="linkbtn" onclick="memberBlockToggle('${m._userId}')">${isMemberBlocked(m._userId)?_FL('D\u00e9bloquer','Unblock'):_FL('Bloquer','Block')}</button>
+      </div>`:'';
     return `<div class="mrow ${isFlash?'flash-row':''}">
       ${avatar(m.name,(isRecv?'recv':'')+(levelOf(t,i)>=2?' av-amb':''))}
       <div class="stack"><div class="mname">${m.name}${levelOf(t,i)>=2?ambBadge():''}${m.role==='organisateur'?`<span class="role">${tr('role_org')}</span>`:''}${isRecv?` <span class="pill p-now" style="margin-left:6px">${tr('dg_recv_now')}</span>`:''}</div>
-        <div class="msub">${m.contact}</div>${s==='declared'?`<div class="msub" style="margin-top:2px">${tr('dg_ref')}: <b>${(r.payRef&&r.payRef[i])||'\u2014'}</b>${(r.payProof&&r.payProof[i])?` \u00b7 ${tr('dg_proof')}: ${esc(r.payProof[i])}`:` \u00b7 <span class="faint">${tr('dg_no_proof')}</span>`}</div>`:''}</div>
+        <div class="msub">${m.contact}</div>${s==='declared'?`<div class="msub" style="margin-top:2px">${tr('dg_ref')}: <b>${(r.payRef&&r.payRef[i])||'\u2014'}</b>${(r.payProof&&r.payProof[i])?` \u00b7 ${tr('dg_proof')}: ${esc(r.payProof[i])}`:` \u00b7 <span class="faint">${tr('dg_no_proof')}</span>`}</div>`:''}${modLine}</div>
       <div class="right ${isFlash?'flash-ok':''}">${(s==='none'&&isLate(t,t.currentRound,i))?`<span class="pill p-late">${tr('st_late')}</span>`:statusPill(s)}${action}</div></div>`;
   }).join('');
 
@@ -5120,37 +5233,9 @@ function viewPyramide(){
     <p class="lead">${tr('py_lead')}</p>
     <div class="row" style="margin-top:10px"><span class="level-badge" style="background:${lv.bg};color:${lv.color}">◆ ${lv.name}</span></div>
     <div class="pyr-cap" style="margin-top:18px">${tr('py_cap')}</div>
-    <div class="apex-jewel"><svg class="gem" width="96" height="96" viewBox="0 0 320 320" aria-hidden="true">
-      <defs>
-        <linearGradient id="ndFace" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#1c2440"/><stop offset="0.5" stop-color="#141a30"/><stop offset="1" stop-color="#0e1326"/></linearGradient>
-        <linearGradient id="ndGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3cf"/><stop offset="0.4" stop-color="#e3c878"/><stop offset="1" stop-color="#9c7c34"/></linearGradient>
-        <pattern id="ndPat" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M10 2 L18 10 L10 18 L2 10 Z" fill="none" stroke="#e9dcb0" stroke-width="0.7" opacity="0.55"/><circle cx="10" cy="10" r="1.4" fill="#e3c878" opacity="0.6"/><path d="M0 0 L4 4 M20 0 L16 4 M0 20 L4 16 M20 20 L16 16" stroke="#cbb888" stroke-width="0.5" opacity="0.4"/></pattern>
-        <pattern id="ndPat2" width="16" height="9" patternUnits="userSpaceOnUse"><path d="M0 8 L4 1 L8 8 L12 1 L16 8" fill="none" stroke="#e9dcb0" stroke-width="0.6" opacity="0.5"/></pattern>
-      </defs>
-      <polygon points="78,236 242,236 210,260 110,260" fill="url(#ndFace)"/>
-      <polygon points="110,214 242,214 242,236 78,236" fill="url(#ndFace)"/>
-      <polygon points="110,214 242,214 242,236 78,236" fill="url(#ndPat2)"/>
-      <polygon points="78,236 110,260 110,214" fill="#0a0e1c"/>
-      <polygon points="78,236 160,76 182,90 110,226" fill="url(#ndFace)"/>
-      <polygon points="110,226 182,90 204,104 132,240" fill="url(#ndFace)"/>
-      <polygon points="110,226 182,90 204,104 132,240" fill="url(#ndPat)"/>
-      <polygon points="78,236 110,226 132,240 110,260" fill="#0a0e1c"/>
-      <polygon points="160,76 242,236 220,236 138,90" fill="url(#ndFace)"/>
-      <polygon points="160,76 242,236 220,236 138,90" fill="url(#ndPat)"/>
-      <polygon points="160,76 182,90 138,90" fill="#0a0e1c"/>
-      <polygon points="242,236 220,236 242,214" fill="#0a0e1c"/>
-      <g fill="none" stroke="url(#ndGold)" stroke-width="1.6" stroke-linejoin="round" opacity="0.92">
-        <polygon points="78,236 242,236 210,260 110,260"/>
-        <polygon points="110,214 242,214 242,236 78,236"/>
-        <polygon points="78,236 160,76 182,90 110,226"/>
-        <polygon points="110,226 182,90 204,104 132,240"/>
-        <polygon points="160,76 242,236 220,236 138,90"/>
-      </g>
-      <text x="160" y="251" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="11.5" letter-spacing="4" fill="#f4ecd0">UMOJA</text>
-      <text transform="translate(116,158) rotate(-62.9)" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="11" letter-spacing="4" fill="#f4ecd0">IMARA</text>
-      <text transform="translate(204,158) rotate(62.9)" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="11" letter-spacing="4" fill="#f4ecd0">AKILI</text>
-      <text x="160" y="300" text-anchor="middle" font-family="Cormorant Garamond,serif" font-size="9" letter-spacing="3" fill="#9c7c34" opacity="0.6">KM</text>
-    </svg></div>
+    <div class="apex-jewel"><video class="apex-badge" width="96" height="96" style="object-fit:contain" autoplay loop muted playsinline poster="assets/triangle-cercle-badge-poster.jpg" aria-hidden="true">
+      <source src="assets/triangle-cercle-badge.mp4" type="video/mp4">
+    </video></div>
     <div class="pyr-cap" style="margin-top:2px;color:var(--gold)">${tr('py_seal_cap')}</div>
     <div class="pyr">${tiers}</div>
     <div style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn btn-gold btn-sm" onclick="go('reputation')">${icon('doc')}${tr('rp_open')}</button>${BACKEND==='supabase'?'':`<button class="btn btn-ghost btn-sm" onclick="simulateUp()">${tr('py_sim')}</button>`}</div>
@@ -8201,13 +8286,18 @@ function viewAuth(){
     <p class="lead">${tr('au_lead')}</p>
     <div class="panel"><div style="padding:20px 22px">
       <div class="field" style="margin-top:0"><label>${tr('au_email')}</label>
-        <input type="text" id="au-email" placeholder="${tr('au_email_ph')}"></div>
-      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="authEmail()">${tr('au_get_link')}</button></div>
+        <input type="text" id="au-email" placeholder="${tr('au_email_ph')}" oninput="authCheckDemo()"></div>
+      <div id="au-sendcode-wrap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="authEmail()">${tr('au_get_link')}</button></div>
       <div id="au-eotp" style="display:none;margin-top:12px">
         <div class="hint">${tr('au_email_code_hint')}</div>
         <div class="hint" style="margin-top:8px">${tr('au_spam_hint')}</div>
         <input type="text" id="au-etoken" placeholder="123456" inputmode="numeric" autocomplete="one-time-code">
         <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authVerifyEmail()">${tr('au_validate')}</button></div>
+      </div>
+      <div id="au-demopw" style="display:none;margin-top:12px">
+        <label>Mot de passe</label>
+        <input type="password" id="au-password" placeholder="Mot de passe" autocomplete="current-password">
+        <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authDemoLogin()">Se connecter</button></div>
       </div>
       <div class="field"><label>${tr('au_or_phone')}</label>
         <input type="text" id="au-phone" placeholder="${tr('au_phone_ph')}"></div>
@@ -8218,7 +8308,22 @@ function viewAuth(){
       </div>
     </div></div>${footer()}`;
 }
-async function authEmail(){try{let _pj='';try{_pj=localStorage.getItem('ubora_join')||'';}catch(e){} const _base = IS_NATIVE ? 'https://tontine.caroletchatcho.com/' : (location.origin+location.pathname); const _redir=_base+(_pj?('?join='+encodeURIComponent(_pj)):''); const{error}=await sb.auth.signInWithOtp({email:($('#au-email').value||'').trim(),options:{emailRedirectTo:_redir}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
+function authCheckDemo(){
+  const isDemo=(($('#au-email').value||'').trim().toLowerCase()===DEMO_EMAIL);
+  const pw=$('#au-demopw'); if(pw)pw.style.display=isDemo?'block':'none';
+  const sc=$('#au-sendcode-wrap'); if(sc)sc.style.display=isDemo?'none':'';
+}
+async function authDemoLogin(){
+  try{
+    const email=($('#au-email').value||'').trim().toLowerCase();
+    const password=($('#au-password').value||'');
+    const{data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';
+    await postLoginRoute();
+  }catch(e){alert(e.message);}
+}
+async function authEmail(){try{const _em=($('#au-email').value||'').trim();if(_em.toLowerCase()===DEMO_EMAIL)return;let _pj='';try{_pj=localStorage.getItem('ubora_join')||'';}catch(e){} const _base = IS_NATIVE ? 'https://tontine.caroletchatcho.com/' : (location.origin+location.pathname); const _redir=_base+(_pj?('?join='+encodeURIComponent(_pj)):''); const{error}=await sb.auth.signInWithOtp({email:_em,options:{emailRedirectTo:_redir}});if(error)throw error;const _d=$('#au-eotp');if(_d)_d.style.display='block';alert(tr('al_au_sent'));}catch(e){alert(e.message);}}
 async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:($('#au-phone').value||'').trim()});if(error)throw error;$('#au-otp').style.display='block';}catch(e){alert(e.message);}}
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
@@ -8454,7 +8559,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.94';
+const UBORA_BUILD='v8.95';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -8656,6 +8761,7 @@ function ensureAdminBar(){
     bar.innerHTML=`<span style="color:#C9A84C;letter-spacing:1px">ADMIN · voir comme :</span> `
       +`<select onchange="adminSetView(this.value)" style="background:#0f1330;color:#EDE1C6;border:1px solid #C9A84C;border-radius:6px;padding:2px 4px;font:12px Georgia,serif">${opts}</select> `
       +`<button onclick="go('cenacleadmin')" style="background:#C9A84C;color:#161B3D;border:none;border-radius:6px;padding:3px 8px;font:12px Georgia,serif;cursor:pointer;margin-left:4px">Demandes Cénacle</button>`
+      +`<button onclick="go('memberreports')" style="background:#C9A84C;color:#161B3D;border:none;border-radius:6px;padding:3px 8px;font:12px Georgia,serif;cursor:pointer;margin-left:4px">Signalements</button>`
       +`<button onclick="adminToggleMin()" title="Réduire" style="background:none;border:none;color:#C9A84C;cursor:pointer;margin-left:6px;font-size:15px;line-height:1">–</button>`;
   }catch(e){}
 }
@@ -8701,6 +8807,51 @@ function ciRow(r){
 }
 async function cenacleSetStatut(id,st){
   try{ const{error}=await sb.from('cenacle_interet').update({statut:st}).eq('id',id); if(error)throw error; cenacleLoadInterets(); }
+  catch(e){ alert('Action impossible : '+(e.message||e)); }
+}
+
+/* ===== Admin — signalements entre membres (lecture seule, aucun effet automatique) ===== */
+function viewMemberReportsAdmin(){
+  if(typeof isUboraAdmin!=='function' || !isUboraAdmin()){ go('home'); return; }
+  app().innerHTML=`
+    <button class="backlink" onclick="go('home')">‹ Accueil</button>
+    <div class="eyebrow">ADMIN · MODÉRATION</div>
+    <h1 class="page-title">Signalements entre membres</h1>
+    <p class="lead">Signalements déposés depuis la liste des membres d'une tontine. Aucun effet automatique sur les comptes, tontines ou registres — à vous de traiter au cas par cas.</p>
+    <div class="panel"><div style="padding:14px 20px"><div id="mr-list" class="hint">Chargement…</div></div></div>${footer()}`;
+  memberReportsLoad();
+}
+async function memberReportsLoad(){
+  var el=document.getElementById('mr-list'); if(!el)return;
+  try{
+    const{data,error}=await sb.from('member_reports').select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    if(!data||!data.length){ el.innerHTML='<div class="hint">Aucun signalement pour le moment.</div>'; return; }
+    const ids=[]; data.forEach(function(r){ if(ids.indexOf(r.reporter_uid)<0)ids.push(r.reporter_uid); if(ids.indexOf(r.reported_uid)<0)ids.push(r.reported_uid); });
+    var names={};
+    if(ids.length){ const{data:pr}=await sb.from('profiles').select('id,nom').in('id',ids); (pr||[]).forEach(function(p){ names[p.id]=p.nom||'—'; }); }
+    el.innerHTML=data.map(function(r){ return mrRow(r,names); }).join('');
+  }catch(e){ el.innerHTML='<div class="hint">Erreur de chargement : '+esc(e.message||String(e))+'</div>'; }
+}
+function mrRow(r,names){
+  var st=r.statut||'nouveau';
+  var badge = st==='traite' ? '<span style="color:#2e7d4f;font-weight:600">✓ Traité</span>'
+            : st==='ignore' ? '<span style="color:#8a6d3b;font-weight:600">— Ignoré</span>'
+            : '<span style="color:#a23;font-weight:600">• Nouveau</span>';
+  var d=r.created_at?new Date(r.created_at).toLocaleString('fr-CH'):'';
+  var actions = (st==='nouveau')
+    ? `<button class="btn btn-gold btn-sm" onclick="memberReportSetStatut('${r.id}','traite')">Marquer traité</button> <button class="btn btn-ghost btn-sm" onclick="memberReportSetStatut('${r.id}','ignore')">Ignorer</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="memberReportSetStatut('${r.id}','nouveau')">Rouvrir</button>`;
+  return `<div style="border-bottom:1px solid rgba(0,0,0,.08);padding:12px 0">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div><b>${esc(names[r.reporter_uid]||r.reporter_uid)}</b> → <b>${esc(names[r.reported_uid]||r.reported_uid)}</b><div style="font-size:12.5px;color:#6b5a34">${esc(r.motif||'—')} · ${esc(d)}</div></div>
+      <div>${badge}</div>
+    </div>
+    <div style="margin-top:8px">${actions}</div>
+  </div>`;
+}
+async function memberReportSetStatut(id,st){
+  try{ const{error}=await sb.from('member_reports').update({statut:st}).eq('id',id); if(error)throw error; memberReportsLoad(); }
   catch(e){ alert('Action impossible : '+(e.message||e)); }
 }
 
@@ -9288,6 +9439,19 @@ boot();
 
   send.addEventListener('click', sendMsg);
   input.addEventListener('keydown', function(e){ if(e.key==='Enter') sendMsg(); });
+})();
+</script>
+
+<script>
+(function(){
+  var ov=document.getElementById('ubora-intro'); if(!ov) return;
+  var native=(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())||location.protocol==='capacitor:'||location.protocol==='ionic:';
+  function hideSplash(){ try{ if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SplashScreen) Capacitor.Plugins.SplashScreen.hide(); }catch(e){} }
+  if(!native){ if(ov.parentNode) ov.parentNode.removeChild(ov); return; }  // WEB : pas d'intro
+  hideSplash();                        // masque le splash natif une fois l'overlay peint
+  function dismiss(){ if(!ov) return; ov.classList.add('gone'); var o=ov; ov=null; setTimeout(function(){ if(o&&o.parentNode) o.parentNode.removeChild(o); },650); }
+  ov.addEventListener('click',dismiss);   // sautable au toucher
+  setTimeout(dismiss,3300);                // ~3 s puis fondu sur l'app
 })();
 </script>
 
