@@ -158,6 +158,7 @@ html,body{margin:0;background:#EBDCC4}
 .ob-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:#2A2018;line-height:1.2}
 .ob-d{color:var(--mid);font-size:13.5px;line-height:1.55;margin-top:7px}
 .ob-note{text-align:center;color:var(--mid);font-size:13px;margin-top:14px}
+.acc-attest{border-left:3px solid rgba(201,168,76,.5)}
   .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .stack{display:flex;flex-direction:column;min-width:0}
@@ -3805,18 +3806,15 @@ function updateIntroCountdowns(){
 try{setInterval(updateIntroCountdowns,1000);}catch(e){}
 function repStatsBand(){
   const s=state.repStats;if(!s)return '';
-  const isVisitor=!state.uid;
   const isAdmin=(typeof isUboraAdmin==='function')?isUboraAdmin():false;
   const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
-  /* Chiffres RÉELS uniquement. Sous le seuil : message qualitatif (visiteurs) ou rien (membres). Au seuil : vrais chiffres pour tout le monde. */
-  const publicBand = (people<REP_SEUIL_PLANCHER) ? repBandQual() : repBandBig(people,groups,visits);
+  const reached = people>=REP_SEUIL_PLANCHER;
+  /* RÈGLE : le public ne voit RIEN tant que le seuil réel n'est pas atteint (des chiffres faibles chassent du monde). Seul l'admin voit, pour monitorer. */
   if(isAdmin){
-    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin \u00b7 d\u00e9compte r\u00e9el','Admin \u00b7 real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} \u00b7 <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} \u00b7 <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')} \u00b7 ${_FL('seuil public','public threshold')} ${repFmtNum(REP_SEUIL_PLANCHER)}</div>`;
-    const prev=`<div style="font-size:12px;opacity:.65;margin:10px 0 -6px">${_FL('Aper\u00e7u public (ce que voient les visiteurs aujourd\u2019hui) :','Public preview (what visitors see today):')}</div>`;
-    return line+prev+publicBand;
+    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin · décompte réel','Admin · real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} · <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} · <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')} · ${_FL('seuil','threshold')} ${repFmtNum(REP_SEUIL_PLANCHER)} — ${reached?_FL('ATTEINT · visible par tous','REACHED · visible to all'):_FL('non atteint · invisible au public','not reached · hidden from public')}</div>`;
+    return line + (reached ? repBandBig(people,groups,visits) : '');
   }
-  if(isVisitor) return publicBand;
-  return (people>=REP_SEUIL_PLANCHER) ? repBandBig(people,groups,visits) : '';
+  return reached ? repBandBig(people,groups,visits) : '';
 }
 /* ============================================================================
    PAS 2a — Accès des membres : générer les codes (créateur) + rejoindre (membre)
@@ -8287,11 +8285,45 @@ function viewAccueil(){
     : uboraIntroCountdownHTML('14px');
 
   // --- Au-delà de la tontine : la méthode UBORA (couleurs UBORA, l'entonnoir vers Invest) ---
-  const invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
-    <div class="acc-invest-k">${_FL('LA MÉTHODE UBORA','THE UBORA METHOD')}</div>
-    <div class="acc-invest-t">${_FL('Faire grandir votre épargne','Grow your savings')}</div>
-    <div class="acc-invest-d">${_FL('Au-delà de la tontine, la méthode d’investissement UBORA — pas à pas, à votre rythme.','Beyond the tontine, the UBORA investment method — step by step, at your pace.')} →</div>
+  // --- Attestation en vedette ---
+  var _ast=null; try{_ast=aggregateStats(state.user);}catch(e){}
+  var _hasHist=!!(_ast&&_ast.cyclesDone>0);
+  const attest=`<div class="panel acc-attest" style="margin-top:14px;padding:18px 24px">
+    <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:${gold}">${_FL('Votre attestation','Your attestation')}</div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-top:8px">
+      <div style="max-width:470px">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:600;color:#2A2018">${_FL('Votre attestation de régularité','Your regularity attestation')}</div>
+        <div style="margin-top:8px;color:#5E4A2C;font-size:13.5px;line-height:1.55">${_hasHist?_FL('Une preuve vérifiable par un tiers (banque, bailleur) de votre régularité d’épargne.','A third-party-verifiable proof (bank, landlord) of your saving regularity.'):_FL('À chaque versement confirmé, votre attestation gagne en force — une preuve de sérieux opposable à une banque ou un bailleur.','With each confirmed payment, your attestation grows stronger — proof of seriousness you can present to a bank or landlord.')}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="repOpenAttestation()">${_hasHist?_FL('Voir / Partager','View / Share'):_FL('Voir comment','See how')} →</button>
+    </div>
   </div>`;
+
+  // --- Simulateur "gain" : somme des cotisations (devise dominante) projetée 20 ans à ~9%/an (illustratif) ---
+  var _FREQF={mensuelle:1,quinzaine:2.1667,hebdo:4.3333};
+  var _byCur={}, _cnt={};
+  (T||[]).forEach(function(t){ if(!t||!t.amount||!t.currency)return; var f=_FREQF[t.frequency]||1; _byCur[t.currency]=(_byCur[t.currency]||0)+t.amount*f; _cnt[t.currency]=(_cnt[t.currency]||0)+1; });
+  /* devise dominante = la plus UTILISÉE (nb de tontines), départage par somme — jamais comparer des montants bruts entre devises */
+  var _cur=null,_bc=-1,_bs=-1; Object.keys(_byCur).forEach(function(k){ var c=_cnt[k]||0; if(c>_bc||(c===_bc&&_byCur[k]>_bs)){_bc=c;_bs=_byCur[k];_cur=k;} });
+  var _M=_cur?_byCur[_cur]:0;
+  var invest;
+  if(_M>0){
+    var _r=0.09/12,_n=240,_fv=_M*((Math.pow(1+_r,_n)-1)/_r);
+    var _mF=repFmtNum(Math.round(_M)), _fvF=repFmtNum(Math.round(_fv));
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
+      <div class="acc-invest-k">${_FL('ET SI VOUS INVESTISSIEZ VOS COTISATIONS ?','WHAT IF YOU INVESTED YOUR CONTRIBUTIONS?')}</div>
+      <div class="acc-invest-t">≈ ${_fvF} ${esc(_cur)}</div>
+      <div class="acc-invest-d">${_FL('Vous mettez de côté ~'+_mF+' '+esc(_cur)+'/mois dans vos cercles. Placés 20 ans à ~9 %/an, cela pourrait devenir le montant ci-dessus.','You set aside ~'+_mF+' '+esc(_cur)+'/month in your circles. Invested for 20 years at ~9%/yr, it could grow to the amount above.')}</div>
+      <div style="margin-top:10px"><span style="color:#C9A84C;font-weight:600;font-size:13px">${_FL('Simuler en détail','Run the full simulation')} →</span></div>
+      <div style="margin-top:12px;font-size:10.5px;line-height:1.45;color:#9FA2C4">${_FL('Illustration éducative · hypothèse 9 %/an (moyenne historique du MSCI World) · les performances passées ne préjugent pas des performances futures · ceci n’est pas un conseil en investissement.','Educational illustration · 9%/yr assumption (MSCI World historical average) · past performance does not guarantee future results · this is not investment advice.')}</div>
+    </div>`;
+  } else {
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
+      <div class="acc-invest-k">${_FL('LA MÉTHODE UBORA','THE UBORA METHOD')}</div>
+      <div class="acc-invest-t">${_FL('Faire grandir votre épargne','Grow your savings')}</div>
+      <div class="acc-invest-d">${_FL('Au-delà de la tontine, la méthode d’investissement UBORA — pas à pas, à votre rythme.','Beyond the tontine, the UBORA investment method — step by step, at your pace.')} →</div>
+    </div>`;
+  }
 
   const faqlink=`<div class="lead" style="text-align:center;margin-top:18px"><a href="#" onclick="go('faq');return false" style="color:${gold};text-decoration:underline">${_FL('Comment ça marche ?','How it works?')}</a></div>`;
 
@@ -8302,6 +8334,7 @@ function viewAccueil(){
     ${repStatsBand()}
     ${cercles}
     ${parcours}
+    ${attest}
     ${videoCard}
     ${invest}
     ${faqlink}
@@ -8319,7 +8352,7 @@ function viewLanding(){
   const cards=
      card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
     +card(_FL('La mémoire fiable de votre groupe','Your group’s reliable memory'),_FL('Qui a versé, qui a confirmé, qui reçoit, et quand — proprement, au même endroit. La mémoire ne meurt plus avec le mandat d’un bureau.','Who paid, who confirmed, who receives, and when — cleanly, in one place. The memory no longer dies with a committee’s term.'))
-    +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Votre régularité d’épargne, prouvée et vérifiable par un tiers. Une preuve de sérieux qui grandit avec votre discipline.','Your saving regularity, proven and verifiable by a third party. Proof of seriousness that grows with your discipline.'));
+    +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Prouvez à votre banque ou votre bailleur que vous épargnez régulièrement — une référence vérifiable en ligne, qui gagne en force avec votre discipline.','Prove to your bank or landlord that you save regularly — a reference verifiable online, growing stronger with your discipline.'));
   const _introLive = (Date.now() >= Date.UTC(2026,9,5,4,0,0)) || (typeof isUboraAdmin==='function' && isUboraAdmin()); /* public: lundi 5 oct. 2026 06:00 Europe/Zurich ; admin: tout de suite */
   const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
   const video = _introLive
@@ -8733,7 +8766,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.04';
+const UBORA_BUILD='v9.05';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
