@@ -8466,7 +8466,7 @@ function viewAccueil(){
   if(_M>0){
     var _r=0.09/12,_n=240,_fv=_M*((Math.pow(1+_r,_n)-1)/_r);
     var _mF=repFmtNum(Math.round(_M)), _fvF=repFmtNum(Math.round(_fv));
-    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')">
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/simulateur?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/simulateur?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')">
       <div class="acc-invest-k">${_FL('ET SI VOUS INVESTISSIEZ VOS COTISATIONS ?','WHAT IF YOU INVESTED YOUR CONTRIBUTIONS?')}</div>
       <div class="acc-invest-t">≈ ${_fvF} ${esc(_cur)}</div>
       <div class="acc-invest-d">${_FL('Vous mettez de côté ~'+_mF+' '+esc(_cur)+'/mois dans vos cercles. Placés 20 ans à ~9 %/an, cela pourrait devenir le montant ci-dessus.','You set aside ~'+_mF+' '+esc(_cur)+'/month in your circles. Invested for 20 years at ~9%/yr, it could grow to the amount above.')}</div>
@@ -8922,7 +8922,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.09';
+const UBORA_BUILD='v9.10';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
