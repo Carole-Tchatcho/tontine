@@ -75,9 +75,9 @@ html,body{margin:0;background:#EBDCC4}
      gauche, il paraissait de travers. On centre les deux lignes l'une sur l'autre. */
   .brand{display:flex;flex-direction:column;line-height:1.1;align-items:center;text-align:center}
   .brand .b1{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.02em;color:#3A2A16}
-  .brand-tri{flex:0 0 auto;animation:triGlow 6s ease-in-out infinite}
-  @keyframes triGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(201,168,76,0))}50%{filter:drop-shadow(0 0 5px rgba(201,168,76,.6))}}
-  @media (prefers-reduced-motion:reduce){.brand-tri{animation:none}}
+  .brand-tri{flex:0 0 auto;animation:triGlow 4.5s ease-in-out infinite}
+  @keyframes triGlow{0%,100%{filter:drop-shadow(0 0 1px rgba(201,168,76,.3));opacity:.82}50%{filter:drop-shadow(0 0 11px rgba(201,168,76,.92));opacity:1}}
+  @media (prefers-reduced-motion:reduce){.brand-tri{animation:none;opacity:1}}
   .tri-w{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;fill:#5E3F18}
   .brand .b2{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#5E3F18;font-weight:700}
   .langsw{order:2}.zoomsw{order:2}.hnav{order:1;flex:1 1 auto;margin:0 14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -140,6 +140,14 @@ html,body{margin:0;background:#EBDCC4}
 .acc-invest-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:600;color:#F5E6C0;margin-top:6px;line-height:1.12}
 .acc-invest-d{color:#C7C3E0;font-size:14px;line-height:1.55;margin-top:8px}
 @media (prefers-reduced-motion:reduce){.acc-chip,.acc-invest{transition:none}.acc-invest:hover{transform:none}}
+/* iOS : empêcher le zoom auto au focus d'un champ (>=16px sur tactile) ; le zoom manuel A-/A+ reste */
+@media (hover:none),(pointer:coarse){input,select,textarea{font-size:16px!important}}
+.intro-cd-lead{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.intro-cd-grid{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-top:12px}
+.intro-cd-cell{display:flex;flex-direction:column;align-items:center;min-width:50px}
+.intro-cd .cd-n{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:600;color:#9A7230;line-height:1}
+.intro-cd .cd-l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.intro-cd-sep{font-family:'Cormorant Garamond',serif;font-size:26px;color:rgba(154,114,48,.45);align-self:center;padding-bottom:14px}
   .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .stack{display:flex;flex-direction:column;min-width:0}
@@ -2972,6 +2980,7 @@ function render(){
   const fresh = screen!==_lastScreen; _lastScreen=screen;
   if(a){a.classList.remove('fresh'); if(fresh){void a.offsetWidth; a.classList.add('fresh');}}
   animateCounts(fresh);
+  try{updateIntroCountdowns();}catch(e){}
   const lvl=(typeof userLevel==='function')?userLevel(state.user):myLevel();
   if(_lastLevel!=null && lvl>_lastLevel && !document.querySelector('#celo')) celebrate(lvl);
   _lastLevel=lvl;
@@ -3760,6 +3769,30 @@ function repBandBig(people,groups,visits){
 function repBandQual(){
   return `<div style="margin:16px 0;padding:14px 22px;border:1px solid rgba(201,168,76,.30);border-left:3px solid #C9A84C;border-radius:12px;background:linear-gradient(180deg,rgba(201,168,76,.05),rgba(255,255,255,0));font-size:15px;color:#5a4e34"><span style="color:#C9A84C;font-weight:700;margin-right:8px">\u2726</span>${_FL('Rejoignez les <b style="color:#9c7c2a">premi\u00e8res</b> associations de la diaspora qui font confiance \u00e0 UBORA.','Join the <b style="color:#9c7c2a">first</b> diaspora associations that trust UBORA.')}</div>`;
 }
+var INTRO_TS=Date.UTC(2026,9,5,4,0,0); /* lundi 5 oct. 2026 06:00 Europe/Zurich (CEST=UTC+2) */
+function uboraIntroCountdownHTML(mt){
+  return `<div class="panel intro-cd" style="margin-top:${mt||'14px'};padding:22px 24px;text-align:center">
+    <div class="intro-cd-lead">${_FL('La présentation vidéo arrive','The intro video is coming')}</div>
+    <div class="intro-cd-grid">
+      <div class="intro-cd-cell"><span class="cd-n" data-cd="d">--</span><span class="cd-l">${_FL('jours','days')}</span></div>
+      <div class="intro-cd-sep">:</div>
+      <div class="intro-cd-cell"><span class="cd-n" data-cd="h">--</span><span class="cd-l">${_FL('heures','hours')}</span></div>
+      <div class="intro-cd-sep">:</div>
+      <div class="intro-cd-cell"><span class="cd-n" data-cd="m">--</span><span class="cd-l">min</span></div>
+      <div class="intro-cd-sep">:</div>
+      <div class="intro-cd-cell"><span class="cd-n" data-cd="s">--</span><span class="cd-l">sec</span></div>
+    </div>
+  </div>`;
+}
+function updateIntroCountdowns(){
+  var els=document.querySelectorAll('.intro-cd'); if(!els.length)return;
+  var ms=INTRO_TS-Date.now();
+  if(ms<=0){ if(typeof render==='function'){try{render();}catch(e){}} return; }
+  var s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), se=s%60;
+  var pad=function(n){return (n<10?'0':'')+n;}, map={d:String(d),h:pad(h),m:pad(m),s:pad(se)};
+  els.forEach(function(el){['d','h','m','s'].forEach(function(k){var sp=el.querySelector('[data-cd="'+k+'"]');if(sp)sp.textContent=map[k];});});
+}
+try{setInterval(updateIntroCountdowns,1000);}catch(e){}
 function repStatsBand(){
   const s=state.repStats;if(!s)return '';
   const isVisitor=!state.uid;
@@ -4417,7 +4450,6 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
     <p class="lead">${tr('h_lead')}</p>
     <div class="reassure">● ${tr('h_reassure')}</div>
     <div>${trustSeal()}</div>
-    ${repStatsBand()}
     ${(()=>{
       /* Un visiteur n'a pas de niveau, pas de cercle, et rien à calculer.
          Lui annoncer « VOTRE NIVEAU · Découverte · calculé sur l'ensemble de
@@ -8170,6 +8202,7 @@ function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!st
 
 function viewAccueil(){
   const gold='#C9A84C';
+  if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){try{repLoadStats();}catch(e){}}
   const first=((state.user||'').trim().split(' ')[0])||'';
   const T=(typeof state_tontines!=='undefined'&&state_tontines)?state_tontines:[];
   const R=(typeof state_reunions!=='undefined'&&state_reunions)?state_reunions:[];
@@ -8214,13 +8247,14 @@ function viewAccueil(){
   }
 
   // --- Mon parcours (enrichi) ---
+  const badgeColor = lv.dark ? (lv.color||'#C9A84C') : '#6E4E26';
   const parcours=`<div class="panel acc-parcours" style="margin-top:14px;padding:18px 24px">
     <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:${gold}">${_FL('Mon parcours','My path')}</div>
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-top:10px">
       <div style="max-width:470px">
-        <span class="level-badge" style="background:${lv.bg};color:${lv.color||'#C8B187'};font-size:14px;padding:7px 16px">◆ ${esc(lv.name)}</span>
-        ${lv.unlock?`<div class="msub" style="margin-top:10px">${esc(lv.unlock)}</div>`:''}
-        ${nextLv?`<div style="margin-top:8px;font-size:12.5px;color:${gold}">${_FL('Prochaine étape','Next step')} : <b>${esc(nextLv)}</b></div>`:''}
+        <span class="level-badge" style="background:${lv.bg};color:${badgeColor};border:1px solid rgba(154,114,48,.35);font-size:14px;padding:7px 16px">◆ ${esc(lv.name)}</span>
+        ${lv.unlock?`<div style="margin-top:10px;color:#5E4A2C;font-size:13.5px;line-height:1.55">${esc(lv.unlock)}</div>`:''}
+        ${nextLv?`<div style="margin-top:8px;font-size:12.5px;color:#9A7230">${_FL('Prochaine étape','Next step')} : <b>${esc(nextLv)}</b></div>`:''}
       </div>
       <button class="btn btn-ghost btn-sm" onclick="go('pyramide')">${_FL('Voir le parcours','See the path')} →</button>
     </div>
@@ -8237,10 +8271,11 @@ function viewAccueil(){
             <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:${gold}">${_FL('Découvrir UBORA','Discover UBORA')}</div>
             <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;font-weight:600;color:#2A2018;margin-top:8px;line-height:1.15">${_FL('La mémoire fiable de votre groupe','Your group’s reliable memory')}</div>
             <div class="msub" style="margin-top:10px">${_FL('En 1 min 25 : comment UBORA tient le registre de votre tontine — et pourquoi l’argent ne passe jamais par nous.','In 1 min 25: how UBORA keeps your tontine’s ledger — and why the money never passes through us.')}</div>
+            <div style="margin-top:12px"><a href="https://www.youtube.com/channel/UCQzjNRyF6uysWBZosER4zag" target="_blank" rel="noopener" style="color:${gold};font-weight:600;text-decoration:none;font-size:13px">${_FL('Toutes nos vidéos sur YouTube','All our videos on YouTube')} →</a></div>
           </div>
         </div>
       </div>`
-    : '';
+    : uboraIntroCountdownHTML('14px');
 
   // --- Au-delà de la tontine : la méthode UBORA (couleurs UBORA, l'entonnoir vers Invest) ---
   const invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
@@ -8255,6 +8290,7 @@ function viewAccueil(){
     <div class="kicker">${_FL('VOTRE ESPACE','YOUR SPACE')}</div>
     <h1 class="page-title">${hello}</h1>
     <p class="lead">${circlesLine}</p>
+    ${repStatsBand()}
     ${cercles}
     ${parcours}
     ${videoCard}
@@ -8278,8 +8314,8 @@ function viewLanding(){
   const _introLive = (Date.now() >= Date.UTC(2026,9,5,4,0,0)) || (typeof isUboraAdmin==='function' && isUboraAdmin()); /* public: lundi 5 oct. 2026 06:00 Europe/Zurich ; admin: tout de suite */
   const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
   const video = _introLive
-    ? `<div class="panel" style="margin-top:14px;padding:18px"><div style="max-width:340px;margin:0 auto"><video controls playsinline preload="metadata" poster="intro-ubora-poster.jpg" style="width:100%;height:auto;border-radius:14px;display:block;background:#201a12"><source src="${_introSrc}" type="video/mp4"></video></div><div style="text-align:center;margin-top:10px;font-size:12px;color:var(--faint)">${_FL('Présentation d’UBORA · 1 min 25','UBORA in brief · 1 min 25')}</div></div>`
-    : `<div class="panel" style="margin-top:14px"><div style="padding:26px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+    ? `<div class="panel" style="margin-top:14px;padding:18px"><div style="max-width:340px;margin:0 auto"><video controls playsinline preload="metadata" poster="intro-ubora-poster.jpg" style="width:100%;height:auto;border-radius:14px;display:block;background:#201a12"><source src="${_introSrc}" type="video/mp4"></video></div><div style="text-align:center;margin-top:10px;font-size:12px;color:var(--faint)">${_FL('Présentation d’UBORA · 1 min 25','UBORA in brief · 1 min 25')}</div><div style="text-align:center;margin-top:8px"><a href="https://www.youtube.com/channel/UCQzjNRyF6uysWBZosER4zag" target="_blank" rel="noopener" style="color:${gold};font-weight:600;text-decoration:none;font-size:13px">${_FL('Toutes nos vidéos sur YouTube','All our videos on YouTube')} →</a></div></div>`
+    : uboraIntroCountdownHTML('14px');
   const pricing=`<div class="lead" style="text-align:center;margin-top:16px">${_FL('Gratuit jusqu’à 12 membres.','Free up to 12 members.')} <a href="#" onclick="go('tarifs');return false" style="color:${gold};text-decoration:underline">${_FL('Voir les tarifs','See pricing')}</a></div>`;
   app().innerHTML=`
     <div class="kicker-hero">${_FL('LE REGISTRE DE CONFIANCE','THE TRUST LEDGER')}</div>
@@ -8359,7 +8395,7 @@ function viewFAQ(){
   const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
   const videoSlot = _introLive
     ? `<div class="panel" style="margin-top:6px;padding:18px"><div style="max-width:340px;margin:0 auto"><video controls playsinline preload="metadata" poster="intro-ubora-poster.jpg" style="width:100%;height:auto;border-radius:14px;display:block;background:#201a12"><source src="${_introSrc}" type="video/mp4"></video></div><div style="text-align:center;margin-top:10px;font-size:12px;color:var(--faint)">${_FL('Présentation d’UBORA · 1 min 25','UBORA in brief · 1 min 25')}</div></div>`
-    : `<div class="panel" style="margin-top:6px"><div style="padding:22px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+    : uboraIntroCountdownHTML('6px');
   const contact=`<div class="panel" style="margin-top:22px"><div style="padding:16px 18px;text-align:center"><div style="font-weight:700">${_FL('Une question restée sans réponse ?','Still have a question?')}</div><div class="msub" style="margin-top:4px">${_FL('Écrivez-nous à','Write to us at')} <a href="mailto:contact@caroletchatcho.com" style="color:var(--gold)">contact@caroletchatcho.com</a></div></div></div>`;
   app().innerHTML=back+`<div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">FAQ</h1><p class="lead">${_FL('Les questions que l’on nous pose le plus souvent.','The questions we are asked most often.')}</p>${videoSlot}${body}${contact}${footer()}`;
 }
@@ -8679,7 +8715,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.02';
+const UBORA_BUILD='v9.03';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
