@@ -2190,12 +2190,12 @@ const db={
     const{data,error}=await sb.from('tontines').delete().eq('id',id).select('id'); if(error)throw error;
     if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante ou contenu li\u00E9). Installer la commande SQL delete_tontine.'); },
   async loadCases(){ if(BACKEND!=='supabase')return;
-    const{data,error}=await sb.from('cases').select('id,data,palier,premium_until').order('created_at',{ascending:false}); if(error)throw error;
+    const{data,error}=await sb.from('cases').select('id,data,palier,premium_until,del_status,del_requested_by,del_confirmed_by,del_scheduled_at,del_requested_at').order('created_at',{ascending:false}); if(error)throw error;
     let shr=[],rsh=[];
     try{ const r=await sb.from('case_shares').select('case_id,tontine_id'); shr=r.data||[]; }catch(_e){}
     try{ const r=await sb.from('case_reunions').select('case_id,reunion_id'); rsh=r.data||[]; }catch(_e){}
     state_cases=(data||[]).map(r=>{ const c=r.data; if(!c)return null;
-      c.palier=r.palier||null; c.premium_until=r.premium_until||null;
+      c.palier=r.palier||null; c.premium_until=r.premium_until||null; c.del_status=r.del_status||null; c.del_requested_by=r.del_requested_by||null; c.del_confirmed_by=r.del_confirmed_by||null; c.del_scheduled_at=r.del_scheduled_at||null; c.del_requested_at=r.del_requested_at||null;
       c.shares=shr.filter(s=>s.case_id===r.id).map(s=>s.tontine_id);
       c.reunionShares=rsh.filter(s=>s.case_id===r.id).map(s=>s.reunion_id); if(isUboraAdmin()){ c.premium_until='2099-12-31T00:00:00.000Z'; c.palier='fagot'; } return c; }).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
@@ -3848,12 +3848,24 @@ function repAccessPanel(c){
       const email=repMemberEmail(c,m.member_ref);
       const memJs=esc(String(m.member_ref).replace(/'/g,"\\'"));
       const buBtn=`<button class="btn ${m.is_bureau?'btn-gold':'btn-ghost'} btn-sm" onclick="repSetBureau('${esc(m.id)}','${esc(c.id)}',${m.is_bureau?'false':'true'})">${m.is_bureau?_FL('Bureau ✓','Board ✓'):_FL('Bureau','Board')}</button>`;
+      let exBtns='';
+      if(m.excluded_at){
+        exBtns=`<span class="pill" style="background:#F4D9D0;color:#8A2E16">${_FL('exclu\u00b7e','excluded')}</span><button class="btn btn-ghost btn-sm" onclick="repReadmit('${esc(m.id)}','${esc(c.id)}')">${_FL('R\u00e9admettre','Re-admit')}</button>`;
+      } else if(m.excl_pending_by){
+        const _mine = state.uid && String(m.excl_pending_by)===String(state.uid);
+        exBtns=`<span class="pill p-soon">${_FL('exclusion en attente','exclusion pending')}</span>`
+          + (_mine?`<span class="msub">${_FL('un autre membre du bureau doit confirmer','another board member must confirm')}</span>`
+                  :`<button class="btn btn-gold btn-sm" onclick="repExcludeConfirm('${esc(m.id)}','${esc(c.id)}')">${_FL('Confirmer l\u2019exclusion','Confirm exclusion')}</button>`)
+          + `<button class="btn btn-ghost btn-sm" onclick="repExcludeCancel('${esc(m.id)}','${esc(c.id)}')">${_FL('Annuler','Cancel')}</button>`;
+      } else {
+        exBtns=`<button class="btn btn-ghost btn-sm" onclick="repExclude('${esc(m.id)}','${esc(c.id)}',${m.is_bureau?'true':'false'})">${_FL('Exclure','Exclude')}</button>`;
+      }
       let actions='';
       if(!ok){
         actions=`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}')">${_FL('Copier','Copy')}</button>`;
         if(email)actions+=` <button class="btn btn-ghost btn-sm" onclick="repEmailInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}','${esc(email)}')">${_FL('Email','Email')}</button>`;
       }
-      return `<div class="mrow"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${buBtn}${actions}</div></div>`;
+      return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`;
     }).join('');
     const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
     inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Nommez le bureau, et invitez par email (ou copiez le code pour SMS/WhatsApp).','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
@@ -3865,11 +3877,39 @@ async function repLoadAccess(id){
   state.caseAccess=state.caseAccess||{};state.caseAccess[id]={loading:true};render();
   try{
     await sb.rpc('case_seed_members',{p_case:id});
-    const res=await sb.from('case_members').select('id,member_ref,join_code,user_id,is_bureau').eq('case_id',id).order('member_ref');
+    const res=await sb.from('case_members').select('id,member_ref,join_code,user_id,is_bureau,excluded_at,excl_pending_by,excl_pending_at').eq('case_id',id).order('member_ref');
     if(res.error)throw res.error;
     state.caseAccess[id]={list:res.data||[]};
   }catch(e){state.caseAccess[id]={err:String((e&&e.message)||e)};}
   render();
+}
+async function repExclude(memberId,caseId,isBureau){
+  var msg = isBureau
+    ? _FL('Ce membre fait partie du bureau. L’exclure demande la confirmation d’un SECOND membre du bureau. Lancer la demande ?','This member is on the board. Excluding them requires a SECOND board member to confirm. Start the request?')
+    : _FL('Exclure ce membre ? Son accès est coupé immédiatement. Son historique reste conservé au registre.','Exclude this member? Their access is cut immediately. Their history stays in the registry.');
+  if(!confirm(msg))return;
+  try{ const r=await sb.rpc('case_member_exclude',{p_member:memberId}); if(r.error)throw r.error;
+    try{alert(r.data==='pending'?_FL('Demande enregistrée. En attente d’un second membre du bureau.','Request saved. Awaiting a second board member.'):_FL('Membre exclu. Accès coupé.','Member excluded. Access cut.'));}catch(_){}
+  }catch(e){ try{alert(_FL('Action refusée : ','Action refused: ')+(e.message||e));}catch(_){} }
+  await repLoadAccess(caseId);
+}
+async function repExcludeConfirm(memberId,caseId){
+  if(!confirm(_FL('Confirmer l’exclusion de ce membre du bureau ?','Confirm exclusion of this board member?')))return;
+  try{ const r=await sb.rpc('case_member_exclude_confirm',{p_member:memberId}); if(r.error)throw r.error;
+    try{alert(_FL('Membre exclu.','Member excluded.'));}catch(_){}
+  }catch(e){ try{alert(_FL('Action refusée : ','Action refused: ')+(e.message||e));}catch(_){} }
+  await repLoadAccess(caseId);
+}
+async function repExcludeCancel(memberId,caseId){
+  try{ const r=await sb.rpc('case_member_exclude_cancel',{p_member:memberId}); if(r.error)throw r.error; }
+  catch(e){ try{alert(_FL('Action refusée : ','Action refused: ')+(e.message||e));}catch(_){} }
+  await repLoadAccess(caseId);
+}
+async function repReadmit(memberId,caseId){
+  if(!confirm(_FL('Réadmettre ce membre ? Son accès sera rétabli.','Re-admit this member? Their access will be restored.')))return;
+  try{ const r=await sb.rpc('case_member_readmit',{p_member:memberId}); if(r.error)throw r.error; }
+  catch(e){ try{alert(_FL('Action refusée : ','Action refused: ')+(e.message||e));}catch(_){} }
+  await repLoadAccess(caseId);
 }
 async function repSetBureau(memberId,caseId,flag){
   try{const res=await sb.rpc('case_set_bureau',{p_member:memberId,p_flag:flag});if(res.error)throw res.error;}
@@ -6394,6 +6434,56 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
   if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
   go('case');}
 function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; caseDraft={editId:id,name:c.name||'',type:c.type||'pro',mission:c.mission||'',country:c.country||'',city:c.city||''}; go('casecreate'); }
+function caseDelBlock(c){
+  const mc=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
+  const iAmBureau=!!(mc&&mc.bureau);
+  const st=c.del_status||null;
+  const iRequested = c.del_requested_by && state.uid && String(c.del_requested_by)===String(state.uid);
+  var when='';
+  if(c.del_scheduled_at){ try{ when=new Date(c.del_scheduled_at).toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'}); }catch(_e){ when=String(c.del_scheduled_at).slice(0,10); } }
+  if(st==='pending'){
+    return `<div class="panel" style="margin:12px 0;border:1px solid #C9A24B66;background:#FBF4E4"><div style="padding:12px 16px">`
+      + `<div class="mname" style="color:#7A5C12">${_FL('⏳ Suppression demandée','⏳ Deletion requested')}</div>`
+      + `<div class="msub" style="margin-top:4px">${_FL('Un membre du bureau a demandé la suppression. Il faut la confirmation d’un <b>second</b> membre du bureau — jamais la même personne.','A board member requested deletion. A <b>second</b> board member must confirm — never the same person.')}</div>`
+      + (iAmBureau?(`<div class="row-gap" style="margin-top:10px">`
+          + (iRequested?`<span class="msub">${_FL('En attente d’un autre membre du bureau…','Awaiting another board member…')}</span>`
+                       :`<button class="btn btn-gold btn-sm" onclick="caseConfirmDel('${c.id}')">${_FL('Confirmer la suppression','Confirm deletion')}</button>`)
+          + `<button class="btn btn-ghost btn-sm" onclick="caseCancelDel('${c.id}')">${_FL('Annuler la demande','Cancel request')}</button></div>`):'')
+      + `</div></div>`;
+  }
+  if(st==='archived'){
+    return `<div class="panel" style="margin:12px 0;border:1px solid #B4452866;background:#FBECE6"><div style="padding:12px 16px">`
+      + `<div class="mname" style="color:#8A2E16">${_FL('🗄 Association archivée','🗄 Association archived')}</div>`
+      + `<div class="msub" style="margin-top:4px">${_FL('Suppression définitive prévue le <b>'+when+'</b>. Jusque-là, tout membre du bureau peut l’annuler et tout restaurer. Rien n’est perdu.','Permanent deletion scheduled for <b>'+when+'</b>. Until then, any board member can cancel and restore everything. Nothing is lost.')}</div>`
+      + (iAmBureau?`<div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="caseCancelDel('${c.id}')">${_FL('Annuler · Restaurer l’association','Cancel · Restore the association')}</button></div>`:'')
+      + `</div></div>`;
+  }
+  return `<div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ ${_FL('Modifier','Edit')}</button>`
+    + (iAmBureau?`<button class="btn btn-ghost btn-sm" onclick="caseReqDel('${c.id}')">🗑 ${_FL('Demander la suppression','Request deletion')}</button>`:'')
+    + `</div>`;
+}
+async function caseReqDel(id){
+  if(!confirm(_FL('Demander la suppression de cette association ?\n\nElle devra être confirmée par un SECOND membre du bureau, puis une période de grâce de 30 jours s’applique avant toute suppression définitive.','Request deletion of this association?\n\nA SECOND board member must confirm, then a 30-day grace period applies before any permanent deletion.')))return;
+  try{ const r=await sb.rpc('case_request_deletion',{p_case:id}); if(r.error)throw r.error;
+    await db.loadCases(); try{await repLoadMyCases();}catch(_e){}
+    alert(r.data==='archived'?_FL('Vous êtes le seul membre du bureau : l’association est archivée. Suppression dans 30 jours, annulable à tout moment.','You are the only board member: the association is archived. Deletion in 30 days, cancellable anytime.'):_FL('Demande enregistrée. En attente de confirmation par un second membre du bureau.','Request saved. Awaiting confirmation by a second board member.'));
+    render();
+  }catch(e){ alert(_FL('Action refusée : ','Action refused: ')+(e.message||e)); }
+}
+async function caseConfirmDel(id){
+  if(!confirm(_FL('Confirmer la suppression ?\n\nL’association sera archivée, puis définitivement supprimée dans 30 jours. Un membre du bureau pourra encore tout restaurer pendant ce délai.','Confirm deletion?\n\nThe association will be archived, then permanently deleted in 30 days. A board member can still restore everything during that period.')))return;
+  try{ const r=await sb.rpc('case_confirm_deletion',{p_case:id}); if(r.error)throw r.error;
+    await db.loadCases(); try{await repLoadMyCases();}catch(_e){}
+    alert(_FL('Confirmé. L’association est archivée avec 30 jours de grâce.','Confirmed. The association is archived with a 30-day grace period.')); render();
+  }catch(e){ alert(_FL('Action refusée : ','Action refused: ')+(e.message||e)); }
+}
+async function caseCancelDel(id){
+  if(!confirm(_FL('Annuler la procédure et restaurer l’association ?','Cancel the procedure and restore the association?')))return;
+  try{ const r=await sb.rpc('case_cancel_deletion',{p_case:id}); if(r.error)throw r.error;
+    await db.loadCases(); try{await repLoadMyCases();}catch(_e){}
+    alert(_FL('Procédure annulée. L’association est restaurée.','Procedure cancelled. The association is restored.')); render();
+  }catch(e){ alert(_FL('Action refusée : ','Action refused: ')+(e.message||e)); }
+}
 function delCase(id){ if(!confirm(_FL('Supprimer cette Case ? Cette action est définitive.','Delete this Case? This action is permanent.')))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); } }
 function openCaseMembers(id){ state.activeCase=id; go('casemembers'); }
 function viewCaseMembers(){
@@ -6585,6 +6675,7 @@ function viewCaseDetail(){
   const c=state_cases.find(x=>x.id===state.activeCase);
   if(!c){return viewCase();}
   c.members=c.members||[];
+  if(state.uid && typeof state.myCases==='undefined'){ try{ repLoadMyCases().then(function(){render();}); }catch(_e){} }
   const tools=[
     `<div class="mrow" onclick="openCaseMembers('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_dir')}</div><div class="msub">${(c.members||[]).length} membre(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseCotis('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_cot')}</div><div class="msub">${(c.cotis||[]).length} cotisation(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
@@ -6597,7 +6688,7 @@ function viewCaseDetail(){
     <h1 class="page-title" style="margin-top:2px">${esc(c.name)}</h1></div></div>
     <p class="lead">${esc(c.mission)}</p>
     <div class="t-meta">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div>
-    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delCase('${c.id}')">🗑 Supprimer</button></div>
+    ${caseDelBlock(c)}
     <div style="margin-top:6px">${trustSeal(tr('mc_seal'))}</div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
@@ -8831,7 +8922,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.07';
+const UBORA_BUILD='v9.09';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
