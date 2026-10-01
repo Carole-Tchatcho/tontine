@@ -2985,7 +2985,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -8203,11 +8203,74 @@ function viewCGVGate(){
     </div></div>
     <div class="panel" style="margin-top:14px"><div style="padding:14px 22px 18px">${cgvBascule()}${cgvTexte()}</div></div>`;
 }
+function viewSupport(){
+  if(typeof isUboraAdmin!=='function' || !isUboraAdmin()){ app().innerHTML=`<h1 class="page-title">Support</h1><div class="asnote">${_FL('Réservé à l\u2019opératrice.','Operator only.')}</div>${footer()}`; return; }
+  const sp=state.support||(state.support={email:'',result:null,loading:false,err:'',resendMsg:'',journal:null,journalLoaded:false,journalLoading:false});
+  if(!sp.journalLoaded && !sp.journalLoading){ supportLoadJournal(); }
+  let res='';
+  if(sp.loading){ res=`<div class="msub">${_FL('Recherche…','Searching…')}</div>`; }
+  else if(sp.err){ res=`<div style="color:#b23">${esc(sp.err)}</div>`; }
+  else if(sp.result){
+    const r=sp.result;
+    if(!r.found){ res=`<div class="panel"><div style="padding:16px 20px">${_FL('Aucun compte pour','No account for')} <b>${esc(sp.email)}</b>.</div></div>`; }
+    else{
+      const groups=((r.groups||[]).map(g=>`<div class="mrow"><div class="stack"><div class="mname">${esc(g.name||'—')}</div><div class="msub">${esc(g.type||'')} · ${esc(g.role||'')}</div></div></div>`).join(''))||`<div class="msub" style="padding:6px 0">${_FL('Aucun groupe.','No group.')}</div>`;
+      res=`<div class="panel"><div style="padding:16px 20px">
+        <div style="font-weight:700">${esc(r.email)}</div>
+        <div class="msub" style="margin-top:6px">${_FL('E-mail confirmé','Email confirmed')} : <b>${r.email_confirmed?_FL('oui','yes'):_FL('non','no')}</b> · ${_FL('Compte créé','Created')} : ${r.created_at?new Date(r.created_at).toLocaleDateString('fr-CH'):'—'} · ${_FL('Dernière connexion','Last sign-in')} : ${r.last_sign_in_at?new Date(r.last_sign_in_at).toLocaleString('fr-CH'):_FL('jamais','never')}</div>
+        <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="supportResend()">${_FL('Renvoyer un lien de connexion','Resend sign-in link')}</button> ${sp.resendMsg?`<span class="msub">${esc(sp.resendMsg)}</span>`:''}</div>
+        <h3 style="margin-top:16px;font-family:'Cormorant Garamond',serif;font-size:17px">${_FL('Groupes (noms seulement)','Groups (names only)')}</h3>
+        ${groups}
+        <div class="msub" style="margin-top:10px">${_FL('Aucune donnée financière n\u2019est accessible ici — conforme à la confidentialité des groupes.','No financial data is accessible here — in line with group confidentiality.')}</div>
+      </div></div>`;
+    }
+  }
+  let journal;
+  if(sp.journal&&sp.journal.length){
+    journal=sp.journal.map(a=>`<div class="mrow"><div class="stack"><div class="mname" style="font-size:14px">${esc(a.action||'')}${a.target?' · '+esc(a.target):''}</div><div class="msub">${a.created_at?new Date(a.created_at).toLocaleString('fr-CH'):''} · ${esc(a.admin_email||'')}</div></div></div>`).join('');
+  } else { journal=`<div class="msub" style="padding:6px 0">${_FL('Journal vide.','Empty log.')}</div>`; }
+  app().innerHTML=`
+    <div class="kicker">${_FL('OPÉRATRICE · SUPPORT','OPERATOR · SUPPORT')}</div>
+    <h1 class="page-title">${_FL('Console de support','Support console')}</h1>
+    <p class="lead">${_FL('Dépanner sans voir les données privées : statut d\u2019un compte, ses groupes (noms), renvoi d\u2019un lien. Chaque action est journalisée.','Help out without seeing private data: an account\u2019s status, its groups (names), link resend. Every action is logged.')}</p>
+    <div class="panel"><div style="padding:16px 20px">
+      <div class="field"><label>${_FL('E-mail de l\u2019utilisateur','User email')}</label>
+        <input id="sp-email" type="email" value="${esc(sp.email||'')}" placeholder="exemple@mail.com" style="font-size:16px;padding:8px 10px;border:1px solid rgba(201,168,76,.5);border-radius:8px;background:transparent;color:inherit;width:100%;max-width:360px"></div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="supportLookup()">${_FL('Rechercher','Search')}</button></div>
+    </div></div>
+    ${res}
+    <div class="row" style="justify-content:space-between;align-items:center;margin-top:24px">
+      <h2 class="section-h" style="margin:0">${_FL('Journal des actions','Action log')}</h2>
+      <button class="btn btn-ghost btn-sm" onclick="supportLoadJournal()">${_FL('Rafraîchir','Refresh')}</button>
+    </div>
+    <div class="panel"><div style="padding:6px 16px 10px">${journal}</div></div>
+    ${footer()}`;
+}
+async function supportLookup(){
+  const sp=state.support||(state.support={});
+  const el=document.getElementById('sp-email'); const em=el?(el.value||''):'';
+  sp.email=em.trim(); sp.result=null; sp.err=''; sp.resendMsg=''; sp.loading=true; render();
+  try{ const{data,error}=await sb.rpc('admin_user_lookup',{p_email:sp.email}); if(error)throw error; sp.result=data||{found:false}; }
+  catch(e){ sp.err=String((e&&e.message)||e); }
+  sp.loading=false; render();
+}
+async function supportResend(){
+  const sp=state.support||{}; if(!sp.email)return;
+  try{ await sb.auth.signInWithOtp({email:sp.email,options:{shouldCreateUser:false,emailRedirectTo:'https://tontine.caroletchatcho.com/'}}); try{await sb.rpc('admin_log',{p_action:'resend_link',p_target:sp.email});}catch(_){} sp.resendMsg=_FL('Lien envoyé.','Link sent.'); }
+  catch(e){ sp.resendMsg=_FL('Échec : ','Failed: ')+((e&&e.message)||e); }
+  render();
+}
+async function supportLoadJournal(){
+  const sp=state.support||(state.support={}); sp.journalLoading=true;
+  try{ const{data,error}=await sb.from('admin_audit').select('*').order('created_at',{ascending:false}).limit(50); if(error)throw error; sp.journal=data||[]; }
+  catch(e){ sp.journal=[]; }
+  sp.journalLoading=false; sp.journalLoaded=true; render();
+}
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
 function setTextZoom(m){ m=Math.max(1,Math.min(1.6,Math.round(m*100)/100)); try{document.documentElement.style.zoom=String(m);localStorage.setItem('ubora_zoom',String(m));}catch(e){} var el=document.getElementById('zoomPct'); if(el)el.textContent=Math.round(m*100)+'%'; }
 function bumpZoom(d){ var cur=1; try{cur=parseFloat(localStorage.getItem('ubora_zoom'))||1;}catch(e){} setTextZoom(cur+d); }
 function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.getFullYear() > new Date().getFullYear()+50) return _FL('acc\u00e8s permanent','permanent access'); return _FL('actif jusqu\u2019au','active until')+' '+d.toLocaleDateString((typeof state!=='undefined'&&state.lang==='en')?'en-GB':'fr-CH'); }
-function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a>`:''}</div>`;}
+function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a> · <a href="#" onclick="go('support');return false" style="color:#C9A84C;text-decoration:underline">Support</a>`:''}</div>`;}
 
 function viewAccueil(){
   const gold='#C9A84C';
@@ -8768,7 +8831,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.06';
+const UBORA_BUILD='v9.07';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
