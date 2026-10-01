@@ -8233,7 +8233,11 @@ function viewLanding(){
      card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
     +card(_FL('La mémoire fiable de votre groupe','Your group’s reliable memory'),_FL('Qui a versé, qui a confirmé, qui reçoit, et quand — proprement, au même endroit. La mémoire ne meurt plus avec le mandat d’un bureau.','Who paid, who confirmed, who receives, and when — cleanly, in one place. The memory no longer dies with a committee’s term.'))
     +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Votre régularité d’épargne, prouvée et vérifiable par un tiers. Une preuve de sérieux qui grandit avec votre discipline.','Your saving regularity, proven and verifiable by a third party. Proof of seriousness that grows with your discipline.'));
-  const video=`<div class="panel" style="margin-top:14px"><div style="padding:26px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+  const _introLive = Date.now() >= Date.UTC(2026,9,5,4,0,0); /* lundi 5 oct. 2026, 06:00 Europe/Zurich (CEST=UTC+2) */
+  const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
+  const video = _introLive
+    ? `<div class="panel" style="margin-top:14px;padding:18px"><div style="max-width:340px;margin:0 auto"><video controls playsinline preload="metadata" poster="intro-ubora-poster.jpg" style="width:100%;height:auto;border-radius:14px;display:block;background:#201a12"><source src="${_introSrc}" type="video/mp4"></video></div><div style="text-align:center;margin-top:10px;font-size:12px;color:var(--faint)">${_FL('Présentation d’UBORA · 1 min 25','UBORA in brief · 1 min 25')}</div></div>`
+    : `<div class="panel" style="margin-top:14px"><div style="padding:26px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
   const pricing=`<div class="lead" style="text-align:center;margin-top:16px">${_FL('Gratuit jusqu’à 12 membres.','Free up to 12 members.')} <a href="#" onclick="go('tarifs');return false" style="color:${gold};text-decoration:underline">${_FL('Voir les tarifs','See pricing')}</a></div>`;
   app().innerHTML=`
     <div class="kicker-hero">${_FL('LE REGISTRE DE CONFIANCE','THE TRUST LEDGER')}</div>
@@ -8309,7 +8313,11 @@ function viewFAQ(){
   const body=QA.map(function(x){return x.s
     ? `<h2 class="section-h" style="margin-top:24px">${x.s}</h2>`
     : `<div class="panel faq-item" style="margin-top:10px"><div style="padding:14px 18px"><div style="font-weight:700;margin-bottom:6px">${x.q}</div><div style="color:var(--mid);font-size:15px;line-height:1.6;margin:0;text-align:justify">${x.a}</div></div></div>`;}).join('');
-  const videoSlot=`<div class="panel" style="margin-top:6px"><div style="padding:22px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
+  const _introLive = Date.now() >= Date.UTC(2026,9,5,4,0,0); /* lundi 5 oct. 2026, 06:00 Europe/Zurich (CEST=UTC+2) */
+  const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
+  const videoSlot = _introLive
+    ? `<div class="panel" style="margin-top:6px;padding:18px"><div style="max-width:340px;margin:0 auto"><video controls playsinline preload="metadata" poster="intro-ubora-poster.jpg" style="width:100%;height:auto;border-radius:14px;display:block;background:#201a12"><source src="${_introSrc}" type="video/mp4"></video></div><div style="text-align:center;margin-top:10px;font-size:12px;color:var(--faint)">${_FL('Présentation d’UBORA · 1 min 25','UBORA in brief · 1 min 25')}</div></div>`
+    : `<div class="panel" style="margin-top:6px"><div style="padding:22px;text-align:center;color:var(--faint);font-size:13px">${_FL('Vidéo de présentation — bientôt ici','Intro video — coming here soon')}</div></div>`;
   const contact=`<div class="panel" style="margin-top:22px"><div style="padding:16px 18px;text-align:center"><div style="font-weight:700">${_FL('Une question restée sans réponse ?','Still have a question?')}</div><div class="msub" style="margin-top:4px">${_FL('Écrivez-nous à','Write to us at')} <a href="mailto:contact@caroletchatcho.com" style="color:var(--gold)">contact@caroletchatcho.com</a></div></div></div>`;
   app().innerHTML=back+`<div class="kicker">${_FL('REGISTRE DE CONFIANCE','TRUST LEDGER')}</div><h1 class="page-title">FAQ</h1><p class="lead">${_FL('Les questions que l’on nous pose le plus souvent.','The questions we are asked most often.')}</p>${videoSlot}${body}${contact}${footer()}`;
 }
@@ -8629,7 +8637,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v8.99';
+const UBORA_BUILD='v9.00';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
