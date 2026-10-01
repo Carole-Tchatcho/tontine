@@ -76,8 +76,10 @@ html,body{margin:0;background:#EBDCC4}
   .brand{display:flex;flex-direction:column;line-height:1.1;align-items:center;text-align:center}
   .brand .b1{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;letter-spacing:.02em;color:#3A2A16}
   .brand-tri{flex:0 0 auto;animation:triGlow 4.5s ease-in-out infinite}
-  @keyframes triGlow{0%,100%{filter:drop-shadow(0 0 1px rgba(201,168,76,.3));opacity:.82}50%{filter:drop-shadow(0 0 11px rgba(201,168,76,.92));opacity:1}}
-  @media (prefers-reduced-motion:reduce){.brand-tri{animation:none;opacity:1}}
+  @keyframes triGlow{0%,100%{filter:drop-shadow(0 0 1px rgba(201,168,76,.25))}50%{filter:drop-shadow(0 0 6px rgba(201,168,76,.7))}}
+  .brand-tri polygon{animation:triStroke 4.5s ease-in-out infinite}
+  @keyframes triStroke{0%,100%{stroke:#9A6A33}50%{stroke:#E6C877}}
+  @media (prefers-reduced-motion:reduce){.brand-tri,.brand-tri polygon{animation:none}}
   .tri-w{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:.1em;fill:#5E3F18}
   .brand .b2{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#5E3F18;font-weight:700}
   .langsw{order:2}.zoomsw{order:2}.hnav{order:1;flex:1 1 auto;margin:0 14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
@@ -148,6 +150,14 @@ html,body{margin:0;background:#EBDCC4}
 .intro-cd .cd-n{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:600;color:#9A7230;line-height:1}
 .intro-cd .cd-l{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
 .intro-cd-sep{font-family:'Cormorant Garamond',serif;font-size:26px;color:rgba(154,114,48,.45);align-self:center;padding-bottom:14px}
+.ob-wrap{margin:22px 0 6px}
+.ob-h{text-align:center;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.ob-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.ob-step{background:var(--card2,#FFFDF8);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.ob-num{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#161B3D,#23306E);color:#F5E6C0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.ob-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:#2A2018;line-height:1.2}
+.ob-d{color:var(--mid);font-size:13.5px;line-height:1.55;margin-top:7px}
+.ob-note{text-align:center;color:var(--mid);font-size:13px;margin-top:14px}
   .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .stack{display:flex;flex-direction:column;min-width:0}
@@ -771,7 +781,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
     <div class="brand" id="brandlink" onclick="brandGo()" role="link" tabindex="0"
          onkeydown="if(event.key==='Enter')brandGo()" title="UBORA — le registre de confiance"><span class="b1">UBORA</span><span class="b2">Le registre de confiance</span></div>
     <div class="hutil"><div class="langsw"><button id="lang-fr" onclick="setLang('fr')">FR</button><button id="lang-en" onclick="setLang('en')">EN</button></div><div class="zoomsw" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px"><button type="button" onclick="bumpZoom(-0.1)" title="${_FL('R\u00e9duire le texte','Smaller text')}" aria-label="${_FL('R\u00e9duire le texte','Smaller text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A−</button><button type="button" onclick="bumpZoom(0.1)" title="${_FL('Agrandir le texte','Larger text')}" aria-label="${_FL('Agrandir le texte','Larger text')}" style="background:none;border:1px solid #C9A84C;color:inherit;border-radius:6px;padding:1px 7px;cursor:pointer;font-weight:700;font-size:.8rem;line-height:1.35">A+</button></div>
-    <button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;position:relative;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉<span id="hdr-msg-dot" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:9px;background:#a3402f;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center">1</span></button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;position:relative;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit"><span id="hdr-profil-letter">C</span><span id="hdr-profil-dot" title="Session active" aria-hidden="true" style="display:none;position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--green,#1E6B42);border:1.5px solid var(--card,#FCF8EF)"></span></button></div>
+    <button id="hdr-login" onclick="go('auth')" style="display:none;order:2;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1px solid var(--gold-bright,#C9A84C);border-radius:8px;padding:5px 14px;margin-left:10px;cursor:pointer;font-weight:600;font-size:13px;font-family:inherit"><span class="lbl-login">Se connecter</span></button><button id="hdr-msg" onclick="go('messages')" title="Messages" aria-label="Messages" style="order:2;display:none;background:none;border:1px solid var(--gold-bright,#C9A84C);color:inherit;position:relative;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:1rem;line-height:1.35">✉<span id="hdr-msg-dot" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:9px;background:#a3402f;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center">1</span></button><button id="hdr-profil" onclick="go('profil')" title="Profil / Réglages" aria-label="Profil / Réglages" style="order:2;display:none;position:relative;width:30px;height:30px;border-radius:50%;background:var(--obsidian,#2A2017);color:var(--gold-l,#F5E6C0);border:1.5px solid var(--gold-bright,#C9A84C);cursor:pointer;margin-left:12px;font-weight:700;font-size:13px;text-align:center;line-height:26px;padding:0;font-family:inherit"><span id="hdr-profil-letter">C</span><span id="hdr-profil-dot" title="Session active" aria-hidden="true" style="display:none;position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--green,#1E6B42);border:1.5px solid var(--card,#FCF8EF)"></span></button></div>
     <nav class="hnav">
       <button id="nav-home" onclick="go('home')"><i>◇</i><span class="lbl">Tontines</span></button>
       <button id="nav-case" onclick="go('case')"><i>⌂</i><span class="lbl">Ma Case</span></button>
@@ -2950,7 +2960,7 @@ function render(){
    const b2=document.querySelector('.brand .b2'); if(b2)b2.textContent=tr('tagline');
    const lf=document.getElementById('lang-fr'),le=document.getElementById('lang-en');
    if(lf)lf.classList.toggle('on',state.lang==='fr'); if(le)le.classList.toggle('on',state.lang==='en');}
-  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _hpl=document.getElementById('hdr-profil-letter'); if(_hpl){ var _nm=(state.user||'').trim(); _hpl.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; } if(typeof chatBadgeInit==='function'){chatBadgeInit();chatBadgePaint();} }
+  {const _in=!!(state&&state.uid); ['nav-home','nav-case','nav-entraide','nav-events','nav-partage','nav-notif','hdr-profil','hdr-msg'].forEach(function(id){var el=document.getElementById(id); if(el)el.style.display=_in?'':'none';}); var _lg=document.getElementById('hdr-login'); if(_lg){_lg.style.display=_in?'none':''; var _ll=_lg.querySelector('.lbl-login'); if(_ll)_ll.textContent=_FL('Se connecter','Sign in');} var _hpl=document.getElementById('hdr-profil-letter'); if(_hpl){ var _nm=(state.user||'').trim(); _hpl.textContent=_nm?_nm.charAt(0).toUpperCase():'\u2699'; } if(typeof chatBadgeInit==='function'){chatBadgeInit();chatBadgePaint();} }
   if(state.view==='home')$('#nav-home').classList.add('on');
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
@@ -3739,7 +3749,7 @@ function viewReprise(){
 /* ============================================================================
    PREUVE SOCIALE — compteur (visiteurs) · seuils réglables · admin voit tout
    ============================================================================ */
-const REP_SEUIL_PLANCHER=500;   /* en dessous : message qualitatif */
+const REP_SEUIL_PLANCHER=1000;   /* en dessous : message qualitatif. Au seuil : vrais chiffres pour tout le monde */
 const REP_SEUIL_PUBLIC=1000;    /* au-dessus : gros chiffres */
 async function repLoadStats(){
   if(typeof sb==='undefined'||!sb||!sb.rpc){state.repStats={};return;}
@@ -3797,17 +3807,16 @@ function repStatsBand(){
   const s=state.repStats;if(!s)return '';
   const isVisitor=!state.uid;
   const isAdmin=(typeof isUboraAdmin==='function')?isUboraAdmin():false;
-  if(!isVisitor&&!isAdmin)return '';
   const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
-  /* admin connecté : décompte réel discret + aperçu public musclé */
-  if(isAdmin&&!isVisitor){
-    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin \u00b7 d\u00e9compte r\u00e9el','Admin \u00b7 real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} \u00b7 <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} \u00b7 <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')}</div>`;
-    const prev=`<div style="font-size:12px;opacity:.65;margin:10px 0 -6px">${_FL('Aper\u00e7u public (ce que verront les visiteurs au-dessus du seuil) :','Public preview (what visitors see above threshold):')}</div>`;
-    return line+prev+repBandBig(Math.max(people,REP_SEUIL_PUBLIC),Math.max(groups,42),Math.max(visits,318));
+  /* Chiffres RÉELS uniquement. Sous le seuil : message qualitatif (visiteurs) ou rien (membres). Au seuil : vrais chiffres pour tout le monde. */
+  const publicBand = (people<REP_SEUIL_PLANCHER) ? repBandQual() : repBandBig(people,groups,visits);
+  if(isAdmin){
+    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin \u00b7 d\u00e9compte r\u00e9el','Admin \u00b7 real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} \u00b7 <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} \u00b7 <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')} \u00b7 ${_FL('seuil public','public threshold')} ${repFmtNum(REP_SEUIL_PLANCHER)}</div>`;
+    const prev=`<div style="font-size:12px;opacity:.65;margin:10px 0 -6px">${_FL('Aper\u00e7u public (ce que voient les visiteurs aujourd\u2019hui) :','Public preview (what visitors see today):')}</div>`;
+    return line+prev+publicBand;
   }
-  /* visiteur : selon les seuils */
-  if(people<REP_SEUIL_PLANCHER)return repBandQual();
-  return repBandBig(people,groups,visits);
+  if(isVisitor) return publicBand;
+  return (people>=REP_SEUIL_PLANCHER) ? repBandBig(people,groups,visits) : '';
 }
 /* ============================================================================
    PAS 2a — Accès des membres : générer les codes (créateur) + rejoindre (membre)
@@ -8325,6 +8334,15 @@ function viewLanding(){
       <button class="btn btn-gold" onclick="go('auth')">${_FL('Commencer — c’est gratuit','Get started — it’s free')}</button>
       <button class="btn btn-ghost" onclick="go('faq')">${_FL('Comment ça marche ?','How it works')}</button>
     </div>
+    <div class="ob-wrap">
+      <div class="ob-h">${_FL('Comment ça marche, en 3 temps','How it works, in 3 steps')}</div>
+      <div class="ob-steps">
+        <div class="ob-step"><div class="ob-num">1</div><div class="ob-t">${_FL('Créez ou rejoignez un cercle','Create or join a circle')}</div><div class="ob-d">${_FL('Votre tontine, caisse ou association — en 2 minutes, ou via le lien d’invitation que vous avez reçu.','Your tontine, fund or association — in 2 minutes, or via the invite link you received.')}</div></div>
+        <div class="ob-step"><div class="ob-num">2</div><div class="ob-t">${_FL('Chacun verse, le bureau confirme','Everyone pays, the board confirms')}</div><div class="ob-d">${_FL('L’argent reste entre vous. UBORA note qui a versé, qui reçoit, et quand.','The money stays among you. UBORA records who paid, who receives, and when.')}</div></div>
+        <div class="ob-step"><div class="ob-num">3</div><div class="ob-t">${_FL('La mémoire est gardée','The memory is kept')}</div><div class="ob-d">${_FL('Relevés clairs, rappels automatiques, et une attestation vérifiable de votre régularité.','Clear statements, automatic reminders, and a verifiable attestation of your regularity.')}</div></div>
+      </div>
+      <div class="ob-note">${_FL('Pas de mot de passe : vous entrez avec votre e-mail. « Commencer » vous inscrit et vous connecte en même temps.','No password: you sign in with your email. “Get started” signs you up and in at once.')}</div>
+    </div>
     ${band}
     <div class="ub-tiles">${cards}</div>
     ${video}
@@ -8715,7 +8733,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.03';
+const UBORA_BUILD='v9.04';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
