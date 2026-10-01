@@ -3750,7 +3750,8 @@ function viewReprise(){
 /* ============================================================================
    PREUVE SOCIALE — compteur (visiteurs) · seuils réglables · admin voit tout
    ============================================================================ */
-const REP_SEUIL_PLANCHER=1000;   /* en dessous : message qualitatif. Au seuil : vrais chiffres pour tout le monde */
+const REP_SEUIL_PLANCHER=500;    /* personnes — seuil réglable */
+const REP_SEUIL_GROUPS=25;       /* groupes — seuil réglable ; les vrais chiffres n'apparaissent qu'au-delà des DEUX */
 const REP_SEUIL_PUBLIC=1000;    /* au-dessus : gros chiffres */
 async function repLoadStats(){
   if(typeof sb==='undefined'||!sb||!sb.rpc){state.repStats={};return;}
@@ -3808,13 +3809,14 @@ function repStatsBand(){
   const s=state.repStats;if(!s)return '';
   const isAdmin=(typeof isUboraAdmin==='function')?isUboraAdmin():false;
   const people=Number(s.people)||0,groups=Number(s.groups)||0,visits=Number(s.visits_today)||0;
-  const reached = people>=REP_SEUIL_PLANCHER;
-  /* RÈGLE : le public ne voit RIEN tant que le seuil réel n'est pas atteint (des chiffres faibles chassent du monde). Seul l'admin voit, pour monitorer. */
+  /* Seuil DOUBLE : vrais chiffres seulement à partir de REP_SEUIL_PLANCHER personnes ET REP_SEUIL_GROUPS groupes. Avant : message qualitatif (jamais de chiffres faibles). Réglable dans les constantes. */
+  const reached = (people>=REP_SEUIL_PLANCHER) && (groups>=REP_SEUIL_GROUPS);
+  const publicBand = reached ? repBandBig(people,groups,visits) : repBandQual();
   if(isAdmin){
-    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin · décompte réel','Admin · real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} · <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} · <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')} · ${_FL('seuil','threshold')} ${repFmtNum(REP_SEUIL_PLANCHER)} — ${reached?_FL('ATTEINT · visible par tous','REACHED · visible to all'):_FL('non atteint · invisible au public','not reached · hidden from public')}</div>`;
-    return line + (reached ? repBandBig(people,groups,visits) : '');
+    const line=`<div style="margin:10px 0 2px;padding:8px 14px;border:1px dashed rgba(0,0,0,.25);border-radius:10px;font-size:13px;opacity:.85">${_FL('Admin · décompte réel','Admin · real count')} : <b>${repFmtNum(people)}</b> ${_FL('personnes','people')} · <b>${repFmtNum(groups)}</b> ${_FL('groupes','groups')} · <b>${repFmtNum(visits)}</b> ${_FL('visites','visits')} · ${_FL('seuils','thresholds')} ${repFmtNum(REP_SEUIL_PLANCHER)}/${repFmtNum(REP_SEUIL_GROUPS)} — ${reached?_FL('ATTEINT · chiffres publics','REACHED · public numbers'):_FL('non atteint · message qualitatif au public','not reached · qualitative message to public')}</div>`;
+    return line + publicBand;
   }
-  return reached ? repBandBig(people,groups,visits) : '';
+  return publicBand;
 }
 /* ============================================================================
    PAS 2a — Accès des membres : générer les codes (créateur) + rejoindre (membre)
@@ -8310,7 +8312,7 @@ function viewAccueil(){
   if(_M>0){
     var _r=0.09/12,_n=240,_fv=_M*((Math.pow(1+_r,_n)-1)/_r);
     var _mF=repFmtNum(Math.round(_M)), _fvF=repFmtNum(Math.round(_fv));
-    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')">
       <div class="acc-invest-k">${_FL('ET SI VOUS INVESTISSIEZ VOS COTISATIONS ?','WHAT IF YOU INVESTED YOUR CONTRIBUTIONS?')}</div>
       <div class="acc-invest-t">≈ ${_fvF} ${esc(_cur)}</div>
       <div class="acc-invest-d">${_FL('Vous mettez de côté ~'+_mF+' '+esc(_cur)+'/mois dans vos cercles. Placés 20 ans à ~9 %/an, cela pourrait devenir le montant ci-dessus.','You set aside ~'+_mF+' '+esc(_cur)+'/month in your circles. Invested for 20 years at ~9%/yr, it could grow to the amount above.')}</div>
@@ -8766,7 +8768,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.05';
+const UBORA_BUILD='v9.06';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
