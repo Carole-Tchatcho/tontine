@@ -6108,7 +6108,7 @@ function brandGo(){ go(state.uid?'accueil':'landing'); }
 function uboraPriceCur(){ if(state.priceCur) return state.priceCur; if(COUNTRY_CONT[state.homeCountry]==='AF') return 'XAF'; var c=homeCurrency(); if(['CHF','EUR','CAD','USD'].indexOf(c)>=0) return c; try{var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; if(tz.indexOf('Africa/')===0) return 'XAF'; if(tz.indexOf('America/')===0) return 'USD';}catch(e){} return 'CHF'; }
 function momentMoMo(){ alert(_FL('Paiement par Orange Money et MTN Mobile Money : le branchement automatique est en pr\u00e9paration. Vous serez pr\u00e9venu\u00b7e d\u00e8s qu\u2019il est actif \u2014 en attendant, le registre reste gratuit jusqu\u2019\u00e0 12 membres.','Payment via Orange Money and MTN Mobile Money: automatic setup is in preparation. You\u2019ll be notified as soon as it\u2019s live \u2014 meanwhile the register stays free up to 12 members.')); }
 function viewTarifs(){
-  const PRIX_AFFICHE={CHF:{kwen:19,fagot:49,baobab:149},EUR:{kwen:19,fagot:49,baobab:149},USD:{kwen:19,fagot:49,baobab:149},CAD:{kwen:19,fagot:49,baobab:149},XAF:{kwen:3000,fagot:7500,baobab:20000}};
+  const PRIX_AFFICHE={CHF:{kwen:19,fagot:49,baobab:149},EUR:{kwen:19,fagot:49,baobab:149},USD:{kwen:19,fagot:49,baobab:149},CAD:{kwen:29,fagot:69,baobab:199},XAF:{kwen:3000,fagot:7500,baobab:20000}};
   const _cur=uboraPriceCur();
   const _isAf=(_cur==='XAF');
   const _amt=PRIX_AFFICHE[_cur]||PRIX_AFFICHE.CHF;
@@ -8943,7 +8943,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.15';
+const UBORA_BUILD='v9.16';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
