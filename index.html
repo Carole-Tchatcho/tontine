@@ -141,7 +141,7 @@ html,body{margin:0;background:#EBDCC4}
 .acc-invest-k{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#C9A84C}
 .acc-invest-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:600;color:#F5E6C0;margin-top:6px;line-height:1.12}
 .acc-invest-d{color:#C7C3E0;font-size:14px;line-height:1.55;margin-top:8px}
-@media (prefers-reduced-motion:reduce){.acc-chip,.acc-invest{transition:none}.acc-invest:hover{transform:none}}
+@media (prefers-reduced-motion:reduce){.acc-chip,.acc-invest,.ob-step{transition:none}.acc-invest:hover,.ob-step:hover{transform:none}}
 /* iOS : empêcher le zoom auto au focus d'un champ (>=16px sur tactile) ; le zoom manuel A-/A+ reste */
 @media (hover:none),(pointer:coarse){input,select,textarea{font-size:16px!important}}
 .intro-cd-lead{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
@@ -153,12 +153,16 @@ html,body{margin:0;background:#EBDCC4}
 .ob-wrap{margin:22px 0 6px}
 .ob-h{text-align:center;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
 .ob-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.ob-step{background:var(--card2,#FFFDF8);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.ob-step{background:var(--card2,#FFFDF8);border:1px solid var(--line);border-radius:var(--r);padding:20px;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease}
+.ob-step:hover{border-color:rgba(201,168,76,.85);background:#FBF3E0;box-shadow:0 6px 18px rgba(201,168,76,.13);transform:translateY(-2px)}
+.ob-step.ob-gold{border-color:rgba(201,168,76,.5);background:linear-gradient(180deg,rgba(201,168,76,.07),var(--card2,#FFFDF8))}
+.ob-step.ob-gold:hover{border-color:rgba(201,168,76,.95);background:linear-gradient(180deg,rgba(201,168,76,.12),#FBF3E0)}
+.ob-gold .ob-num{background:linear-gradient(135deg,#C9A84C,#9A7230);color:#2A2018}
 .ob-num{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#161B3D,#23306E);color:#F5E6C0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .ob-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:#2A2018;line-height:1.2}
 .ob-d{color:var(--mid);font-size:13.5px;line-height:1.55;margin-top:7px}
 .ob-note{text-align:center;color:var(--mid);font-size:13px;margin-top:14px}
-.acc-attest{border-left:3px solid rgba(201,168,76,.5)}
+.acc-attest{border:1px solid rgba(201,168,76,.42);border-left:3px solid #C9A84C;background:linear-gradient(180deg,rgba(201,168,76,.075),rgba(255,255,255,0))}
   .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .between{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .stack{display:flex;flex-direction:column;min-width:0}
@@ -8531,7 +8535,7 @@ function viewLanding(){
       <div class="ob-steps">
         <div class="ob-step"><div class="ob-num">1</div><div class="ob-t">${_FL('Créez ou rejoignez un cercle','Create or join a circle')}</div><div class="ob-d">${_FL('Votre tontine, caisse ou association — en 2 minutes, ou via le lien d’invitation que vous avez reçu.','Your tontine, fund or association — in 2 minutes, or via the invite link you received.')}</div></div>
         <div class="ob-step"><div class="ob-num">2</div><div class="ob-t">${_FL('Chacun verse, le bureau confirme','Everyone pays, the board confirms')}</div><div class="ob-d">${_FL('L’argent reste entre vous. UBORA note qui a versé, qui reçoit, et quand.','The money stays among you. UBORA records who paid, who receives, and when.')}</div></div>
-        <div class="ob-step"><div class="ob-num">3</div><div class="ob-t">${_FL('La mémoire est gardée','The memory is kept')}</div><div class="ob-d">${_FL('Relevés clairs, rappels automatiques, et une attestation vérifiable de votre régularité.','Clear statements, automatic reminders, and a verifiable attestation of your regularity.')}</div></div>
+        <div class="ob-step ob-gold"><div class="ob-num">3</div><div class="ob-t">${_FL('La mémoire est gardée','The memory is kept')}</div><div class="ob-d">${_FL('Relevés clairs, rappels automatiques, et une attestation vérifiable de votre régularité.','Clear statements, automatic reminders, and a verifiable attestation of your regularity.')}</div></div>
       </div>
       <div class="ob-note">${_FL('Pas de mot de passe : vous entrez avec votre e-mail. « Commencer » vous inscrit et vous connecte en même temps.','No password: you sign in with your email. “Get started” signs you up and in at once.')}</div>
     </div>
@@ -8925,7 +8929,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.11';
+const UBORA_BUILD='v9.12';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
