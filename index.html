@@ -127,6 +127,8 @@ html,body{margin:0;background:#EBDCC4}
 .ub-tiles{display:grid;gap:14px;margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 .ub-tile{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:0 1px 3px rgba(120,90,40,.05);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .ub-tile:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(120,90,40,.14);border-color:rgba(201,168,76,.55)}
+.ub-tile.ub-tile-gold{border-color:rgba(201,168,76,.5);background:linear-gradient(180deg,rgba(201,168,76,.075),var(--card2))}
+.ub-tile.ub-tile-gold:hover{border-color:rgba(201,168,76,.95);background:linear-gradient(180deg,rgba(201,168,76,.13),var(--card2))}
 .ub-tile .tt{font-weight:700;margin-bottom:6px}
 .ub-tile .td{color:var(--mid);font-size:14px;line-height:1.55}
 .faq-item{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
@@ -6103,20 +6105,28 @@ async function tarifNotify(k){
    à retrouver : il découvre. Chacun atterrit là où il voulait aller. */
 function brandGo(){ go(state.uid?'accueil':'landing'); }
 
+function momentMoMo(){ alert(_FL('Paiement par Orange Money et MTN Mobile Money : le branchement automatique est en pr\u00e9paration. Vous serez pr\u00e9venu\u00b7e d\u00e8s qu\u2019il est actif \u2014 en attendant, le registre reste gratuit jusqu\u2019\u00e0 12 membres.','Payment via Orange Money and MTN Mobile Money: automatic setup is in preparation. You\u2019ll be notified as soon as it\u2019s live \u2014 meanwhile the register stays free up to 12 members.')); }
 function viewTarifs(){
-  const cards=PALIERS.map(p=>`<div class="panel tarif-card" style="flex:1;min-width:230px">
+  const _afZone=(state.priceZone||((COUNTRY_CONT[state.homeCountry]==='AF')?'af':'monde'))==='af';
+  const PRIX_AF={kwen:3000,fagot:7500,baobab:20000};
+  const _zoneToggle=`<div class="row-gap" style="justify-content:center;margin:2px 0 6px"><button class="btn btn-sm ${_afZone?'btn-gold':'btn-ghost'}" onclick="state.priceZone='af';render()">${_FL('Prix Afrique \u00b7 FCFA','Africa \u00b7 FCFA')}</button><button class="btn btn-sm ${_afZone?'btn-ghost':'btn-gold'}" onclick="state.priceZone='monde';render()">${_FL('Prix hors Afrique \u00b7 CHF','Outside Africa \u00b7 CHF')}</button></div>`;
+  const cards=PALIERS.map(p=>{
+    const _af=_afZone&&PRIX_AF[p.k]!=null;
+    const _priceTxt=p.prix?(_af?(repFmtNum(PRIX_AF[p.k])+' FCFA'):(p.prix+' CHF')):_FL('Gratuit','Free');
+    const _annual=_af?`<div class="msub" style="margin-top:2px;font-size:11.5px">${_FL('ou '+repFmtNum(PRIX_AF[p.k]*10)+' FCFA/an \u00b7 2 mois offerts','or '+repFmtNum(PRIX_AF[p.k]*10)+' FCFA/yr \u00b7 2 months free')}</div>`:'';
+    const _cta=p.prix?(_af?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="momentMoMo()">${_FL('Payer par Mobile Money','Pay by Mobile Money')}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Orange Money \u00b7 MTN MoMo \u2014 branchement en pr\u00e9paration','Orange Money \u00b7 MTN MoMo \u2014 coming soon')}</div>`:`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} · ${p.prix} ${abonnementDevise()}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement sécurisé par Stripe · sans engagement, résiliable à tout moment','Secure payment via Stripe · no commitment, cancel anytime')}</div>`):`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`;
+    return `<div class="panel tarif-card" style="flex:1;min-width:230px">
     <div style="padding:20px 20px 22px;text-align:center">
       <div class="tc-sym">${p.svg()}</div>
       <div class="mname" style="margin-top:10px;font-size:18px">${p.nom}</div>
       <div class="msub" style="font-style:italic;margin-top:4px">${p.pitch()}</div>
-      <div style="margin:14px 0 2px;font-size:26px;color:#C9A84C">${p.prix?p.prix+' CHF':_FL('Gratuit','Free')}</div>
+      <div style="margin:14px 0 2px;font-size:26px;color:#C9A84C">${_priceTxt}</div>
+      ${_annual}
       <div class="msub">${p.prix?p.tag():'—'}</div>
       <div class="msub" style="margin-top:10px"><b>${p.pour()}</b></div>
       <div style="text-align:left;margin-top:14px">${p.points().map(x=>`<div class="msub" style="margin-top:6px">· ${x}</div>`).join('')}</div>
-      ${p.prix?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} · ${p.prix} ${abonnementDevise()}</button>
-        <div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement sécurisé par Stripe · sans engagement, résiliable à tout moment','Secure payment via Stripe · no commitment, cancel anytime')}</div>`
-        :`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`}
-    </div></div>`).join('');
+      ${_cta}
+    </div></div>`;}).join('');
   app().innerHTML=`
     <div style="text-align:center;padding:22px 0 6px">
       <div style="display:flex;justify-content:center;gap:22px;align-items:flex-end;margin-bottom:16px">
@@ -6128,7 +6138,7 @@ function viewTarifs(){
     </div>
     <p class="lead" style="margin-top:18px">${_FL('Le registre est gratuit, et il l’est entièrement : le journal, la double signature et l’attestation ne s’achètent pas. <b>On paie la taille, jamais l’intégrité.</b>','The register is free, and wholly so: the journal, the double signature and the attestation are not for sale. <b>You pay for size, never for integrity.</b>')}</p>
     <div class="asnote">${_FL('UBORA ne prélève <b>aucune commission sur vos cotisations</b> et ne détient aucun fonds. L’abonnement rémunère le logiciel et son hébergement — rien d’autre.','UBORA takes <b>no commission on your contributions</b> and holds no funds. The subscription pays for the software and its hosting — nothing else.')}</div>
-    <div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>${repHistTontines()}
+    ${_zoneToggle}<div class="cards" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:18px">${cards}</div>${repHistTontines()}
     <div class="asnote" style="margin-top:16px">${_FL('<b>Où que soit votre cercle</b>, le registre est le même. Ce qui change, c’est le chemin de l’argent : là où la carte bancaire existe, l’acheteur paie par carte ; ailleurs, il paie l’organisateur par Orange Money, MTN ou virement, et le déclare ici. <b>Dans les deux cas UBORA ne touche rien</b> — et le billet porte le même code vérifiable.','<b>Wherever your circle is</b>, the register is the same. What changes is the path of the money: where cards exist, the buyer pays by card; elsewhere, they pay the organiser by Orange Money, MTN or transfer, and declare it here. <b>Either way UBORA touches nothing</b> — and the ticket carries the same verifiable code.')}</div>
     <div class="asnote" style="margin-top:10px">${_FL('Les abonnements sont ouverts. <b>Kwèn</b> s’applique à un cercle ; <b>Fagot</b> et <b>Baobab</b> à un groupe (réunion, association ou fédération) — les cercles qui en sont membres bénéficient alors de Kwèn. Paiement sécurisé par Stripe, sans engagement, résiliable à tout moment.','Subscriptions are open. <b>Kwèn</b> applies to one circle; <b>Fagot</b> and <b>Baobab</b> to a group (meeting, association or federation) — its member circles then benefit from Kwèn. Secure payment by Stripe, no commitment, cancel anytime.')}</div>
     <h2 class="section-h">${_FL('Et après le registre ?','And beyond the register?')}</h2>
@@ -8511,11 +8521,11 @@ function viewLanding(){
     ${stat(repFmtNum(42), _FL('groupes &amp; associations','groups &amp; associations'))}
     ${stat(_FL('Suisse','Switzerland'), _FL('données hébergées','data hosted'))}
   </div></div>`:'';
-  const card=(t,d)=>`<div class="ub-tile"><div class="tt">${t}</div><div class="td">${d}</div></div>`;
+  const card=(t,d,g)=>`<div class="ub-tile${g?' ub-tile-gold':''}"><div class="tt">${t}</div><div class="td">${d}</div></div>`;
   const cards=
      card(_FL('L’argent ne passe jamais par UBORA','Money never passes through UBORA'),_FL('Vous gérez les fonds entre vous, comme toujours. UBORA ne détient aucun centime et ne prend aucune commission sur vos cotisations.','You manage the funds among yourselves, as always. UBORA holds not a cent and takes no commission on your contributions.'))
     +card(_FL('La mémoire fiable de votre groupe','Your group’s reliable memory'),_FL('Qui a versé, qui a confirmé, qui reçoit, et quand — proprement, au même endroit. La mémoire ne meurt plus avec le mandat d’un bureau.','Who paid, who confirmed, who receives, and when — cleanly, in one place. The memory no longer dies with a committee’s term.'))
-    +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Prouvez à votre banque ou votre bailleur que vous épargnez régulièrement — une référence vérifiable en ligne, qui gagne en force avec votre discipline.','Prove to your bank or landlord that you save regularly — a reference verifiable online, growing stronger with your discipline.'));
+    +card(_FL('Une attestation vérifiable','A verifiable attestation'),_FL('Prouvez à votre banque ou votre bailleur que vous épargnez régulièrement — une référence vérifiable en ligne, qui gagne en force avec votre discipline.','Prove to your bank or landlord that you save regularly — a reference verifiable online, growing stronger with your discipline.'),true);
   const _introLive = (Date.now() >= Date.UTC(2026,9,5,4,0,0)) || (typeof isUboraAdmin==='function' && isUboraAdmin()); /* public: lundi 5 oct. 2026 06:00 Europe/Zurich ; admin: tout de suite */
   const _introSrc = (state.lang==='en') ? 'intro-ubora-en.mp4' : 'intro-ubora-fr.mp4';
   const video = _introLive
@@ -8929,7 +8939,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.12';
+const UBORA_BUILD='v9.14';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
