@@ -8388,10 +8388,14 @@ function bumpZoom(d){ var cur=1; try{cur=parseFloat(localStorage.getItem('ubora_
 function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.getFullYear() > new Date().getFullYear()+50) return _FL('acc\u00e8s permanent','permanent access'); return _FL('actif jusqu\u2019au','active until')+' '+d.toLocaleDateString((typeof state!=='undefined'&&state.lang==='en')?'en-GB':'fr-CH'); }
 function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a> · <a href="#" onclick="go('support');return false" style="color:#C9A84C;text-decoration:underline">Support</a>`:''}</div>`;}
 
+function greetWord(){ var h=new Date().getHours(); if(typeof state!=='undefined'&&state.lang==='en'){ return h<12?'Good morning':(h<18?'Good afternoon':'Good evening'); } return (h>=5&&h<18)?'Bonjour':'Bonsoir'; }
+async function saveMyFirstName(){ var el=document.getElementById('acc-firstname'); if(!el)return; var v=(el.value||'').trim(); if(!v)return; if(typeof sb==='undefined'||!sb||!state.uid){ state.user=v; render(); return; } try{ const r=await sb.from('profiles').update({nom:v}).eq('id',state.uid); if(r.error)throw r.error; state.user=v; }catch(e){ try{alert(_FL('Enregistrement \u00e9chou\u00e9 : ','Save failed: ')+(e.message||e));}catch(_){} return; } render(); }
 function viewAccueil(){
   const gold='#C9A84C';
   if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){try{repLoadStats();}catch(e){}}
-  const first=((state.user||'').trim().split(' ')[0])||'';
+  const _emLocal=((state.email||'').split('@')[0]||'').toLowerCase();
+  const _rawNm=(state.user||'').trim();
+  const first=(!_rawNm || _rawNm.indexOf('@')>=0 || _rawNm.toLowerCase()===_emLocal) ? '' : (_rawNm.split(' ')[0]||'');
   const T=(typeof state_tontines!=='undefined'&&state_tontines)?state_tontines:[];
   const R=(typeof state_reunions!=='undefined'&&state_reunions)?state_reunions:[];
   const C=(typeof state_caisses!=='undefined'&&state_caisses)?state_caisses:[];
@@ -8399,7 +8403,8 @@ function viewAccueil(){
   let nAppels=0; try{nAppels=notifFeed().filter(n=>n.type==='g').length;}catch(e){}
   const lv=(typeof LEVELS!=='undefined'&&LEVELS[myLevel()])?LEVELS[myLevel()]:{name:'Découverte',bg:'#F3E8D4',color:'#C8B187',unlock:''};
   const nextLv=(typeof LEVELS!=='undefined'&&LEVELS[myLevel()+1])?LEVELS[myLevel()+1].name:null;
-  const hello=first?_FL('Bonjour '+esc(first)+'.','Hello '+esc(first)+'.'):_FL('Bienvenue.','Welcome.');
+  const hello=first?(greetWord()+' '+esc(first)+'.'):(greetWord()+(state.lang==='en'?'.':' !'));
+  const _askName=(state.uid && !first)?`<div class="panel" style="margin-top:12px;border:1px solid rgba(201,168,76,.4);background:linear-gradient(180deg,rgba(201,168,76,.06),var(--card2,#FFFDF8))"><div style="padding:14px 18px"><div class="mname">${_FL('Comment aimeriez-vous qu\u2019on vous appelle ?','What should we call you?')}</div><div class="msub" style="margin-top:4px">${_FL('Votre pr\u00e9nom, pour un accueil plus chaleureux. Vous seul\u00b7e le voyez ici.','Your first name, for a warmer welcome. Only you see it here.')}</div><div class="row-gap" style="margin-top:10px"><input id="acc-firstname" type="text" placeholder="${_FL('Votre pr\u00e9nom','Your first name')}" style="flex:1;min-width:160px;padding:9px 12px;border:1px solid rgba(0,0,0,.18);border-radius:10px;font:inherit" onkeydown="if(event.key==='Enter')saveMyFirstName()"><button class="btn btn-gold btn-sm" onclick="saveMyFirstName()">${_FL('Enregistrer','Save')}</button></div></div></div>`:'';
   const circlesLine = nCircles>0
     ? _FL(nCircles+' cercle'+(nCircles>1?'s':'')+(nAppels>0?(' · '+nAppels+' rappel'+(nAppels>1?'s':'')+' à traiter'):' · rien à confirmer aujourd’hui'),
           nCircles+' circle'+(nCircles>1?'s':'')+(nAppels>0?(' · '+nAppels+' reminder'+(nAppels>1?'s':'')+' to handle'):' · nothing to confirm today'))
@@ -8512,6 +8517,7 @@ function viewAccueil(){
     <div class="kicker">${_FL('VOTRE ESPACE','YOUR SPACE')}</div>
     <h1 class="page-title">${hello}</h1>
     <p class="lead">${circlesLine}</p>
+    ${_askName}
     ${repStatsBand()}
     ${cercles}
     ${parcours}
@@ -8947,7 +8953,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.17';
+const UBORA_BUILD='v9.18';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
