@@ -2981,7 +2981,7 @@ function render(){
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
-  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate')$('#nav-partage').classList.add('on');
+  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate'||state.view==='partageedit'||state.view==='pattestlist')$('#nav-partage').classList.add('on');
   /* Niveaux et Diffusion ne sont plus dans la barre : le bandeau « Votre
      niveau » de l'accueil mène déjà à la pyramide, et « Diffusion » est un
      bouton posé à côté de ce qu'on diffuse. Deux onglets qui doublonnaient
@@ -3000,7 +3000,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,pattest:viewPAttest,pattestlist:viewPAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -6751,6 +6751,8 @@ async function pv2Create(titre,devise,participants){ await pv2sb(); const r=awai
 async function pv2Open(id,token){ await pv2sb(); const r=await sb.rpc('partage_open',{p_id:id,p_token:token}); if(r.error)throw r.error; return r.data; }
 async function pv2AddDep(id,token,obj){ await pv2sb(); const r=await sb.rpc('partage_add_depense',{p_id:id,p_token:token,p:obj}); if(r.error)throw r.error; return r.data; }
 async function pv2DelDep(id,token,depId){ await pv2sb(); const r=await sb.rpc('partage_del_depense',{p_id:id,p_token:token,p_depense:depId}); if(r.error)throw r.error; return r.data; }
+async function pv2UpdatePartage(id,token,titre,participants){ await pv2sb(); const r=await sb.rpc('partage_update',{p_id:id,p_token:token,p_titre:titre,p_participants:participants}); if(r.error)throw r.error; return r.data; }
+function pv2FmtWhen(iso){ try{ var dt=new Date(iso); return dt.toLocaleString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return String(iso||'').slice(0,16).replace('T',' '); } }
 
 /* --- Ouverture --- */
 function openPartage(id){ const reg=pv2Reg(id); if(!reg){ go('partages'); return; } pv2LoadById(id); }
@@ -6858,6 +6860,40 @@ async function pv2DoCreate(){
   }catch(e){ pv2Busy=false; alert(_FL('Création échouée : ','Creation failed: ')+(e.message||e)); }
 }
 
+/* --- Modifier un partage (renommer, gérer les participants) --- */
+let pv2EditDraft=null;
+function pv2StartEdit(){ const P=pv2Cur.partage; pv2EditDraft={titre:P.titre||'', parts:(P.participants||[]).slice()}; state.view='partageedit'; render(); }
+function pv2EditReadTitle(){ var e=document.getElementById('pv2e-titre'); if(e&&pv2EditDraft)pv2EditDraft.titre=e.value; }
+function pv2EditAdd(){ pv2EditReadTitle(); var e=document.getElementById('pv2e-add'); var n=e?e.value.trim():''; if(!n)return; if(pv2EditDraft.parts.indexOf(n)<0)pv2EditDraft.parts.push(n); render(); }
+function pv2EditRemove(i){ pv2EditReadTitle(); pv2EditDraft.parts.splice(i,1); render(); }
+function viewPartageEdit(){
+  if(!pv2Cur||!pv2EditDraft){ return go('partages'); }
+  const d=pv2EditDraft;
+  const usedNames={}; (pv2Cur.depenses||[]).forEach(function(x){ if(x.paye_par)usedNames[x.paye_par]=1; var pe=pv2PE(x); if(pe&&pe.who)pe.who.forEach(function(n){usedNames[n]=1;}); });
+  const rows=d.parts.map(function(n,i){ var used=!!usedNames[n];
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(n)+'</div>'+(used?'<div class="msub">'+_FL('a des dépenses — restera dans les soldes','has expenses — stays in balances')+'</div>':'')+'</div><div class="right"><button class="linkbtn" onclick="pv2EditRemove('+i+')">✕</button></div></div>';
+  }).join('')||('<div class="empty">—</div>');
+  app().innerHTML='<button class="backlink" onclick="pv2EditDraft=null;state.view=\'partage\';render()">‹ '+esc(pv2Cur.partage.titre||_FL('Partage','Share'))+'</button>'
+    +'<h1 class="page-title">'+_FL('Modifier le partage','Edit the share')+'</h1>'
+    +'<div class="panel"><div style="padding:18px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Nom du partage','Share name')+'</label><input id="pv2e-titre" value="'+esc(d.titre)+'"></div>'
+    +'<div class="field"><label>'+_FL('Participants','Participants')+'</label><div class="panel" style="margin:4px 0 0"><div style="padding:4px 12px">'+rows+'</div></div></div>'
+    +'<div class="row-gap" style="margin-top:8px"><div class="field" style="flex:1;min-width:160px;margin-top:0"><input id="pv2e-add" placeholder="'+_FL('Ajouter un participant','Add a participant')+'"></div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2EditAdd()">+ '+_FL('Ajouter','Add')+'</button></div>'
+    +'<div class="hint" style="margin-top:8px">'+_FL('Toute personne ayant le lien peut modifier — chaque dépense reste tracée (auteur + date).','Anyone with the link can edit — every expense stays traced (author + date).')+'</div>'
+    +'</div></div>'
+    +'<div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="pv2DoUpdate()">'+_FL('Enregistrer','Save')+'</button>'
+    +'<button class="btn btn-ghost" onclick="pv2EditDraft=null;state.view=\'partage\';render()">'+_FL('Annuler','Cancel')+'</button></div>'
+    +footer();
+}
+async function pv2DoUpdate(){
+  pv2EditReadTitle(); if(pv2Busy)return; pv2Busy=true;
+  try{ await pv2UpdatePartage(pv2Cur.id, pv2Cur.token, pv2EditDraft.titre||'', pv2EditDraft.parts);
+    pv2EditDraft=null; pv2Busy=false; state.view='partage'; await pv2Refresh();
+    try{ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,titre:pv2Cur.partage.titre}); }catch(e){}
+  }catch(e){ pv2Busy=false; alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)); }
+}
+
 /* --- Détail --- */
 function viewPartage(){
   if(!pv2Cur){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button><div class="panel"><div class="empty">'+_FL('Ouverture…','Opening…')+'</div></div>'+footer(); return; }
@@ -6876,7 +6912,7 @@ function viewPartage(){
     +'<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
     +'<div><h1 class="page-title">'+esc(P.titre||_FL('Partage','Share'))+'</h1>'
     +'<div class="t-meta">'+_FL('Partage','Share')+' · '+names.length+' '+_FL('participant·e·s','participants')+' · '+esc(P.devise||'CHF')+'</div></div>'
-    +'<div class="msub" style="margin:4px 0 2px">'+_FL('Vous participez en tant que','You are taking part as')+' <b>'+esc(me)+'</b> · <button class="linkbtn" onclick="pv2ChangeMe()">'+_FL('changer','change')+'</button></div>'
+    +'<div class="msub" style="margin:4px 0 2px">'+_FL('Vous participez en tant que','You are taking part as')+' <b>'+esc(me)+'</b> · <button class="linkbtn" onclick="pv2ChangeMe()">'+_FL('changer','change')+'</button> · <button class="linkbtn" onclick="pv2StartEdit()">✎ '+_FL('modifier le partage','edit the share')+'</button></div>'
     +'<div class="reassure">● '+_FL('UBORA enregistre qui doit quoi — l’argent circule entre vous, jamais par UBORA.','UBORA records who owes what — money flows between you, never through UBORA.')+'</div>'
     +pv2InviteBlock()
     +seg
@@ -6965,9 +7001,10 @@ function pv2DepCard(d){
   const P=pv2Cur.partage; const pe=pv2PE(d); const off=pe&&pe.mode==='offert';
   const proof=(d.preuve_date||d.preuve_lieu||d.preuve_note)?'<div class="msub" style="margin-top:4px">📎 '+[d.preuve_date,d.preuve_lieu,d.preuve_note].filter(Boolean).map(esc).join(' · ')+'</div>':'';
   const who=off?_FL('Offert','Gift'):((pe&&pe.who&&pe.who.length)?_FL('entre ','among ')+pe.who.length:_FL('entre tous','among all'));
+  const trace=d.auteur?('<div class="msub" style="margin-top:3px;color:var(--faint)">'+_FL('ajoutée par ','added by ')+esc(d.auteur)+(d.created_at?' · '+esc(pv2FmtWhen(d.created_at)):'')+'</div>'):'';
   return '<div class="panel"><div style="padding:14px 18px"><div class="between">'
     +'<div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(off?'<span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div>'
-    +'<div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+who+'</div>'+proof+'</div>'
+    +'<div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+who+'</div>'+proof+trace+'</div>'
     +'<div class="right"><span class="p-amt">'+money(Number(d.montant)||0, d.devise||P.devise)+'</span>'
     +'<button class="linkbtn" onclick="pv2DoDel(\''+d.id+'\')">✕</button></div></div></div>';
 }
@@ -9227,7 +9264,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.25';
+const UBORA_BUILD='v9.26';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
