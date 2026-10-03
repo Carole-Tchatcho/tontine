@@ -8495,7 +8495,7 @@ function viewAccueil(){
   if(_M>0){
     var _r=0.09/12,_n=240,_fv=_M*((Math.pow(1+_r,_n)-1)/_r);
     var _mF=repFmtNum(Math.round(_M)), _fvF=repFmtNum(Math.round(_fv));
-    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/simulateur?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/simulateur?m=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}','_blank','noopener')">
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/?apport=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}&horizon=20#calculateurs','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/?apport=${Math.round(_M)}&cur=${encodeURIComponent(_cur)}&horizon=20#calculateurs','_blank','noopener')">
       <div class="acc-invest-k">${_FL('ET SI VOUS INVESTISSIEZ VOS COTISATIONS ?','WHAT IF YOU INVESTED YOUR CONTRIBUTIONS?')}</div>
       <div class="acc-invest-t">≈ ${_fvF} ${esc(_cur)}</div>
       <div class="acc-invest-d">${_FL('Vous mettez de côté ~'+_mF+' '+esc(_cur)+'/mois dans vos cercles. Placés 20 ans à ~9 %/an, cela pourrait devenir le montant ci-dessus.','You set aside ~'+_mF+' '+esc(_cur)+'/month in your circles. Invested for 20 years at ~9%/yr, it could grow to the amount above.')}</div>
@@ -8503,7 +8503,7 @@ function viewAccueil(){
       <div style="margin-top:12px;font-size:10.5px;line-height:1.45;color:#9FA2C4">${_FL('Illustration éducative · hypothèse 9 %/an (moyenne historique du MSCI World) · les performances passées ne préjugent pas des performances futures · ceci n’est pas un conseil en investissement.','Educational illustration · 9%/yr assumption (MSCI World historical average) · past performance does not guarantee future results · this is not investment advice.')}</div>
     </div>`;
   } else {
-    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/simulateur','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/simulateur','_blank','noopener')">
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/#calculateurs','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/#calculateurs','_blank','noopener')">
       <div class="acc-invest-k">${_FL('LA MÉTHODE UBORA','THE UBORA METHOD')}</div>
       <div class="acc-invest-t">${_FL('Faire grandir votre épargne','Grow your savings')}</div>
       <div class="acc-invest-d">${_FL('Au-delà de la tontine, la méthode d’investissement UBORA — pas à pas, à votre rythme.','Beyond the tontine, the UBORA investment method — step by step, at your pace.')} →</div>
@@ -8951,7 +8951,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.19';
+const UBORA_BUILD='v9.21';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
