@@ -29,7 +29,16 @@
 html,body{margin:0;background:#EBDCC4}
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>UBORA · Registre de tontine — prototype v2</title>
+<title>UBORA · Le registre de confiance</title>
+<meta property="og:title" content="UBORA · Le registre de confiance">
+<meta property="og:description" content="La mémoire fiable de votre groupe — tontines, caisses, partages. L’argent circule entre vous, jamais par UBORA.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tontine.caroletchatcho.com">
+<meta name="description" content="UBORA · Le registre de confiance — la mémoire fiable de votre groupe.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="UBORA · Le registre de confiance">
+<meta name="twitter:description" content="La mémoire fiable de votre groupe — tontines, caisses, partages.">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap">
@@ -6792,8 +6801,17 @@ function pv2SetMe(name){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:name});
 function pv2ChangeMe(){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:''}); render(); }
 
 /* --- Liste (mes partages sur cet appareil) --- */
+async function pv2LoadMine(){
+  if(!(state&&state.uid))return;
+  try{ await pv2sb(); const r=await sb.rpc('partage_mine'); if(r.error||!Array.isArray(r.data))return;
+    pv2LoadReg(); let added=false;
+    r.data.forEach(function(x){ if(!PV2.find(function(p){return p&&p.id===x.id;}))added=true; pv2Remember({id:x.id,token:x.token,titre:x.titre,devise:x.devise}); });
+    if(added&&state.view==='partages')render();
+  }catch(e){}
+}
 function viewPartages(){
   pv2LoadReg();
+  if(state&&state.uid)pv2LoadMine();
   const cards=PV2.map(function(r){ return '<div class="panel p-card" onclick="openPartage(\''+esc(r.id)+'\')">'
       +'<div class="panel-h"><h3>'+esc(r.titre||_FL('Partage','Share'))+'</h3><span class="pill p-face">'+esc(r.devise||'CHF')+'</span></div>'
       +'<div style="padding:12px 20px 16px"><div class="between"><span class="msub">'+(r.me?_FL('Vous : ','You: ')+esc(r.me):_FL('Ouvrir','Open'))+'</span><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div></div>'; }).join('');
@@ -6902,8 +6920,29 @@ function pv2InviteBlock(){
     +'<button class="btn btn-ghost btn-sm" onclick="pv2Copy()">'+_FL('Copier','Copy')+'</button></div>'
     +'<div class="row-gap"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a>'
     +'<a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a>'
-    +'<a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a></div>'
+    +'<a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2ShareQR()">'+_FL('Partager le QR','Share the QR')+'</button></div>'
+    +'<div class="hint" style="margin-top:8px">'+_FL('WhatsApp / SMS / e-mail envoient le lien. Pour transmettre l’image du QR (à scanner en personne), utilisez « Partager le QR ».','WhatsApp / SMS / email send the link. To send the QR image (to scan in person), use “Share the QR”.')+'</div>'
     +'</div></div></div>';
+}
+async function pv2ShareQR(){
+  const box=document.getElementById('pv2qr'); if(!box){ return; }
+  let blob=null;
+  const canvas=box.querySelector('canvas');
+  try{ if(canvas){ blob=await new Promise(function(res){canvas.toBlob(res,'image/png');}); }
+    else { const img=box.querySelector('img'); if(img&&img.src){ const r=await fetch(img.src); blob=await r.blob(); } }
+  }catch(e){}
+  if(!blob){ alert(_FL('QR pas encore prêt — réessayez dans un instant.','QR not ready yet — try again in a moment.')); return; }
+  const titre=(pv2Cur&&pv2Cur.partage&&pv2Cur.partage.titre)||'';
+  const fname='ubora-partage-qr.png';
+  try{
+    const file=new File([blob],fname,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:_FL('Partage UBORA','UBORA share'),text:_FL('QR du partage « ','QR for share “')+titre+' ”'});
+      return;
+    }
+  }catch(e){ if(e&&e.name==='AbortError')return; }
+  try{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},2000); }catch(e){ alert(_FL('Impossible de partager le QR ici.','Could not share the QR here.')); }
 }
 function pv2Copy(){ const e=document.getElementById('pv2-link'); if(!e)return; try{e.select();}catch(_e){} let ok=false; try{navigator.clipboard.writeText(e.value);ok=true;}catch(_e){try{ok=document.execCommand('copy');}catch(__e){}} try{ const b=(typeof event!=='undefined')&&event&&event.target; if(b){const t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);} }catch(_e){} }
 function pv2QRDraw(){
@@ -9063,7 +9102,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.22';
+const UBORA_BUILD='v9.23';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
