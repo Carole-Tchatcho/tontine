@@ -6723,210 +6723,322 @@ function viewCaseDetail(){
     ${footer()}`;
 }
 
+/* ===================== PARTAGE v2 — lien/QR sans compte, 2 vues =====================
+   Données : tables partages_v2 + partage_depenses (SQL PARTAGE-v2-acces.sql).
+   Accès par TOKEN du lien ; confidentialité : tout passe par des RPC protégées.
+   Le registre local (localStorage) ne garde QUE les liens connus sur CET appareil
+   — comme Tricount : le partage vit dans le lien, pas dans un compte. */
+let PV2=[], pv2Cur=null, pv2Draft=null, pv2Exp=null, pv2Tab='dep', pv2Busy=false, pv2Last={}, pv2AC=null;
+
+function pv2LoadReg(){ try{PV2=JSON.parse(localStorage.getItem('ubora_pv2')||'[]')||[];}catch(e){PV2=[];} }
+function pv2SaveReg(){ try{localStorage.setItem('ubora_pv2',JSON.stringify(PV2));}catch(e){} }
+function pv2Reg(id){ pv2LoadReg(); return PV2.find(function(x){return x&&x.id===id;}); }
+function pv2Remember(rec){ pv2LoadReg(); const i=PV2.findIndex(function(x){return x&&x.id===rec.id;}); if(i<0)PV2.unshift(rec); else PV2[i]=Object.assign({},PV2[i],rec); pv2SaveReg(); }
+function pv2Forget(id){ pv2LoadReg(); PV2=PV2.filter(function(x){return x&&x.id!==id;}); pv2SaveReg(); }
+function pv2Link(id,token){ return location.origin+location.pathname+'#p='+id+'~'+token; }
+
+async function pv2sb(){ if(typeof sb==='undefined'||!sb){ try{await initSB();}catch(e){} } return sb; }
+async function pv2Create(titre,devise,participants){ await pv2sb(); const r=await sb.rpc('partage_create',{p_titre:titre,p_devise:devise,p_participants:participants}); if(r.error)throw r.error; return r.data; }
+async function pv2Open(id,token){ await pv2sb(); const r=await sb.rpc('partage_open',{p_id:id,p_token:token}); if(r.error)throw r.error; return r.data; }
+async function pv2AddDep(id,token,obj){ await pv2sb(); const r=await sb.rpc('partage_add_depense',{p_id:id,p_token:token,p:obj}); if(r.error)throw r.error; return r.data; }
+async function pv2DelDep(id,token,depId){ await pv2sb(); const r=await sb.rpc('partage_del_depense',{p_id:id,p_token:token,p_depense:depId}); if(r.error)throw r.error; return r.data; }
+
+/* --- Ouverture --- */
+function openPartage(id){ const reg=pv2Reg(id); if(!reg){ go('partages'); return; } pv2LoadById(id); }
+async function pv2LoadById(id){
+  const reg=pv2Reg(id); if(!reg)return go('partages');
+  pv2Cur=null; pv2Tab='dep'; pv2Exp=null; state.view='partage'; state.activePartage=id; render();
+  try{ const d=await pv2Open(id,reg.token); pv2Cur={id:id,token:reg.token,partage:d.partage,depenses:d.depenses||[]};
+    pv2Remember({id:id,token:reg.token,titre:d.partage.titre,devise:d.partage.devise});
+  }catch(e){ pv2Cur={id:id,token:reg.token,error:(e.message||String(e))}; }
+  render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(_e){}
+}
+async function pv2OpenPublic(id,token){
+  pv2Remember({id:id,token:token}); pv2Cur=null; pv2Tab='dep'; pv2Exp=null; state.view='partage'; state.activePartage=id; render();
+  try{ const d=await pv2Open(id,token); pv2Cur={id:id,token:token,partage:d.partage,depenses:d.depenses||[]};
+    pv2Remember({id:id,token:token,titre:d.partage.titre,devise:d.partage.devise});
+  }catch(e){ pv2Cur={id:id,token:token,error:(e.message||String(e))}; }
+  render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(_e){}
+}
+async function pv2Refresh(){ if(!pv2Cur)return; try{ const d=await pv2Open(pv2Cur.id,pv2Cur.token); pv2Cur.partage=d.partage; pv2Cur.depenses=d.depenses||[]; }catch(e){} render(); }
+
+/* --- Participants & soldes --- */
+function pv2PE(d){ let pe=d.partage_entre; if(!pe)return {mode:'equal',who:null}; if(typeof pe==='string'){try{pe=JSON.parse(pe);}catch(e){pe={mode:'equal',who:null};}} return pe; }
+function pv2Names(){ if(!pv2Cur||!pv2Cur.partage)return []; const set=[]; const push=function(n){ n=(n||'').trim(); if(n&&set.indexOf(n)<0)set.push(n); };
+  (pv2Cur.partage.participants||[]).forEach(push);
+  (pv2Cur.depenses||[]).forEach(function(d){ push(d.paye_par); push(d.auteur); const pe=pv2PE(d); if(pe&&pe.who)pe.who.forEach(push); });
+  return set;
+}
+function pv2Balances(){
+  const gcur=(pv2Cur.partage.devise)||'CHF'; const names=pv2Names(); const bal={}; names.forEach(function(n){bal[n]=0;});
+  (pv2Cur.depenses||[]).forEach(function(d){
+    const pe=pv2PE(d); if(pe&&pe.mode==='offert')return;
+    const amt=fxConvert(Number(d.montant)||0, d.devise||gcur, gcur);
+    const payer=(d.paye_par||'').trim(); if(payer){ if(bal[payer]==null)bal[payer]=0; bal[payer]+=amt; }
+    let who=(pe&&pe.who&&pe.who.length)?pe.who.slice():names.slice(); who=who.filter(function(n){return !!n;}); if(!who.length)who=names.slice();
+    const share=amt/who.length; who.forEach(function(n){ if(bal[n]==null)bal[n]=0; bal[n]-=share; });
+  });
+  return {gcur:gcur,names:names,bal:bal};
+}
+function pv2Settle(bal,names){
+  const C=[],D=[]; names.forEach(function(n){ const v=Math.round(bal[n]||0); if(v>0)C.push({n:n,v:v}); else if(v<0)D.push({n:n,v:-v}); });
+  C.sort(function(a,b){return b.v-a.v;}); D.sort(function(a,b){return b.v-a.v;});
+  const res=[]; let i=0,j=0;
+  while(i<C.length&&j<D.length){ const g=Math.min(C[i].v,D[j].v); if(g>0)res.push({from:D[j].n,to:C[i].n,amount:g}); C[i].v-=g; D[j].v-=g; if(C[i].v<=0)i++; if(D[j].v<=0)j++; }
+  return res;
+}
+function pv2Me(){ const reg=pv2Reg(pv2Cur.id); return (reg&&reg.me)||''; }
+function pv2SetMe(name){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:name}); render(); }
+function pv2ChangeMe(){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:''}); render(); }
+
+/* --- Liste (mes partages sur cet appareil) --- */
 function viewPartages(){
-  const cards=state_partages.map(p=>{
-    const me=pMyIndex(p),bal=pBalances(p),my=Math.round(bal[me]||0),cur=p.cur;
-    let net; if(my>1)net=`<span class="pbal-pos">${tr('pt_net_you_get').replace('{x}',money(my,cur))}</span>`;
-    else if(my<-1)net=`<span class="pbal-neg">${tr('pt_net_you_owe').replace('{x}',money(-my,cur))}</span>`;
-    else net=`<span class="faint">${tr('pt_net_settled')}</span>`;
-    const faceLbl=tr('pt_face_'+(p.face||'sortie'));
-    return `<div class="panel p-card" onclick="openPartage('${p.id}')">
-      <div class="panel-h"><h3>${esc(p.title)}</h3><span class="pill p-face">${faceLbl}</span></div>
-      <div style="padding:12px 20px 16px">
-        <div class="t-meta">${tr('pt_members_n').replace('{n}',p.members.length)} · ${p.expenses.length} ${tr('pt_tab_dep').toLowerCase()}</div>
-        <div class="between" style="margin-top:10px">${net}<span class="gold" style="font-size:13.5px">${tr('pt_open')}</span></div>
-      </div></div>`;
-  }).join('');
-  app().innerHTML=`
-    <h1 class="page-title">${tr('pt_title')}</h1>
-    <p class="lead">${tr('pt_lead')}</p>
-    <div class="reassure">● ${tr('pt_reassure')}</div>
-    <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startPartage();go('partagecreate')">${tr('pt_new')}</button></div>
-    ${cards||`<div class="panel"><div class="empty">${tr('pt_none')}</div></div>`}
-    ${footer()}`;
+  pv2LoadReg();
+  const cards=PV2.map(function(r){ return '<div class="panel p-card" onclick="openPartage(\''+esc(r.id)+'\')">'
+      +'<div class="panel-h"><h3>'+esc(r.titre||_FL('Partage','Share'))+'</h3><span class="pill p-face">'+esc(r.devise||'CHF')+'</span></div>'
+      +'<div style="padding:12px 20px 16px"><div class="between"><span class="msub">'+(r.me?_FL('Vous : ','You: ')+esc(r.me):_FL('Ouvrir','Open'))+'</span><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div></div>'; }).join('');
+  app().innerHTML=''
+    +'<h1 class="page-title">'+_FL('Partage','Share')+'</h1>'
+    +'<p class="lead">'+_FL('Les dépenses partagées entre proches — un voyage, une sortie, la maison. Chacun saisit, tout le monde voit qui doit quoi, sans qu’UBORA ne détienne un centime.','Shared expenses among friends — a trip, a night out, the home. Everyone enters, everyone sees who owes what, with UBORA never holding a cent.')+'</p>'
+    +'<div class="reassure">● '+_FL('UBORA enregistre qui doit quoi — l’argent circule entre vous, jamais par UBORA.','UBORA records who owes what — money flows between you, never through UBORA.')+'</div>'
+    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2StartCreate()">+ '+_FL('Nouveau partage','New share')+'</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2PromptJoin()">'+_FL('Rejoindre par un lien','Join via a link')+'</button></div>'
+    +(cards||'<div class="panel"><div class="empty">'+_FL('Aucun partage pour l’instant. Créez-en un, ou ouvrez le lien qu’on vous a envoyé.','No share yet. Create one, or open the link you were sent.')+'</div></div>')
+    +footer();
 }
-function openPartage(id){state.activePartage=id;state.view='partage';state.partageTab='depenses';state.partageNew=false;render();window.scrollTo({top:0,behavior:'smooth'});}
-function startPartage(){pDraft={title:'',face:'sortie',cur:state.apexCur||'EUR',membersText:''};}
+function pv2PromptJoin(){ const v=prompt(_FL('Collez le lien du partage reçu :','Paste the share link you received:')); if(!v)return; const m=String(v).match(/[#&]p=([^~&]+)~([A-Za-z0-9]+)/); if(!m){alert(_FL('Lien non reconnu.','Link not recognized.'));return;} pv2OpenPublic(decodeURIComponent(m[1]),m[2]); }
+
+/* --- Création --- */
+function pv2StartCreate(){ pv2Draft={titre:'',devise:(state.apexCur||'CHF'),membersText:(state.user||'')}; go('partagecreate'); }
 function viewPartageCreate(){
-  if(!pDraft)startPartage(); const d=pDraft;
-  const opt=(v,cur,lbl)=>`<option value="${v}" ${v===cur?'selected':''}>${lbl||v}</option>`;
-  app().innerHTML=`
-    <button class="backlink" onclick="pDraft=null;goBack()">‹ ${backLabel()}</button>
-    <h1 class="page-title">${tr('pt_create_title')}</h1>
-    <div class="panel"><div style="padding:18px 20px">
-      <div class="field" style="margin-top:0"><label>${tr('pt_c_title_lbl')}</label><input id="p-title" placeholder="${tr('pt_c_title_ph')}" value="${esc(d.title||'')}"></div>
-      <div class="row-gap">
-        <div class="field" style="flex:1;min-width:160px"><label>${tr('pt_c_face')}</label><select id="p-face">${opt('sortie',d.face,tr('pt_face_sortie'))}${opt('maison',d.face,tr('pt_face_maison'))}${opt('event',d.face,tr('pt_face_event'))}${opt('projet',d.face,tr('pt_face_projet'))}${opt('repas',d.face,tr('pt_face_repas'))}${opt('autre',d.face,tr('pt_face_autre'))}</select></div>
-        <div class="field" style="flex:0 0 160px"><label>${tr('pt_c_cur')}</label><select id="p-cur">${CUR_ORDER.map(x=>opt(x,d.cur,CUR_LABEL[x])).join('')}</select></div>
-      </div>
-      <div class="hint" style="margin-top:6px">${tr('pt_c_cur_hint')}</div>
-      <div class="field"><label>${tr('pt_c_members')}</label><textarea id="p-members" rows="4" placeholder="${tr('pt_c_members_ph')}">${esc(d.membersText||'')}</textarea>
-        <div class="hint" style="margin-top:6px">${tr('pt_c_members_hint')}</div></div>
-    </div></div>
-    <div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="pSave()">${tr('pt_c_create_btn')}</button>
-      <button class="btn btn-ghost" onclick="pDraft=null;go('partages')">${tr('cancel')}</button></div>
-    ${footer()}`;
+  if(!pv2Draft)pv2StartCreate(); const d=pv2Draft;
+  const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===d.devise?'selected':'')+'>'+CUR_LABEL[c]+'</option>';}).join('');
+  app().innerHTML=''
+    +'<button class="backlink" onclick="pv2Draft=null;go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+    +'<h1 class="page-title">'+_FL('Nouveau partage','New share')+'</h1>'
+    +'<div class="panel"><div style="padding:18px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Nom du partage','Share name')+'</label><input id="pv2-titre" value="'+esc(d.titre)+'" placeholder="'+_FL('Ex. Week-end à Lisbonne','E.g. Weekend in Lisbon')+'"></div>'
+    +'<div class="field" style="max-width:280px"><label>'+_FL('Devise du partage','Share currency')+'</label><select id="pv2-cur">'+curOpts+'</select></div>'
+    +'<div class="field"><label>'+_FL('Participants (un par ligne)','Participants (one per line)')+'</label>'
+    +'<textarea id="pv2-mem" rows="5" placeholder="'+_FL('Vous, Amicie, Adrien, Krol…','You, Amicie, Adrien, Krol…')+'">'+esc(d.membersText)+'</textarea>'
+    +'<div class="hint" style="margin-top:6px">'+_FL('Mettez tout le monde — chacun pourra ensuite ouvrir le lien et saisir ses propres dépenses.','Add everyone — each can then open the link and enter their own expenses.')+'</div></div>'
+    +'</div></div>'
+    +'<div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="pv2DoCreate()">'+_FL('Créer et obtenir le lien','Create and get the link')+'</button>'
+    +'<button class="btn btn-ghost" onclick="pv2Draft=null;go(\'partages\')">'+_FL('Annuler','Cancel')+'</button></div>'
+    +footer();
 }
-function pSave(){
-  const title=(($('#p-title').value)||'').trim()||tr('pt_create_title');
-  const face=$('#p-face').value, cur=$('#p-cur').value;
-  if(pDraft&&pDraft.editId){
-    const p=getP(pDraft.editId);
-    if(p){ p.title=title; p.face=face; p.cur=cur;
-      if(!(p.expenses&&p.expenses.length)){ const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean); p.members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur}))); } }
-    const eid=pDraft.editId; pDraft=null;
-    if(BACKEND==='supabase'){db.savePartage(getP(eid)).then(()=>openPartage(eid)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
-    saveLocal(); openPartage(eid); return;
-  }
-  const others=(($('#p-members').value)||'').split('\n').map(s=>s.trim()).filter(Boolean);
-  const members=[{name:state.user,cur:cur}].concat(others.map(n=>({name:n,cur:cur})));
-  const id=newId('p');
-  state_partages.unshift({id,title,face,cur,members,me:0,expenses:[],settlements:[]});
-  pDraft=null;
-  if(BACKEND==='supabase'){db.savePartage(getP(id)).then(()=>openPartage(id)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
-  openPartage(id);
+async function pv2DoCreate(){
+  const g=function(id){const e=document.getElementById(id);return e?String(e.value):'';};
+  const titre=g('pv2-titre').trim()||_FL('Partage','Share');
+  const devise=g('pv2-cur')||'CHF';
+  const mem=g('pv2-mem').split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  if(pv2Busy)return; pv2Busy=true;
+  try{ const r=await pv2Create(titre,devise,mem);
+    pv2Remember({id:r.id,token:r.token,titre:titre,devise:devise,me:(mem[0]||state.user||'')});
+    pv2Draft=null; pv2Busy=false; pv2LoadById(r.id);
+  }catch(e){ pv2Busy=false; alert(_FL('Création échouée : ','Creation failed: ')+(e.message||e)); }
 }
-function editPartage(id){ const p=getP(id); if(!p)return; pDraft={editId:id,title:p.title||'',face:p.face||'sortie',cur:p.cur||'EUR',membersText:(p.members||[]).slice(1).map(m=>m.name).join('\n')}; go('partagecreate'); }
-function delPartage(id){ if(!confirm(_FL('Supprimer ce partage ? Cette action est définitive.','Delete this share? This action is permanent.')))return;
-  const done=()=>{ state_partages=state_partages.filter(p=>p.id!==id); go('partages'); };
-  if(BACKEND==='supabase'){ db.deletePartage(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); }
-  else { done(); saveLocal(); } }
+
+/* --- Détail --- */
 function viewPartage(){
-  const p=getP(state.activePartage); if(!p)return go('partages');
-  const faceLbl=tr('pt_face_'+(p.face||'sortie'));
-  const tabs=`<div class="seg" style="margin-top:12px">
-      <button class="${state.partageTab==='depenses'?'on':''}" onclick="state.partageTab='depenses';render()">${tr('pt_tab_dep')}</button>
-      <button class="${state.partageTab==='soldes'?'on':''}" onclick="state.partageTab='soldes';render()">${tr('pt_tab_bal')}</button>
-      ${p.face==='maison'?`<button class="${state.partageTab==='mois'?'on':''}" onclick="state.partageTab='mois';render()">${tr('pt_tab_month')}</button>`:''}
-    </div>`;
-  const head=`
-    <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
-    <div><h1 class="page-title">${esc(p.title)}</h1>
-      <div class="t-meta">${faceLbl} · ${tr('pt_members_n').replace('{n}',p.members.length)} · ${p.cur}</div></div>
-    <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editPartage('${p.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delPartage('${p.id}')">🗑 Supprimer</button></div>
-    <div class="reassure">● ${tr('pt_reassure')}</div>
-    ${tabs}`;
-  let body;
-  if(state.partageTab==='soldes')body=pBalancesView(p);
-  else if(state.partageTab==='mois'&&p.face==='maison')body=pMonthView(p);
-  else body=pExpensesView(p);
-  app().innerHTML=head+body+footer();
+  if(!pv2Cur){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button><div class="panel"><div class="empty">'+_FL('Ouverture…','Opening…')+'</div></div>'+footer(); return; }
+  if(pv2Cur.error){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+      +'<div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Lien de partage invalide ou expiré','Invalid or expired share link')+'</div>'
+      +'<div class="msub" style="margin-top:6px">'+esc(pv2Cur.error)+'</div></div></div>'+footer(); return; }
+  const P=pv2Cur.partage, me=pv2Me(), names=pv2Names();
+  if(!me){ return pv2IdentityScreen(P,names); }
+  const tab=pv2Tab||'dep';
+  const seg='<div class="seg" style="margin-top:12px">'
+      +'<button class="'+(tab==='dep'?'on':'')+'" onclick="pv2Tab=\'dep\';render()">'+_FL('Dépenses','Expenses')+'</button>'
+      +'<button class="'+(tab==='me'?'on':'')+'" onclick="pv2Tab=\'me\';render()">'+_FL('Ma vue','My view')+'</button>'
+      +'<button class="'+(tab==='group'?'on':'')+'" onclick="pv2Tab=\'group\';render()">'+_FL('Vue du groupe','Group view')+'</button></div>';
+  let body; if(tab==='me')body=pv2MeView(); else if(tab==='group')body=pv2GroupView(); else body=pv2DepView();
+  app().innerHTML=''
+    +'<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+    +'<div><h1 class="page-title">'+esc(P.titre||_FL('Partage','Share'))+'</h1>'
+    +'<div class="t-meta">'+_FL('Partage','Share')+' · '+names.length+' '+_FL('participant·e·s','participants')+' · '+esc(P.devise||'CHF')+'</div></div>'
+    +'<div class="msub" style="margin:4px 0 2px">'+_FL('Vous participez en tant que','You are taking part as')+' <b>'+esc(me)+'</b> · <button class="linkbtn" onclick="pv2ChangeMe()">'+_FL('changer','change')+'</button></div>'
+    +'<div class="reassure">● '+_FL('UBORA enregistre qui doit quoi — l’argent circule entre vous, jamais par UBORA.','UBORA records who owes what — money flows between you, never through UBORA.')+'</div>'
+    +pv2InviteBlock()
+    +seg
+    +body
+    +footer();
+  setTimeout(pv2QRDraw,30);
+  setTimeout(pv2AnimateBalances,30);
 }
-function pToggleExp(pid){state.partageNew=!state.partageNew;
-  if(state.partageNew){const p=getP(pid);pExp={label:'',note:'',cat:'other',payer:pMyIndex(p),cur:p.cur,amount:null,mode:'egal',with:p.members.map((m,i)=>i),shares:{}};}else pExp=null;
-  render();}
-function pExpensesView(p){
-  if(state.partageNew&&!pExp)pExp={label:'',note:'',cat:'other',payer:pMyIndex(p),cur:p.cur,amount:null,mode:'egal',with:p.members.map((m,i)=>i),shares:{}};
-  const form=state.partageNew?pExpForm(p):'';
-  const rows=p.expenses.map(e=>pExpCard(p,e)).join('');
-  return `<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pToggleExp('${p.id}')">${state.partageNew?tr('cancel'):tr('pt_add_exp')}</button></div>
-    ${form}
-    ${rows||`<div class="panel"><div class="empty">${tr('pt_exp_none')}</div></div>`}`;
+function pv2IdentityScreen(P,names){
+  const needConsent=!pv2ConsentDone();
+  const opts=names.map(function(n,i){return '<button class="btn btn-ghost btn-sm" style="margin:4px" onclick="pv2PickMeIdx('+i+')">'+esc(n)+'</button>';}).join('');
+  app().innerHTML=''
+    +'<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+    +'<h1 class="page-title">'+esc(P.titre||_FL('Partage','Share'))+'</h1>'
+    +'<p class="lead">'+_FL('Pour saisir vos dépenses, dites-nous qui vous êtes dans ce partage.','To enter your expenses, tell us who you are in this share.')+'</p>'
+    +'<div class="panel"><div style="padding:18px 20px">'
+    +(names.length?'<div class="msub" style="margin-bottom:6px">'+_FL('Je suis :','I am:')+'</div><div>'+opts+'</div><div class="hint" style="margin:12px 0 6px">'+_FL('Votre nom n’y est pas ?','Your name isn’t there?')+'</div>':'')
+    +'<div class="row-gap"><div class="field" style="flex:1;min-width:180px;margin-top:0"><input id="pv2-me" placeholder="'+_FL('Votre prénom','Your first name')+'"></div>'
+    +'<button class="btn btn-gold btn-sm" onclick="pv2PickMeInput()">'+_FL('Continuer','Continue')+'</button></div>'
+    +(needConsent?'<label class="psplit-chk" style="margin-top:14px;display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="pv2-consent"> <span class="msub">'+_FL('J’accepte les','I accept the')+' <a href="#cgv" style="color:#C9A84C">'+_FL('Conditions','Terms')+'</a> '+_FL('et la','and the')+' <a href="#privacy" style="color:#C9A84C">'+_FL('Politique de confidentialité','Privacy Policy')+'</a>.</span></label>':'')
+    +'</div></div>'
+    +footer();
 }
-function pExpCard(p,e){
-  const off=e.split&&e.split.mode==='offert';
-  const tag=off?`<span class="pill poffert">${tr('pt_offert_tag')}</span>`:'';
-  const sub=off?tr('pt_offert_by').replace('{n}',pMemberName(p,e.payer)):tr('pt_paid_by').replace('{n}',pMemberName(p,e.payer));
-  const note=e.note?`<div class="msub" style="margin-top:4px">“${esc(e.note)}”</div>`:'';
-  const catL=tr('pt_cat_'+(e.cat||'other'));
-  return `<div class="panel"><div style="padding:14px 18px"><div class="between">
-    <div class="stack"><div class="mname">${esc(e.label||catL)} ${tag}</div><div class="msub">${sub} · ${catL}</div>${note}</div>
-    <div class="right"><span class="p-amt">${money(e.amount,e.cur)}</span>
-      <button class="linkbtn" onclick="pDelExp('${p.id}','${e.id}')">✕</button></div></div></div></div>`;
+function pv2ConsentDone(){ try{return localStorage.getItem('ubora_pv2_consent')==='1';}catch(e){return false;} }
+function pv2ConsentOk(){ if(pv2ConsentDone())return true; const c=document.getElementById('pv2-consent'); if(c&&!c.checked){alert(_FL('Merci d’accepter les conditions pour continuer.','Please accept the terms to continue.'));return false;} try{localStorage.setItem('ubora_pv2_consent','1');}catch(e){} return true; }
+function pv2PickMeIdx(i){ if(!pv2ConsentOk())return; const names=pv2Names(); const n=names[i]; if(n)pv2SetMe(n); }
+function pv2PickMeInput(){ const e=document.getElementById('pv2-me'); const n=e?e.value.trim():''; if(!n){alert(_FL('Indiquez votre nom.','Enter your name.'));return;} if(!pv2ConsentOk())return; pv2SetMe(n); }
+
+/* --- Invitation : lien + QR (généré DANS le navigateur) + WhatsApp/SMS/e-mail --- */
+function pv2InviteBlock(){
+  const link=pv2Link(pv2Cur.id,pv2Cur.token);
+  const msg=_FL('Rejoins notre partage de dépenses « ','Join our expense share “')+(pv2Cur.partage.titre||'')+_FL(' » sur UBORA : ','” on UBORA: ')+link;
+  const wa='https://wa.me/?text='+encodeURIComponent(msg);
+  const sms='sms:?&body='+encodeURIComponent(msg);
+  const mail='mailto:?subject='+encodeURIComponent(_FL('Partage de dépenses — UBORA','Expense share — UBORA'))+'&body='+encodeURIComponent(msg);
+  return '<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>'+_FL('Inviter les participants','Invite participants')+'</h3></div>'
+    +'<div style="padding:14px 18px;display:flex;gap:18px;flex-wrap:wrap;align-items:center">'
+    +'<div id="pv2qr" data-qr="'+esc(link)+'" style="width:168px;height:168px;flex:0 0 auto;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden"></div>'
+    +'<div style="flex:1;min-width:220px">'
+    +'<div class="msub">'+_FL('Partagez ce lien (ou le QR) par WhatsApp, SMS ou e-mail. Pas besoin de compte pour rejoindre.','Share this link (or the QR) via WhatsApp, SMS or email. No account needed to join.')+'</div>'
+    +'<div style="display:flex;gap:6px;margin:10px 0;align-items:center"><input id="pv2-link" readonly value="'+esc(link)+'" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:12.5px">'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2Copy()">'+_FL('Copier','Copy')+'</button></div>'
+    +'<div class="row-gap"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a>'
+    +'<a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a>'
+    +'<a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a></div>'
+    +'</div></div></div>';
 }
-function pDelExp(pid,eid){const p=getP(pid);p.expenses=p.expenses.filter(x=>x.id!==eid);pPersist(pid);render();}
-function pReadExpForm(){ if(!pExp)return; const g=id=>document.getElementById(id);
-  if(g('pe-label'))pExp.label=g('pe-label').value;
-  if(g('pe-payer'))pExp.payer=+g('pe-payer').value;
-  if(g('pe-amount')&&g('pe-amount').value!=='')pExp.amount=+g('pe-amount').value;
-  if(g('pe-cur'))pExp.cur=g('pe-cur').value;
-  if(g('pe-cat'))pExp.cat=g('pe-cat').value;
-  if(g('pe-note'))pExp.note=g('pe-note').value;
-  if(pExp.mode==='parts'||pExp.mode==='exact'){pExp.shares=pExp.shares||{};
-    document.querySelectorAll('[id^="psh-"]').forEach(inp=>{const i=+inp.id.split('-')[1]; if(inp.value!=='')pExp.shares[i]=+inp.value;});}
-  if(pExp.mode==='egal'){const w=[];document.querySelectorAll('[id^="pwi-"]').forEach(inp=>{if(inp.checked)w.push(+inp.id.split('-')[1]);});pExp.with=w.length?w:pExp.with;}
+function pv2Copy(){ const e=document.getElementById('pv2-link'); if(!e)return; try{e.select();}catch(_e){} let ok=false; try{navigator.clipboard.writeText(e.value);ok=true;}catch(_e){try{ok=document.execCommand('copy');}catch(__e){}} try{ const b=(typeof event!=='undefined')&&event&&event.target; if(b){const t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);} }catch(_e){} }
+function pv2QRDraw(){
+  const el=document.getElementById('pv2qr'); if(!el)return; const txt=el.getAttribute('data-qr')||'';
+  function draw(){ try{ el.innerHTML=''; new QRCode(el,{text:txt,width:168,height:168,colorDark:'#161B3D',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(e){ el.innerHTML='<div class="msub" style="padding:8px;text-align:center">'+_FL('QR indisponible — utilisez le lien.','QR unavailable — use the link.')+'</div>'; } }
+  if(window.QRCode){ draw(); return; }
+  if(window._pv2qrFail){ el.innerHTML='<div class="msub" style="padding:8px;text-align:center">'+_FL('QR indisponible — utilisez le lien.','QR unavailable — use the link.')+'</div>'; return; }
+  if(!window._pv2qrLoading){ window._pv2qrLoading=true; const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload=function(){ window._pv2qrLoading=false; pv2QRDraw(); }; s.onerror=function(){ window._pv2qrLoading=false; window._pv2qrFail=true; pv2QRDraw(); }; document.head.appendChild(s); }
 }
-function pSetMode(m){pReadExpForm();pExp.mode=m;render();}
-function pExpForm(p){
-  const opt=(v,cur,lbl)=>`<option value="${v}" ${v===cur?'selected':''}>${lbl||v}</option>`;
-  const x=pExp;
-  const payerSel=p.members.map((m,i)=>`<option value="${i}" ${i===x.payer?'selected':''}>${esc(m.name)}</option>`).join('');
-  const cats=['food','stay','transport','bills','grocery','fun','other'];
-  const catSel=cats.map(c=>opt(c,x.cat,tr('pt_cat_'+c))).join('');
-  const modeBtn=(m,lbl)=>`<button type="button" class="smode ${x.mode===m?'on':''}" onclick="pSetMode('${m}')">${lbl}</button>`;
+
+/* --- Vue Dépenses --- */
+function pv2DepView(){
+  const deps=pv2Cur.depenses||[];
+  const rows=deps.length?deps.map(pv2DepCard).join(''):'<div class="panel"><div class="empty">'+_FL('Aucune dépense pour l’instant.','No expense yet.')+'</div></div>';
+  return '<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2ToggleForm()">'+(pv2Exp?_FL('Annuler','Cancel'):'+ '+_FL('Ajouter une dépense','Add an expense'))+'</button></div>'
+    +(pv2Exp?pv2ExpForm():'')
+    +rows;
+}
+function pv2DepCard(d){
+  const P=pv2Cur.partage; const pe=pv2PE(d); const off=pe&&pe.mode==='offert';
+  const proof=(d.preuve_date||d.preuve_lieu||d.preuve_note)?'<div class="msub" style="margin-top:4px">📎 '+[d.preuve_date,d.preuve_lieu,d.preuve_note].filter(Boolean).map(esc).join(' · ')+'</div>':'';
+  const who=off?_FL('Offert','Gift'):((pe&&pe.who&&pe.who.length)?_FL('entre ','among ')+pe.who.length:_FL('entre tous','among all'));
+  return '<div class="panel"><div style="padding:14px 18px"><div class="between">'
+    +'<div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(off?'<span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div>'
+    +'<div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+who+'</div>'+proof+'</div>'
+    +'<div class="right"><span class="p-amt">'+money(Number(d.montant)||0, d.devise||P.devise)+'</span>'
+    +'<button class="linkbtn" onclick="pv2DoDel(\''+d.id+'\')">✕</button></div></div></div>';
+}
+function pv2ToggleForm(){ if(pv2Exp){pv2Exp=null;} else { pv2Exp={intitule:'',montant:'',devise:(pv2Cur.partage.devise||'CHF'),paye_par:pv2Me(),mode:'equal',who:pv2Names().slice(),preuve_date:'',preuve_lieu:'',preuve_note:'',proofOpen:false}; } render(); }
+function pv2ReadForm(){ if(!pv2Exp)return; const g=function(id){const e=document.getElementById(id);return e?e.value:'';};
+  pv2Exp.intitule=g('pv2-int'); if(g('pv2-mont')!=='')pv2Exp.montant=g('pv2-mont'); pv2Exp.devise=g('pv2-dev')||pv2Exp.devise; pv2Exp.paye_par=g('pv2-payer')||pv2Exp.paye_par;
+  pv2Exp.preuve_date=g('pv2-pd'); pv2Exp.preuve_lieu=g('pv2-pl'); pv2Exp.preuve_note=g('pv2-pn');
+  if(pv2Exp.mode==='some'){ const w=[]; document.querySelectorAll('[id^="pv2w-"]').forEach(function(c){ if(c.checked)w.push(c.getAttribute('data-n')); }); pv2Exp.who=w; }
+}
+function pv2SetSplit(m){ pv2ReadForm(); pv2Exp.mode=m; if(m==='equal')pv2Exp.who=pv2Names().slice(); render(); }
+function pv2ToggleProof(){ pv2ReadForm(); pv2Exp.proofOpen=!pv2Exp.proofOpen; render(); }
+function pv2ExpForm(){
+  const names=pv2Names(); const x=pv2Exp;
+  const payerOpts=names.map(function(n){return '<option value="'+esc(n)+'" '+(n===x.paye_par?'selected':'')+'>'+esc(n)+'</option>';}).join('');
+  const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===x.devise?'selected':'')+'>'+c+'</option>';}).join('');
+  const mbtn=function(m,l){return '<button type="button" class="smode '+(x.mode===m?'on':'')+'" onclick="pv2SetSplit(\''+m+'\')">'+l+'</button>';};
   let detail='';
-  if(x.mode==='offert')detail=`<div class="hint" style="margin-top:8px">${tr('pt_split_offert_hint')}</div>`;
-  else if(x.mode==='parts'||x.mode==='exact')
-    detail=`<div class="psplit-grid">`+p.members.map((m,i)=>`<div class="psplit-cell"><span>${esc(m.name)}</span><input type="number" id="psh-${i}" value="${x.shares&&x.shares[i]!=null?x.shares[i]:(x.mode==='parts'?1:'')}" placeholder="${x.mode==='parts'?'1':'0'}"></div>`).join('')+`</div>`;
-  else detail=`<div class="psplit-grid">`+p.members.map((m,i)=>`<label class="psplit-chk"><input type="checkbox" id="pwi-${i}" ${x.with.includes(i)?'checked':''}> ${esc(m.name)}</label>`).join('')+`</div>`;
-  return `<div class="panel"><div class="panel-h"><h3>${tr('pt_ef_title')}</h3></div><div style="padding:16px 20px">
-    <div class="field" style="margin-top:0"><label>${tr('pt_ef_label')}</label><input id="pe-label" placeholder="${tr('pt_ef_label_ph')}" value="${esc(x.label||'')}"></div>
-    <div class="row-gap">
-      <div class="field" style="flex:1;min-width:150px"><label>${tr('pt_ef_payer')}</label><select id="pe-payer">${payerSel}</select></div>
-      <div class="field" style="flex:1;min-width:120px"><label>${tr('pt_ef_amount')}</label><input type="number" id="pe-amount" placeholder="0" value="${x.amount!=null?x.amount:''}"></div>
-      <div class="field" style="flex:0 0 110px"><label>${tr('pt_ef_cur')}</label><select id="pe-cur">${CUR_ORDER.map(c=>opt(c,x.cur,c)).join('')}</select></div>
-    </div>
-    <div class="field"><label>${tr('pt_ef_cat')}</label><select id="pe-cat">${catSel}</select></div>
-    <div class="field"><label>${tr('pt_ef_why')}</label><input id="pe-note" placeholder="${tr('pt_ef_why_ph')}" value="${esc(x.note||'')}"></div>
-    <div class="field"><label>${tr('pt_ef_split')}</label><div class="split-modes">${modeBtn('egal',tr('pt_split_egal'))}${modeBtn('parts',tr('pt_split_parts'))}${modeBtn('exact',tr('pt_split_exact'))}${modeBtn('offert',tr('pt_split_offert'))}</div>${detail}</div>
-    <button class="btn btn-gold" style="margin-top:6px" onclick="pAddExp('${p.id}')">${tr('pt_ef_add_btn')}</button>
-  </div></div>`;
+  if(x.mode==='some')detail='<div class="psplit-grid">'+names.map(function(n,i){return '<label class="psplit-chk"><input type="checkbox" id="pv2w-'+i+'" data-n="'+esc(n)+'" '+((x.who||[]).indexOf(n)>=0?'checked':'')+'> '+esc(n)+'</label>';}).join('')+'</div>';
+  else if(x.mode==='offert')detail='<div class="hint" style="margin-top:8px">'+_FL('Offert : personne ne doit rien, celui qui paie l’offre.','Gift: nobody owes anything, the payer covers it.')+'</div>';
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Nouvelle dépense','New expense')+'</h3></div><div style="padding:16px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Intitulé','Label')+'</label><input id="pv2-int" value="'+esc(x.intitule||'')+'" placeholder="'+_FL('Ex. Hôtel, taxi, courses…','E.g. Hotel, taxi, groceries…')+'"></div>'
+    +'<div class="row-gap">'
+    +'<div class="field" style="flex:1;min-width:140px"><label>'+_FL('Payé par','Paid by')+'</label><select id="pv2-payer">'+payerOpts+'</select></div>'
+    +'<div class="field" style="flex:1;min-width:110px"><label>'+_FL('Montant','Amount')+'</label><input type="number" id="pv2-mont" value="'+(x.montant!==''?esc(String(x.montant)):'')+'" placeholder="0"></div>'
+    +'<div class="field" style="flex:0 0 100px"><label>'+_FL('Devise','Currency')+'</label><select id="pv2-dev">'+curOpts+'</select></div></div>'
+    +'<div class="field"><label>'+_FL('Partagé','Split')+'</label><div class="split-modes">'+mbtn('equal',_FL('Entre tous','Among all'))+mbtn('some',_FL('Entre certains','Among some'))+mbtn('offert',_FL('Offert','Gift'))+'</div>'+detail+'</div>'
+    +'<div class="field" style="margin-top:6px"><button type="button" class="linkbtn" onclick="pv2ToggleProof()">'+(x.proofOpen?'− ':'+ ')+_FL('Ajouter une preuve (facultatif)','Add a proof (optional)')+'</button></div>'
+    +(x.proofOpen?'<div class="row-gap">'
+      +'<div class="field" style="flex:1;min-width:120px;margin-top:0"><label>'+_FL('Date','Date')+'</label><input type="date" id="pv2-pd" value="'+esc(x.preuve_date||'')+'"></div>'
+      +'<div class="field" style="flex:1;min-width:120px;margin-top:0"><label>'+_FL('Lieu','Place')+'</label><input id="pv2-pl" value="'+esc(x.preuve_lieu||'')+'" placeholder="'+_FL('Ex. Lisbonne','E.g. Lisbon')+'"></div>'
+      +'<div class="field" style="flex:2;min-width:140px;margin-top:0"><label>'+_FL('Note','Note')+'</label><input id="pv2-pn" value="'+esc(x.preuve_note||'')+'" placeholder="'+_FL('Ex. n° de reçu','E.g. receipt no.')+'"></div></div>'
+      +'<div class="hint">'+_FL('La preuve n’est jamais obligatoire — elle rassure le groupe, sans bloquer la saisie.','Proof is never mandatory — it reassures the group, without blocking entry.')+'</div>':'')
+    +'<button class="btn btn-gold" style="margin-top:10px" onclick="pv2DoAdd()">'+_FL('Enregistrer la dépense','Save the expense')+'</button>'
+    +'</div></div>';
 }
-function pAddExp(pid){
-  pReadExpForm(); const p=getP(pid),x=pExp;
-  if(!x.amount||x.amount<=0)return;
-  const split={mode:x.mode};
-  if(x.mode==='egal')split.with=(x.with&&x.with.length)?x.with.slice():p.members.map((m,i)=>i);
-  if(x.mode==='parts'||x.mode==='exact'){split.with=p.members.map((m,i)=>i);split.shares=Object.assign({},x.shares);}
-  p.expenses.unshift({id:newId('e'),label:x.label||'',note:x.note||'',cat:x.cat||'other',payer:x.payer||0,amount:+x.amount,cur:x.cur||p.cur,split,month:pMonthNow()});
-  state.partageNew=false; pExp=null; pPersist(pid); render();
+async function pv2DoAdd(){
+  pv2ReadForm(); const x=pv2Exp; const amt=parseFloat(String(x.montant).replace(',','.'));
+  if(!(amt>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  if(!x.paye_par){alert(_FL('Indiquez qui a payé.','Say who paid.'));return;}
+  let pe; if(x.mode==='offert')pe={mode:'offert'}; else if(x.mode==='some')pe={mode:'equal',who:((x.who&&x.who.length)?x.who:pv2Names())}; else pe={mode:'equal',who:null};
+  const obj={auteur:pv2Me(),intitule:x.intitule||'',montant:amt,devise:x.devise||pv2Cur.partage.devise,paye_par:x.paye_par,partage_entre:pe,preuve_date:x.preuve_date||'',preuve_lieu:x.preuve_lieu||'',preuve_note:x.preuve_note||''};
+  if(pv2Busy)return; pv2Busy=true;
+  try{ await pv2AddDep(pv2Cur.id,pv2Cur.token,obj); pv2Exp=null; pv2Busy=false; await pv2Refresh(); }
+  catch(e){ pv2Busy=false; alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)); }
 }
-function pBalancesView(p){
-  const me=pMyIndex(p), view=state.partageViewCur||pMyCur(p), bal=pBalances(p);
-  const curSel=CUR_ORDER.map(c=>`<option value="${c}" ${c===view?'selected':''}>${CUR_LABEL[c]}</option>`).join('');
-  const balRows=p.members.map((m,i)=>{
-    const v=Math.round(fxConvert(bal[i],p.cur,view)); let s;
-    if(v>1)s=`<span class="pbal-pos">${money(v,view)} · ${tr('pt_bal_pos')}</span>`;
-    else if(v<-1)s=`<span class="pbal-neg">${money(-v,view)} · ${tr('pt_bal_neg')}</span>`;
-    else s=`<span class="faint">${tr('pt_bal_zero')}</span>`;
-    return `<div class="mrow">${avatar(m.name)}<div class="stack"><div class="mname">${esc(m.name)}</div></div><div class="right">${s}</div></div>`;
-  }).join('');
-  const sugg=pSettleSuggest(p);
-  const settleRows=sugg.length?sugg.map(t=>{
-    const amtView=Math.round(fxConvert(t.amount,p.cur,view));
-    const rec=(p.settlements||[]).find(x=>x.from===t.from&&x.to===t.to&&x.status==='sent');
-    let action;
-    if(rec){ action=(t.to===me)
-        ?`<button class="btn btn-green btn-sm" onclick="pSettleConfirm('${p.id}',${t.from},${t.to})">${tr('pt_settle_confirm')}</button>`
-        :`<span class="msub">${tr('pt_settle_sent_wait')} · <button class="linkbtn" onclick="pSettleCancel('${p.id}',${t.from},${t.to})">${tr('cancel')}</button></span>`;
-    } else { action=(t.from===me)
-        ?`<span style="display:inline-flex;align-items:center;gap:6px"><input id="pay-${p.id}-${t.from}-${t.to}" type="number" min="1" value="${amtView}" style="width:92px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:13px"><button class="btn btn-gold btn-sm" onclick="pPay('${p.id}',${t.from},${t.to})">${tr('pt_settle_pay')}</button></span>`
-        :`<span class="msub">—</span>`; }
-    return `<div class="settle-row"><span class="settle-flow">${esc(pMemberName(p,t.from))} <span class="gold">→</span> ${esc(pMemberName(p,t.to))}</span><span class="settle-amt">${money(amtView,view)}</span>${action}</div>`;
-  }).join(''):`<div class="empty">${tr('pt_settle_allclear')}</div>`;
-  return `<div class="panel"><div class="panel-h"><h3>${tr('pt_bal_title')}</h3>
-      <span class="cur-pick"><label>${tr('pt_view_cur')}</label><select onchange="state.partageViewCur=this.value;render()">${curSel}</select></span></div>
-    <div style="padding:4px 0">${balRows}</div></div>
-   <div class="panel"><div class="panel-h"><h3>${tr('pt_settle_title')}</h3></div>
-     <div style="padding:10px 20px 8px"><div class="msub" style="margin-bottom:10px">${tr('pt_settle_hint')} ${tr('pt_settle_partial')}</div>${settleRows}</div></div>`;
+async function pv2DoDel(depId){ if(!confirm(_FL('Supprimer cette dépense ?','Delete this expense?')))return; try{ await pv2DelDep(pv2Cur.id,pv2Cur.token,depId); await pv2Refresh(); }catch(e){ alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e)); } }
+
+/* --- Ma vue --- */
+function pv2MeView(){
+  const b=pv2Balances(), gcur=b.gcur, names=b.names, bal=b.bal, me=pv2Me();
+  const myNet=Math.round(bal[me]||0);
+  const settle=pv2Settle(bal,names);
+  const mine=settle.filter(function(t){return t.from===me||t.to===me;});
+  let head;
+  if(myNet>1)head='<div class="msub">'+_FL('Au total, on vous doit','In total, you are owed')+'</div><div class="pbal-pos" style="font-size:30px;font-weight:700"><span class="pv2roll" data-name="'+esc(me)+'" data-to="'+myNet+'" data-cur="'+gcur+'">'+money(myNet,gcur)+'</span></div>';
+  else if(myNet<-1)head='<div class="msub">'+_FL('Au total, vous devez','In total, you owe')+'</div><div class="pbal-neg" style="font-size:30px;font-weight:700"><span class="pv2roll" data-name="'+esc(me)+'" data-to="'+myNet+'" data-cur="'+gcur+'">'+money(-myNet,gcur)+'</span></div>';
+  else head='<div class="faint" style="font-size:20px">'+_FL('Vous êtes à jour ✓','You are settled ✓')+'</div>';
+  const rows=mine.length?mine.map(function(t){ const dir=t.from===me; const amt=money(Math.round(t.amount),gcur);
+    const btn=dir
+      ?'<a class="btn btn-ghost btn-sm" href="https://wa.me/?text='+encodeURIComponent(_FL('Je te règle ','I’m settling ')+amt+_FL(' pour « ','  for “')+(pv2Cur.partage.titre||'')+' ”.')+'" target="_blank" rel="noopener">'+_FL('Prévenir','Notify')+'</a>'
+      :'<a class="btn btn-ghost btn-sm" href="https://wa.me/?text='+encodeURIComponent(_FL('Petit rappel : il reste ','Gentle reminder: ')+amt+_FL(' à régler pour « ','  left for “')+(pv2Cur.partage.titre||'')+' ”.')+'" target="_blank" rel="noopener">'+_FL('Relancer','Remind')+'</a>';
+    const flow=dir?(_FL('Vous','You')+' <span class="gold">→</span> '+esc(t.to)):(esc(t.from)+' <span class="gold">→</span> '+_FL('Vous','You'));
+    return '<div class="settle-row"><span class="settle-flow">'+flow+'</span><span class="settle-amt">'+amt+'</span>'+btn+'</div>'; }).join('')
+    :'<div class="empty">'+_FL('Rien à régler de votre côté.','Nothing to settle on your side.')+'</div>';
+  return '<div class="panel"><div style="padding:18px 20px;text-align:center">'+head+'</div></div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Vos règlements','Your settlements')+'</h3></div><div style="padding:10px 20px 8px">'
+    +'<div class="msub" style="margin-bottom:10px">'+_FL('Le moins de virements possible. L’argent circule directement entre vous — UBORA n’encaisse rien.','As few transfers as possible. Money flows directly between you — UBORA cashes nothing.')+'</div>'+rows+'</div></div>';
 }
-function pMonthView(p){
-  const m=pMonthNow();
-  const monthExp=p.expenses.filter(e=>(e.month||pMonthNow())===m&&!(e.split&&e.split.mode==='offert'));
-  let total=0; const due=new Array(p.members.length).fill(0),paid=new Array(p.members.length).fill(0);
-  monthExp.forEach(e=>{ const amt=fxConvert(e.amount,e.cur,p.cur); total+=amt; paid[e.payer]+=amt;
-    const sh=pShares(p,e); Object.keys(sh).forEach(k=>{due[+k]+=sh[k];}); });
-  const rows=p.members.map((mb,i)=>{
-    const net=Math.round(paid[i]-due[i]);
-    const tag=(net>=-1)?`<span class="pill p-now">${tr('pt_month_covered')}</span>`:`<span class="pbal-neg">${tr('pt_month_due').replace('{x}',money(-net,p.cur))}</span>`;
-    return `<div class="mrow">${avatar(mb.name)}<div class="stack"><div class="mname">${esc(mb.name)}</div>
-      <div class="msub">${tr('pt_month_paid').replace('{x}',money(Math.round(paid[i]),p.cur)).replace('{y}',money(Math.round(due[i]),p.cur))}</div></div>
-      <div class="right">${tag}</div></div>`;
-  }).join('');
-  return `<div class="panel"><div class="panel-h"><h3>${tr('pt_month_title').replace('{m}',pMonthLabel(m))}</h3></div>
-    <div style="padding:10px 20px 8px"><div class="msub" style="margin-bottom:8px">${tr('pt_month_hint')}</div>
-      <div class="t-meta" style="margin-bottom:8px">${tr('pt_month_total').replace('{x}',money(Math.round(total),p.cur))}</div>${rows}</div></div>`;
+
+/* --- Vue du groupe --- */
+function pv2GroupView(){
+  const b=pv2Balances(), gcur=b.gcur, names=b.names, bal=b.bal;
+  const balRows=names.map(function(n){ const v=Math.round(bal[n]||0); let s;
+    if(v>1)s='<span class="pbal-pos"><span class="pv2roll" data-name="'+esc(n)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(v,gcur)+'</span> · '+_FL('on lui doit','is owed')+'</span>';
+    else if(v<-1)s='<span class="pbal-neg"><span class="pv2roll" data-name="'+esc(n)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(-v,gcur)+'</span> · '+_FL('doit','owes')+'</span>';
+    else s='<span class="faint">'+_FL('à jour','settled')+'</span>';
+    return '<div class="mrow">'+avatar(n)+'<div class="stack"><div class="mname">'+esc(n)+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  const settle=pv2Settle(bal,names);
+  const sRows=settle.length?settle.map(function(t){return '<div class="settle-row"><span class="settle-flow">'+esc(t.from)+' <span class="gold">→</span> '+esc(t.to)+'</span><span class="settle-amt">'+money(Math.round(t.amount),gcur)+'</span></div>';}).join(''):'<div class="empty">'+_FL('Tout est équilibré ✓','All balanced ✓')+'</div>';
+  const total=(pv2Cur.depenses||[]).reduce(function(s,d){const pe=pv2PE(d);if(pe&&pe.mode==='offert')return s;return s+fxConvert(Number(d.montant)||0,d.devise||gcur,gcur);},0);
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Soldes du groupe','Group balances')+'</h3><button class="linkbtn" onclick="pv2ToggleSound()" title="'+_FL('Son du décompte','Counter sound')+'">'+(pv2SoundOn()?'🔈':'🔇')+'</button></div>'
+    +'<div style="padding:4px 0">'+balRows+'</div>'
+    +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Total des dépenses partagées','Total shared expenses')+' : '+money(Math.round(total),gcur)+'</div></div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Règlement suggéré','Suggested settlement')+'</h3></div>'
+    +'<div style="padding:10px 20px 8px"><div class="msub" style="margin-bottom:10px">'+_FL('Qui rembourse qui, en un minimum de virements. Transparent pour tout le monde — pour lever toute suspicion.','Who pays back whom, in as few transfers as possible. Transparent for everyone — to remove any suspicion.')+'</div>'+sRows+'</div></div>';
 }
+
+/* --- Décompte animé (effet « odomètre » premium) + son discret optionnel --- */
+function pv2SoundOn(){ try{return localStorage.getItem('ubora_pv2_sound')==='1';}catch(e){return false;} }
+function pv2ToggleSound(){ try{localStorage.setItem('ubora_pv2_sound',pv2SoundOn()?'0':'1');}catch(e){} render(); }
+function pv2Tick(){ if(!pv2SoundOn())return; try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; pv2AC=pv2AC||new AC(); const t=pv2AC.currentTime; const o=pv2AC.createOscillator(),g=pv2AC.createGain(); o.type='sine'; o.frequency.value=1250; o.connect(g); g.connect(pv2AC.destination); g.gain.setValueAtTime(0.028,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05); o.start(t); o.stop(t+0.06); }catch(e){} }
+function pv2AnimateBalances(){
+  const els=document.querySelectorAll('.pv2roll'); if(!els.length)return;
+  els.forEach(function(el){
+    const name=el.getAttribute('data-name')||'';
+    const cur=el.getAttribute('data-cur')||'CHF';
+    const to=parseFloat(el.getAttribute('data-to'))||0;
+    const key=name+'|'+cur;
+    const from=(pv2Last[key]!=null)?pv2Last[key]:0;
+    pv2Last[key]=to;
+    if(Math.abs(to-from)<1){ el.textContent=money(Math.abs(Math.round(to)),cur); return; }
+    const dur=680,t0=performance.now(); let lastTick=0;
+    function stepf(now){ let k=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-k,3); const v=from+(to-from)*e;
+      el.textContent=money(Math.abs(Math.round(v)),cur);
+      if(now-lastTick>45){ pv2Tick(); lastTick=now; }
+      if(k<1)requestAnimationFrame(stepf); else el.textContent=money(Math.abs(Math.round(to)),cur); }
+    requestAnimationFrame(stepf);
+  });
+}
+
 
 function viewApex(){
   const f=apexFigures(), dc=f.dc;
@@ -8951,7 +9063,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.21';
+const UBORA_BUILD='v9.22';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -9598,6 +9710,18 @@ async function boot(){
       </div></div>`;
     return;
   }
+  /* 0-sexies) Lien de PARTAGE v2 (#p=<id>~<token>) — accès SANS compte par le token du lien */
+  try{
+    var _pp=(location.hash||'').match(/[#&]p=([^~&]+)~([A-Za-z0-9]+)/);
+    if(_pp){
+      if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
+      pv2LoadReg();
+      await pv2OpenPublic(decodeURIComponent(_pp[1]), _pp[2]);
+      try{ showBackendBadge(); }catch(e){}
+      return;
+    }
+  }catch(e){}
+
   /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
   let _pendingJoin=null;
   try{
