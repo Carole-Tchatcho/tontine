@@ -2981,7 +2981,7 @@ function render(){
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
-  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate'||state.view==='partageedit'||state.view==='pattestlist')$('#nav-partage').classList.add('on');
+  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate'||state.view==='partageedit'||state.view==='pattestlist'||state.view==='couples'||state.view==='couplecreate'||state.view==='couple'||state.view==='couplesettings')$('#nav-partage').classList.add('on');
   /* Niveaux et Diffusion ne sont plus dans la barre : le bandeau « Votre
      niveau » de l'accueil mène déjà à la pyramide, et « Diffusion » est un
      bouton posé à côté de ce qu'on diffuse. Deux onglets qui doublonnaient
@@ -3000,7 +3000,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -6837,6 +6837,7 @@ async function pv2LoadMine(){
 function viewPartages(){
   pv2LoadReg();
   if(state&&state.uid)pv2LoadMine();
+  if(state&&state.uid&&!state._cpInvChecked){ state._cpInvChecked=true; cpLoadInvites().then(function(){ if(state.view==='partages'&&cpInvites.length)render(); }); }
   const cards=PV2.map(function(r){ return '<div class="panel p-card" onclick="openPartage(\''+esc(r.id)+'\')">'
       +'<div class="panel-h"><h3>'+esc(r.titre||_FL('Partage','Share'))+'</h3><span class="pill p-face">'+esc(r.devise||'CHF')+'</span></div>'
       +'<div style="padding:12px 20px 16px"><div class="between"><span class="msub">'+(r.me?_FL('Vous : ','You: ')+esc(r.me):_FL('Ouvrir','Open'))+'</span><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div></div>'; }).join('');
@@ -6846,7 +6847,9 @@ function viewPartages(){
     +'<div class="reassure">● '+_FL('UBORA enregistre qui doit quoi — l’argent circule entre vous, jamais par UBORA.','UBORA records who owes what — money flows between you, never through UBORA.')+'</div>'
     +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2StartCreate()">+ '+_FL('Nouveau partage','New share')+'</button>'
     +'<button class="btn btn-ghost btn-sm" onclick="pv2PromptJoin()">'+_FL('Rejoindre par un lien','Join via a link')+'</button>'
-    +((state&&state.uid)?'<button class="btn btn-ghost btn-sm" onclick="pv2OpenArchive()">'+_FL('Mes attestations','My attestations')+'</button>':'')+'</div>'
+    +((state&&state.uid)?'<button class="btn btn-ghost btn-sm" onclick="pv2OpenArchive()">'+_FL('Mes attestations','My attestations')+'</button>':'')
+    +((state&&state.uid)?'<button class="btn btn-ghost btn-sm" onclick="cpStart()">'+_FL('Espace couple / foyer','Couple / household')+'</button>':'')+'</div>'
+    +cpInviteBanner()
     +(cards||'<div class="panel"><div class="empty">'+_FL('Aucun partage pour l’instant. Créez-en un, ou ouvrez le lien qu’on vous a envoyé.','No share yet. Create one, or open the link you were sent.')+'</div></div>')
     +footer();
 }
@@ -7263,6 +7266,221 @@ function viewPAttestList(){
     +'<p class="lead">'+_FL('Vos relevés de partage émis — archivés et vérifiables.','Your issued share statements — archived and verifiable.')+'</p>'
     +'<div class="panel"><div style="padding:6px 16px 12px">'+list+'</div></div>'+footer();
 }
+
+/* ===================== MODE COUPLE / FOYER — espace à comptes (RLS) =====================
+   Confidentialité « sans faille » : accès réservé aux comptes membres, enforcé par RLS.
+   SQL : COUPLE-v1-socle.sql. Répartition prorata par défaut (quote-parts), surchargeable
+   par dépense. Dépenses récurrentes (chaque mois). Crédit reporté de mois en mois. */
+let cpCur=null, cpMonth=null, cpExp=null, cpBusy=false, cpInvites=[];
+function cpMonthNow(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function cpMonthLabel(m){ try{ const p=m.split('-'); const dt=new Date(+p[0],+p[1]-1,1); return dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{month:'long',year:'numeric'}); }catch(e){ return m; } }
+function cpMonthAdd(m,delta){ const p=m.split('-'); let y=+p[0], mo=+p[1]-1+delta; y+=Math.floor(mo/12); mo=((mo%12)+12)%12; return y+'-'+String(mo+1).padStart(2,'0'); }
+function cpMonthsBetween(a,b){ const pa=a.split('-'), pb=b.split('-'); return (+pb[0]*12+(+pb[1]-1)) - (+pa[0]*12+(+pa[1]-1)) + 1; }
+async function cpsb(){ if(typeof sb==='undefined'||!sb){ try{await initSB();}catch(e){} } return sb; }
+
+async function cpLoadInvites(){ try{ await cpsb(); const r=await sb.rpc('couple_invites'); cpInvites=(r&&!r.error&&Array.isArray(r.data))?r.data:[]; }catch(e){ cpInvites=[]; } }
+async function cpMineList(){ await cpsb(); const r=await sb.from('couples').select('*').order('created_at',{ascending:false}); if(r.error)throw r.error; return r.data||[]; }
+async function cpLoad(id){
+  await cpsb();
+  const c=await sb.from('couples').select('*').eq('id',id).single(); if(c.error)throw c.error;
+  const mem=await sb.from('couple_membres').select('*').eq('couple_id',id); if(mem.error)throw mem.error;
+  const dep=await sb.from('couple_depenses').select('*').eq('couple_id',id); if(dep.error)throw dep.error;
+  cpCur={id:id, couple:c.data, membres:mem.data||[], depenses:dep.data||[]};
+}
+function cpActifs(){ return (cpCur.membres||[]).filter(function(m){return m.statut==='actif'&&m.uid;}); }
+function cpMemName(uid){ var m=(cpCur.membres||[]).find(function(x){return x.uid===uid;}); return m?(m.nom||m.email||'?'):'?'; }
+function cpMyUid(){ return state.uid; }
+function cpShareOf(d){
+  const gcur=cpCur.couple.devise||'CHF';
+  if(d.mode==='offert')return {};
+  const amt=fxConvert(Number(d.montant)||0, d.devise||gcur, gcur);
+  const act=cpActifs(); const out={};
+  if(d.mode==='exact'){ var sh=d.shares||{}; if(typeof sh==='string'){try{sh=JSON.parse(sh);}catch(e){sh={};}} Object.keys(sh||{}).forEach(function(u){ out[u]=fxConvert(Number(sh[u])||0, d.devise||gcur, gcur); }); return out; }
+  if(d.mode==='prorata'){ var tot=0; act.forEach(function(m){tot+=(Number(m.quote)||1);}); if(!tot)tot=act.length||1; act.forEach(function(m){ out[m.uid]=amt*(Number(m.quote)||1)/tot; }); return out; }
+  var n=act.length||1; act.forEach(function(m){ out[m.uid]=amt/n; }); return out;
+}
+function cpMonthExp(M){ return (cpCur.depenses||[]).filter(function(d){ if(d.recurrent){ return (d.mois||'')<=M; } return (d.mois||'')===M; }); }
+function cpBalMonth(M){
+  const gcur=cpCur.couple.devise||'CHF'; const bal={}; cpActifs().forEach(function(m){bal[m.uid]=0;});
+  cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return;
+    const amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur);
+    if(d.paye_par){ if(bal[d.paye_par]==null)bal[d.paye_par]=0; bal[d.paye_par]+=amt; }
+    const sh=cpShareOf(d); Object.keys(sh).forEach(function(u){ if(bal[u]==null)bal[u]=0; bal[u]-=sh[u]; });
+  });
+  return bal;
+}
+function cpBalCumul(){
+  const gcur=cpCur.couple.devise||'CHF'; const now=cpMonthNow(); const bal={}; cpActifs().forEach(function(m){bal[m.uid]=0;});
+  (cpCur.depenses||[]).forEach(function(d){ if(d.mode==='offert')return;
+    var times=1;
+    if(d.recurrent){ var start=d.mois||now; if(start>now)return; times=cpMonthsBetween(start, now); if(times<1)times=1; }
+    const amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur)*times;
+    if(d.paye_par){ if(bal[d.paye_par]==null)bal[d.paye_par]=0; bal[d.paye_par]+=amt; }
+    const sh=cpShareOf(d); Object.keys(sh).forEach(function(u){ if(bal[u]==null)bal[u]=0; bal[u]-=sh[u]*times; });
+  });
+  return bal;
+}
+
+/* --- Entrée + liste --- */
+function cpStart(){ state.view='couples'; cpCur=null; state._cpList=undefined; render(); cpBootList(); }
+async function cpBootList(){ try{ await cpLoadInvites(); state._cpList=await cpMineList(); }catch(e){ state._cpList=[]; } render(); }
+function cpInviteBanner(){
+  if(!(cpInvites&&cpInvites.length))return '';
+  return '<div class="panel" style="border:1px solid #C9A24B66;background:#FBF7EC;margin:10px 0"><div style="padding:12px 16px"><div class="mname" style="color:#7A5C12">'+_FL('Vous avez une invitation à un espace couple','You have a couple-space invitation')+'</div><div style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="cpStart()">'+_FL('Voir l’invitation','See the invitation')+'</button></div></div></div>';
+}
+function viewCouples(){
+  if(state._cpList===undefined){ cpBootList(); }
+  const list=(state._cpList||[]);
+  const inv=(cpInvites||[]).map(function(iv){ return '<div class="panel" style="border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:14px 18px"><div class="mname">'+_FL('Invitation à un espace couple','Invitation to a couple space')+'</div><div class="msub" style="margin-top:3px">'+esc(iv.nom||'')+'</div><div style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="cpAccept(\''+iv.couple_id+'\')">'+_FL('Accepter','Accept')+'</button></div></div></div>'; }).join('');
+  const cards=list.map(function(c){ return '<div class="panel p-card" onclick="cpOpen(\''+c.id+'\')"><div class="panel-h"><h3>'+esc(c.nom||_FL('Notre foyer','Our household'))+'</h3><span class="pill p-face">'+esc(c.devise||'CHF')+'</span></div><div style="padding:12px 20px 16px"><div class="between"><span class="msub">'+_FL('Espace confidentiel à comptes','Private account-based space')+'</span><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div></div>'; }).join('');
+  app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+    +'<h1 class="page-title">'+_FL('Espace couple / foyer','Couple / household space')+'</h1>'
+    +'<p class="lead">'+_FL('Les comptes d’un ménage, confidentiels — visibles uniquement par ses membres connectés. Dépenses récurrentes, rééquilibrage automatique, crédit reporté.','A household’s accounts, private — visible only to its signed-in members. Recurring expenses, automatic rebalancing, carried-over credit.')+'</p>'
+    +'<div class="reassure">● '+_FL('Confidentialité verrouillée au niveau de la base : aucun lien n’ouvre cet espace.','Confidentiality locked at the database level: no link can open this space.')+'</div>'
+    +(inv?('<div style="margin:10px 0">'+inv+'</div>'):'')
+    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="cpStartCreate()">+ '+_FL('Créer un espace couple','Create a couple space')+'</button></div>'
+    +(cards||'<div class="panel"><div class="empty">'+_FL('Aucun espace pour l’instant.','No space yet.')+'</div></div>')
+    +footer();
+}
+
+/* --- Création --- */
+function cpStartCreate(){ state._cpDraft={nom:'',devise:(state.apexCur||'CHF'),email:''}; state.view='couplecreate'; render(); }
+function viewCoupleCreate(){
+  const d=state._cpDraft||{nom:'',devise:'CHF',email:''}; const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===d.devise?'selected':'')+'>'+CUR_LABEL[c]+'</option>';}).join('');
+  app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button>'
+    +'<h1 class="page-title">'+_FL('Créer un espace couple','Create a couple space')+'</h1>'
+    +'<div class="panel"><div style="padding:18px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Nom du foyer','Household name')+'</label><input id="cp-nom" value="'+esc(d.nom)+'" placeholder="'+_FL('Ex. Notre maison','E.g. Our home')+'"></div>'
+    +'<div class="field" style="max-width:280px"><label>'+_FL('Devise','Currency')+'</label><select id="cp-cur">'+curOpts+'</select></div>'
+    +'<div class="field"><label>'+_FL('E-mail de votre partenaire','Your partner’s email')+'</label><input id="cp-email" type="email" value="'+esc(d.email)+'" placeholder="partenaire@email.com"></div>'
+    +'<div class="hint" style="margin-top:6px">'+_FL('Votre partenaire se connecte avec CE compte pour accepter. Aucun lien ne donne accès — c’est ce qui garantit la confidentialité.','Your partner signs in with THIS account to accept. No link grants access — that’s what guarantees privacy.')+'</div>'
+    +'</div></div>'
+    +'<div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="cpDoCreate()">'+_FL('Créer et inviter','Create and invite')+'</button>'
+    +'<button class="btn btn-ghost" onclick="go(\'couples\')">'+_FL('Annuler','Cancel')+'</button></div>'
+    +footer();
+}
+async function cpDoCreate(){
+  const g=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const nom=g('cp-nom')||_FL('Notre foyer','Our household'), devise=g('cp-cur')||'CHF', email=g('cp-email');
+  if(cpBusy)return; cpBusy=true;
+  try{ await cpsb(); const r=await sb.rpc('couple_create',{p_nom:nom,p_devise:devise,p_invite_email:email,p_invite_nom:null}); if(r.error)throw r.error;
+    cpBusy=false; cpOpen(r.data);
+  }catch(e){ cpBusy=false; alert(_FL('Création échouée : ','Creation failed: ')+(e.message||e)); }
+}
+async function cpAccept(id){
+  var nom=prompt(_FL('Votre prénom dans ce foyer :','Your first name in this household:'))||'';
+  if(cpBusy)return; cpBusy=true;
+  try{ await cpsb(); const r=await sb.rpc('couple_accept',{p_couple:id,p_nom:nom}); if(r.error)throw r.error; cpBusy=false; cpOpen(id); }
+  catch(e){ cpBusy=false; alert(_FL('Échec : ','Failed: ')+(e.message||e)); }
+}
+
+/* --- Détail --- */
+function cpOpen(id){ state.view='couple'; cpCur=null; cpMonth=cpMonthNow(); cpExp=null; render(); cpBootOpen(id); }
+async function cpBootOpen(id){ try{ await cpLoad(id); }catch(e){ cpCur={error:(e.message||String(e))}; } render(); try{window.scrollTo({top:0,behavior:'smooth'});}catch(_e){} }
+async function cpRefresh(){ if(!cpCur||!cpCur.id)return; try{ await cpLoad(cpCur.id); }catch(e){} render(); }
+function viewCouple(){
+  if(!cpCur){ app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button><div class="panel"><div class="empty">'+_FL('Ouverture…','Opening…')+'</div></div>'+footer(); return; }
+  if(cpCur.error){ app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Accès impossible','Cannot open')+'</div><div class="msub" style="margin-top:6px">'+esc(cpCur.error)+'</div></div></div>'+footer(); return; }
+  const C=cpCur.couple; const M=cpMonth||cpMonthNow();
+  const pending=(cpCur.membres||[]).filter(function(m){return m.statut!=='actif';});
+  const memLine=cpActifs().map(function(m){return esc(m.nom||m.email);}).join(' · ')+(pending.length?(' · <span class="faint">'+pending.map(function(m){return esc(m.email)+' ('+_FL('en attente','pending')+')';}).join(', ')+'</span>'):'');
+  const nav='<div class="between" style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,-1)+'\';render()">‹</button><span class="mname">'+esc(cpMonthLabel(M))+'</span><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,1)+'\';render()">›</button></div>';
+  app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button>'
+    +'<div><h1 class="page-title">'+esc(C.nom||_FL('Notre foyer','Our household'))+'</h1><div class="t-meta">'+memLine+' · '+esc(C.devise||'CHF')+'</div></div>'
+    +'<div class="row-gap" style="margin:6px 0 2px"><button class="btn btn-ghost btn-sm" onclick="cpOpenSettings()">⚙ '+_FL('Réglages du foyer','Household settings')+'</button></div>'
+    +'<div class="reassure">● '+_FL('Espace confidentiel — visible uniquement par vous deux.','Private space — visible only to the two of you.')+'</div>'
+    +nav
+    +cpAddBlock()
+    +cpExpList(M)
+    +cpBalBlock(M)
+    +footer();
+  setTimeout(pv2AnimateBalances,30);
+}
+function cpToggleAdd(){ if(cpExp){cpExp=null;} else { var act=cpActifs(); cpExp={intitule:'',montant:'',devise:(cpCur.couple.devise||'CHF'),paye_par:(cpMyUid()||(act[0]&&act[0].uid)||''),mode:'prorata',recurrent:false,note:'',shares:{}}; } render(); }
+function cpAddBlock(){
+  if(!cpExp) return '<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="cpToggleAdd()">+ '+_FL('Ajouter une dépense','Add an expense')+'</button></div>';
+  const x=cpExp; const act=cpActifs();
+  const payerOpts=act.map(function(m){return '<option value="'+m.uid+'" '+(m.uid===x.paye_par?'selected':'')+'>'+esc(m.nom||m.email)+'</option>';}).join('');
+  const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===x.devise?'selected':'')+'>'+c+'</option>';}).join('');
+  const mb=function(mo,l){return '<button type="button" class="smode '+(x.mode===mo?'on':'')+'" onclick="cpSetMode(\''+mo+'\')">'+l+'</button>';};
+  var detail='';
+  if(x.mode==='exact'){ detail='<div class="psplit-grid">'+act.map(function(m){return '<div class="psplit-cell"><span>'+esc(m.nom||m.email)+'</span><input type="number" id="cpsh-'+m.uid+'" value="'+((x.shares&&x.shares[m.uid]!=null)?x.shares[m.uid]:'')+'" placeholder="0"></div>';}).join('')+'</div>'; }
+  else if(x.mode==='prorata'){ detail='<div class="hint" style="margin-top:8px">'+_FL('Réparti selon les quote-parts du foyer (réglables dans Réglages).','Split by the household quote-shares (set in Settings).')+'</div>'; }
+  else if(x.mode==='offert'){ detail='<div class="hint" style="margin-top:8px">'+_FL('Offert : personne ne doit rien.','Gift: nobody owes anything.')+'</div>'; }
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Nouvelle dépense','New expense')+'</h3></div><div style="padding:16px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Intitulé','Label')+'</label><input id="cp-int" value="'+esc(x.intitule)+'" placeholder="'+_FL('Ex. Loyer, courses…','E.g. Rent, groceries…')+'"></div>'
+    +'<div class="row-gap"><div class="field" style="flex:1;min-width:140px"><label>'+_FL('Payé par','Paid by')+'</label><select id="cp-payer">'+payerOpts+'</select></div>'
+    +'<div class="field" style="flex:1;min-width:110px"><label>'+_FL('Montant','Amount')+'</label><input type="number" id="cp-mont" value="'+(x.montant!==''?esc(String(x.montant)):'')+'" placeholder="0"></div>'
+    +'<div class="field" style="flex:0 0 100px"><label>'+_FL('Devise','Currency')+'</label><select id="cp-dev">'+curOpts+'</select></div></div>'
+    +'<div class="field"><label>'+_FL('Répartition','Split')+'</label><div class="split-modes">'+mb('prorata',_FL('Prorata','Prorata'))+mb('egal',_FL('Égal','Equal'))+mb('exact',_FL('Exact','Exact'))+mb('offert',_FL('Offert','Gift'))+'</div>'+detail+'</div>'
+    +'<label class="psplit-chk" style="margin-top:6px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="cp-rec" '+(x.recurrent?'checked':'')+'> '+_FL('Dépense récurrente (chaque mois)','Recurring expense (every month)')+'</label>'
+    +'<div class="field"><label>'+_FL('Note (facultatif)','Note (optional)')+'</label><input id="cp-note" value="'+esc(x.note||'')+'"></div>'
+    +'<button class="btn btn-gold" style="margin-top:8px" onclick="cpDoAdd()">'+_FL('Enregistrer','Save')+'</button>'
+    +'</div></div>';
+}
+function cpReadAdd(){ if(!cpExp)return; var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  cpExp.intitule=g('cp-int'); if(g('cp-mont')!=='')cpExp.montant=g('cp-mont'); cpExp.devise=g('cp-dev')||cpExp.devise; cpExp.paye_par=g('cp-payer')||cpExp.paye_par;
+  var rec=document.getElementById('cp-rec'); cpExp.recurrent=!!(rec&&rec.checked); cpExp.note=g('cp-note');
+  if(cpExp.mode==='exact'){ var sh={}; document.querySelectorAll('[id^="cpsh-"]').forEach(function(inp){ var u=inp.id.slice(5); if(inp.value!=='')sh[u]=+inp.value; }); cpExp.shares=sh; }
+}
+function cpSetMode(m){ cpReadAdd(); cpExp.mode=m; render(); }
+async function cpDoAdd(){
+  cpReadAdd(); var x=cpExp; var amt=parseFloat(String(x.montant).replace(',','.'));
+  if(!(amt>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  if(!x.paye_par){alert(_FL('Indiquez qui a payé.','Say who paid.'));return;}
+  var row={couple_id:cpCur.id, intitule:x.intitule||'', montant:amt, devise:x.devise||cpCur.couple.devise, paye_par:x.paye_par, mode:x.mode, shares:(x.mode==='exact'?(x.shares||{}):null), mois:(cpMonth||cpMonthNow()), recurrent:!!x.recurrent, preuve_note:x.note||null };
+  if(cpBusy)return; cpBusy=true;
+  try{ await cpsb(); const r=await sb.from('couple_depenses').insert(row); if(r.error)throw r.error; cpExp=null; cpBusy=false; await cpRefresh(); }
+  catch(e){ cpBusy=false; alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)); }
+}
+function cpExpList(M){
+  const gcur=cpCur.couple.devise||'CHF';
+  const rows=cpMonthExp(M).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(d){
+    const off=d.mode==='offert'; const rec=d.recurrent;
+    const modeL=off?_FL('Offert','Gift'):(d.mode==='prorata'?'prorata':(d.mode==='egal'?_FL('égal','equal'):_FL('exact','exact')));
+    const trace=d.auteur?('<div class="msub" style="margin-top:3px;color:var(--faint)">'+_FL('ajoutée par ','added by ')+esc(cpMemName(d.auteur))+(d.created_at?' · '+esc(pv2FmtWhen(d.created_at)):'')+'</div>'):'';
+    const canDel=(!d.recurrent||((d.mois||'')===M));
+    return '<div class="panel"><div style="padding:14px 18px"><div class="between"><div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(rec?'<span class="pill p-face">↻ '+_FL('récurrente','recurring')+'</span>':'')+(off?' <span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(cpMemName(d.paye_par))+' · '+modeL+'</div>'+trace+'</div><div class="right"><span class="p-amt">'+money(Number(d.montant)||0,d.devise||gcur)+'</span>'+(canDel?'<button class="linkbtn" onclick="cpDoDel(\''+d.id+'\')">✕</button>':'')+'</div></div></div></div>';
+  }).join('');
+  return rows||'<div class="panel"><div class="empty">'+_FL('Aucune dépense ce mois-ci.','No expense this month.')+'</div></div>';
+}
+async function cpDoDel(id){ if(!confirm(_FL('Supprimer cette dépense ?','Delete this expense?')))return; try{ await cpsb(); const r=await sb.from('couple_depenses').delete().eq('id',id); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e)); } }
+function cpBalBlock(M){
+  const gcur=cpCur.couple.devise||'CHF'; const act=cpActifs();
+  if(act.length<2){ return '<div class="panel"><div style="padding:16px 20px"><div class="msub">'+_FL('En attente que votre partenaire accepte l’invitation pour calculer les soldes.','Waiting for your partner to accept the invitation to compute balances.')+'</div></div></div>'; }
+  const bm=cpBalMonth(M); const bc=cpBalCumul();
+  const monthRows=act.map(function(m){ var v=Math.round(bm[m.uid]||0); var s=v>1?('<span class="pbal-pos">'+money(v,gcur)+' · '+_FL('on lui doit','is owed')+'</span>'):(v<-1?('<span class="pbal-neg">'+money(-v,gcur)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>'); return '<div class="mrow">'+avatar(m.nom||m.email)+'<div class="stack"><div class="mname">'+esc(m.nom||m.email)+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  const credRows=act.map(function(m){ var v=Math.round(bc[m.uid]||0); var s=v>1?('<span class="pbal-pos"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(v,gcur)+'</span> · '+_FL('crédit','credit')+'</span>'):(v<-1?('<span class="pbal-neg"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(-v,gcur)+'</span> · '+_FL('à rembourser','to repay')+'</span>'):'<span class="faint">'+_FL('équilibré','balanced')+'</span>'); return '<div class="mrow">'+avatar(m.nom||m.email)+'<div class="stack"><div class="mname">'+esc(m.nom||m.email)+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Solde du mois','This month’s balance')+' — '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:4px 0">'+monthRows+'</div></div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Crédit reporté (tous mois)','Carried-over credit (all months)')+'</h3></div><div style="padding:4px 0">'+credRows+'</div>'
+    +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Le crédit se reporte de mois en mois — il dit qui doit combien au total, à ce jour.','The credit carries over month to month — it says who owes how much in total, to date.')+'</div></div>';
+}
+
+/* --- Réglages du foyer --- */
+function cpOpenSettings(){ state.view='couplesettings'; render(); }
+function viewCoupleSettings(){
+  if(!cpCur||!cpCur.couple){ return go('couples'); }
+  const C=cpCur.couple;
+  const iAmCreator=(cpCur.membres||[]).some(function(m){return m.uid===state.uid&&m.role==='createur';});
+  const iCanManage=(cpCur.membres||[]).some(function(m){return m.uid===state.uid&&(m.role==='createur'||m.peut_gerer);});
+  const memRows=(cpCur.membres||[]).map(function(m){
+    var tag=m.statut==='actif'?'':' <span class="faint">('+_FL('en attente','pending')+')</span>';
+    var q=m.statut==='actif'?('<input type="number" step="0.1" min="0" id="cpq-'+m.id+'" value="'+(Number(m.quote)||1)+'" style="width:70px;padding:5px 7px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit" '+(iCanManage?'':'disabled')+'>'):'—';
+    var manage=(iAmCreator&&m.role!=='createur'&&m.statut==='actif')?(' · <label class="msub"><input type="checkbox" id="cpm-'+m.id+'" '+(m.peut_gerer?'checked':'')+' onchange="cpSetManage(\''+m.id+'\',this.checked)"> '+_FL('peut gérer','can manage')+'</label>'):'';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.nom||m.email)+tag+'</div><div class="msub">'+esc(m.email||'')+manage+'</div></div><div class="right"><span class="msub">'+_FL('quote-part','quote-share')+'</span> '+q+'</div></div>';
+  }).join('');
+  app().innerHTML='<button class="backlink" onclick="cpOpen(\''+C.id+'\')">‹ '+esc(C.nom||_FL('Notre foyer','Our household'))+'</button>'
+    +'<h1 class="page-title">'+_FL('Réglages du foyer','Household settings')+'</h1>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Membres & quote-parts','Members & quote-shares')+'</h3></div><div style="padding:4px 0">'+memRows+'</div>'
+    +(iCanManage?('<div style="padding:10px 20px"><button class="btn btn-gold btn-sm" onclick="cpSaveQuotes()">'+_FL('Enregistrer les quote-parts','Save quote-shares')+'</button> <span class="hint">'+_FL('Prorata : 1 et 1 = 50/50 ; 6 et 4 = 60/40.','Prorata: 1 and 1 = 50/50; 6 and 4 = 60/40.')+'</span></div>'):'')
+    +'</div>'
+    +(iCanManage?('<div class="panel"><div class="panel-h"><h3>'+_FL('Inviter un membre','Invite a member')+'</h3></div><div style="padding:14px 20px"><div class="row-gap"><div class="field" style="flex:1;min-width:180px;margin-top:0"><input id="cp-inv-email" type="email" placeholder="email@domaine.com"></div><button class="btn btn-ghost btn-sm" onclick="cpDoInvite()">'+_FL('Inviter','Invite')+'</button></div><div class="hint" style="margin-top:6px">'+_FL('La personne doit se connecter avec ce compte pour accepter.','The person must sign in with this account to accept.')+'</div></div></div>'):'')
+    +footer();
+}
+async function cpSetManage(mid,val){ try{ await cpsb(); const r=await sb.rpc('couple_set_manage',{p_couple:cpCur.id,p_membre:mid,p_peut:val}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Action refusée : ','Refused: ')+(e.message||e)); } }
+async function cpSaveQuotes(){ try{ await cpsb(); var ms=(cpCur.membres||[]).filter(function(m){return m.statut==='actif';}); for(var i=0;i<ms.length;i++){ var el=document.getElementById('cpq-'+ms[i].id); if(el){ var q=parseFloat(el.value); if(isNaN(q))q=1; var r=await sb.rpc('couple_set_quote',{p_couple:cpCur.id,p_membre:ms[i].id,p_quote:q}); if(r.error)throw r.error; } } await cpRefresh(); alert(_FL('Quote-parts enregistrées ✓','Quote-shares saved ✓')); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var email=e?e.value.trim():''; if(!email){alert(_FL('Indiquez un e-mail.','Enter an email.'));return;} try{ await cpsb(); const r=await sb.rpc('couple_invite',{p_couple:cpCur.id,p_email:email,p_nom:null}); if(r.error)throw r.error; await cpRefresh(); alert(_FL('Invitation envoyée ✓','Invitation sent ✓')); }catch(err){ alert(_FL('Échec : ','Failed: ')+(err.message||err)); } }
+
 
 
 function viewApex(){
