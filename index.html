@@ -7288,7 +7288,9 @@ async function cpLoad(id){
   cpCur={id:id, couple:c.data, membres:mem.data||[], depenses:dep.data||[]};
 }
 function cpActifs(){ return (cpCur.membres||[]).filter(function(m){return m.statut==='actif'&&m.uid;}); }
-function cpMemName(uid){ var m=(cpCur.membres||[]).find(function(x){return x.uid===uid;}); return m?(m.nom||m.email||'?'):'?'; }
+function cpFirstFromEmail(email){ try{ var p=String(email||'').split('@')[0].split(/[._-]+/)[0]; return p?(p.charAt(0).toUpperCase()+p.slice(1)):(email||'?'); }catch(e){ return email||'?'; } }
+function cpDisplayName(m){ if(!m)return '?'; return (m.nom&&String(m.nom).trim())?m.nom:cpFirstFromEmail(m.email); }
+function cpMemName(uid){ var m=(cpCur.membres||[]).find(function(x){return x.uid===uid;}); return m?cpDisplayName(m):'?'; }
 function cpMyUid(){ return state.uid; }
 function cpShareOf(d){
   const gcur=cpCur.couple.devise||'CHF';
@@ -7377,6 +7379,20 @@ async function cpSendInviteEmail(email, foyerNom){
     await db.sendEmail(email, subj, cpInviteEmailHtml(inviter, foyerNom||'', url)); return true;
   }catch(e){ return false; }
 }
+function cpInviteMsg(email){ var foyer=(cpCur&&cpCur.couple&&cpCur.couple.nom)||''; return _FL('Je t’invite à notre espace couple « '+foyer+' » sur UBORA. Connecte-toi sur https://tontine.caroletchatcho.com avec '+email+' et accepte dans l’onglet Partage.','I invite you to our household “'+foyer+'” on UBORA. Sign in at https://tontine.caroletchatcho.com with '+email+' and accept in the Partage tab.'); }
+function cpInviteShareButtons(email){
+  var msg=cpInviteMsg(email);
+  var wa='https://wa.me/?text='+encodeURIComponent(msg);
+  var sms='sms:?&body='+encodeURIComponent(msg);
+  var mail='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('UBORA')+'&body='+encodeURIComponent(msg);
+  return '<div class="row-gap"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a><a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a><button class="btn btn-ghost btn-sm" onclick="cpCopyInvite(\''+esc(email)+'\')">'+_FL('Copier le message','Copy message')+'</button></div>';
+}
+function cpCopyInvite(email){ try{navigator.clipboard.writeText(cpInviteMsg(email));}catch(e){} try{var b=(typeof event!=='undefined')&&event&&event.target;if(b){var t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);}}catch(e){} }
+function cpPendingInviteBlock(){
+  var pend=(cpCur.membres||[]).filter(function(m){return m.statut!=='actif';});
+  if(!pend.length)return '';
+  return pend.map(function(m){ return '<div class="panel" style="border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:12px 16px"><div class="mname" style="color:#7A5C12">'+_FL('Invitation en attente','Pending invitation')+' · '+esc(m.email)+'</div><div class="msub" style="margin-top:3px">'+_FL('Prévenez votre partenaire — il/elle se connecte avec cet e-mail et accepte dans l’onglet Partage. (Pas besoin d’attendre l’e-mail : partagez le message ci-dessous.)','Notify your partner — they sign in with this email and accept in the Partage tab. (No need to wait for the email: share the message below.)')+'</div><div style="margin-top:8px">'+cpInviteShareButtons(m.email)+'</div></div></div>'; }).join('');
+}
 async function cpDoCreate(){
   const g=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
   const nom=g('cp-nom')||_FL('Notre foyer','Our household'), devise=g('cp-cur')||'CHF', email=g('cp-email');
@@ -7402,12 +7418,13 @@ function viewCouple(){
   if(cpCur.error){ app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Accès impossible','Cannot open')+'</div><div class="msub" style="margin-top:6px">'+esc(cpCur.error)+'</div></div></div>'+footer(); return; }
   const C=cpCur.couple; const M=cpMonth||cpMonthNow();
   const pending=(cpCur.membres||[]).filter(function(m){return m.statut!=='actif';});
-  const memLine=cpActifs().map(function(m){return esc(m.nom||m.email);}).join(' · ')+(pending.length?(' · <span class="faint">'+pending.map(function(m){return esc(m.email)+' ('+_FL('en attente','pending')+')';}).join(', ')+'</span>'):'');
+  const memLine=cpActifs().map(function(m){return esc(cpDisplayName(m));}).join(' · ')+(pending.length?(' · <span class="faint">'+pending.map(function(m){return esc(m.email)+' ('+_FL('en attente','pending')+')';}).join(', ')+'</span>'):'');
   const nav='<div class="between" style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,-1)+'\';render()">‹</button><span class="mname">'+esc(cpMonthLabel(M))+'</span><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,1)+'\';render()">›</button></div>';
   app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button>'
     +'<div><h1 class="page-title">'+esc(C.nom||_FL('Notre foyer','Our household'))+'</h1><div class="t-meta">'+memLine+' · '+esc(C.devise||'CHF')+'</div></div>'
     +'<div class="row-gap" style="margin:6px 0 2px"><button class="btn btn-ghost btn-sm" onclick="cpOpenSettings()">⚙ '+_FL('Réglages du foyer','Household settings')+'</button></div>'
     +'<div class="reassure">● '+_FL('Espace confidentiel — visible uniquement par vous deux.','Private space — visible only to the two of you.')+'</div>'
+    +cpPendingInviteBlock()
     +nav
     +cpAddBlock()
     +cpExpList(M)
@@ -7419,11 +7436,11 @@ function cpToggleAdd(){ if(cpExp){cpExp=null;} else { var act=cpActifs(); cpExp=
 function cpAddBlock(){
   if(!cpExp) return '<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="cpToggleAdd()">+ '+_FL('Ajouter une dépense','Add an expense')+'</button></div>';
   const x=cpExp; const act=cpActifs();
-  const payerOpts=act.map(function(m){return '<option value="'+m.uid+'" '+(m.uid===x.paye_par?'selected':'')+'>'+esc(m.nom||m.email)+'</option>';}).join('');
+  const payerOpts=act.map(function(m){return '<option value="'+m.uid+'" '+(m.uid===x.paye_par?'selected':'')+'>'+esc(cpDisplayName(m))+'</option>';}).join('');
   const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===x.devise?'selected':'')+'>'+c+'</option>';}).join('');
   const mb=function(mo,l){return '<button type="button" class="smode '+(x.mode===mo?'on':'')+'" onclick="cpSetMode(\''+mo+'\')">'+l+'</button>';};
   var detail='';
-  if(x.mode==='exact'){ detail='<div class="psplit-grid">'+act.map(function(m){return '<div class="psplit-cell"><span>'+esc(m.nom||m.email)+'</span><input type="number" id="cpsh-'+m.uid+'" value="'+((x.shares&&x.shares[m.uid]!=null)?x.shares[m.uid]:'')+'" placeholder="0"></div>';}).join('')+'</div>'; }
+  if(x.mode==='exact'){ detail='<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">'+act.map(function(m){return '<div style="display:flex;align-items:center;gap:12px"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(cpDisplayName(m))+'</span><input type="number" id="cpsh-'+m.uid+'" value="'+((x.shares&&x.shares[m.uid]!=null)?x.shares[m.uid]:'')+'" placeholder="0" style="width:110px;padding:8px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"></div>';}).join('')+'</div>'; }
   else if(x.mode==='prorata'){ detail='<div class="hint" style="margin-top:8px">'+_FL('Réparti selon les quote-parts du foyer (réglables dans Réglages).','Split by the household quote-shares (set in Settings).')+'</div>'; }
   else if(x.mode==='offert'){ detail='<div class="hint" style="margin-top:8px">'+_FL('Offert : personne ne doit rien.','Gift: nobody owes anything.')+'</div>'; }
   return '<div class="panel"><div class="panel-h"><h3>'+_FL('Nouvelle dépense','New expense')+'</h3></div><div style="padding:16px 20px">'
@@ -7468,8 +7485,8 @@ function cpBalBlock(M){
   const gcur=cpCur.couple.devise||'CHF'; const act=cpActifs();
   if(act.length<2){ return '<div class="panel"><div style="padding:16px 20px"><div class="msub">'+_FL('En attente que votre partenaire accepte l’invitation pour calculer les soldes.','Waiting for your partner to accept the invitation to compute balances.')+'</div></div></div>'; }
   const bm=cpBalMonth(M); const bc=cpBalCumul();
-  const monthRows=act.map(function(m){ var v=Math.round(bm[m.uid]||0); var s=v>1?('<span class="pbal-pos">'+money(v,gcur)+' · '+_FL('on lui doit','is owed')+'</span>'):(v<-1?('<span class="pbal-neg">'+money(-v,gcur)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>'); return '<div class="mrow">'+avatar(m.nom||m.email)+'<div class="stack"><div class="mname">'+esc(m.nom||m.email)+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
-  const credRows=act.map(function(m){ var v=Math.round(bc[m.uid]||0); var s=v>1?('<span class="pbal-pos"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(v,gcur)+'</span> · '+_FL('crédit','credit')+'</span>'):(v<-1?('<span class="pbal-neg"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(-v,gcur)+'</span> · '+_FL('à rembourser','to repay')+'</span>'):'<span class="faint">'+_FL('équilibré','balanced')+'</span>'); return '<div class="mrow">'+avatar(m.nom||m.email)+'<div class="stack"><div class="mname">'+esc(m.nom||m.email)+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  const monthRows=act.map(function(m){ var v=Math.round(bm[m.uid]||0); var s=v>1?('<span class="pbal-pos">'+money(v,gcur)+' · '+_FL('on lui doit','is owed')+'</span>'):(v<-1?('<span class="pbal-neg">'+money(-v,gcur)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>'); return '<div class="mrow">'+avatar(cpDisplayName(m))+'<div class="stack"><div class="mname">'+esc(cpDisplayName(m))+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  const credRows=act.map(function(m){ var v=Math.round(bc[m.uid]||0); var s=v>1?('<span class="pbal-pos"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(v,gcur)+'</span> · '+_FL('crédit','credit')+'</span>'):(v<-1?('<span class="pbal-neg"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(-v,gcur)+'</span> · '+_FL('à rembourser','to repay')+'</span>'):'<span class="faint">'+_FL('équilibré','balanced')+'</span>'); return '<div class="mrow">'+avatar(cpDisplayName(m))+'<div class="stack"><div class="mname">'+esc(cpDisplayName(m))+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
   return '<div class="panel"><div class="panel-h"><h3>'+_FL('Solde du mois','This month’s balance')+' — '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:4px 0">'+monthRows+'</div></div>'
     +'<div class="panel"><div class="panel-h"><h3>'+_FL('Crédit reporté (tous mois)','Carried-over credit (all months)')+'</h3></div><div style="padding:4px 0">'+credRows+'</div>'
     +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Le crédit se reporte de mois en mois — il dit qui doit combien au total, à ce jour.','The credit carries over month to month — it says who owes how much in total, to date.')+'</div></div>';
@@ -7480,25 +7497,42 @@ function cpOpenSettings(){ state.view='couplesettings'; render(); }
 function viewCoupleSettings(){
   if(!cpCur||!cpCur.couple){ return go('couples'); }
   const C=cpCur.couple;
+  const me=(cpCur.membres||[]).find(function(m){return m.uid===state.uid;});
   const iAmCreator=(cpCur.membres||[]).some(function(m){return m.uid===state.uid&&m.role==='createur';});
   const iCanManage=(cpCur.membres||[]).some(function(m){return m.uid===state.uid&&(m.role==='createur'||m.peut_gerer);});
+  const curOpts=CUR_ORDER.map(function(c){return '<option value="'+c+'" '+(c===C.devise?'selected':'')+'>'+CUR_LABEL[c]+'</option>';}).join('');
   const memRows=(cpCur.membres||[]).map(function(m){
+    var isMe=(m.uid===state.uid);
     var tag=m.statut==='actif'?'':' <span class="faint">('+_FL('en attente','pending')+')</span>';
-    var q=m.statut==='actif'?('<input type="number" step="0.1" min="0" id="cpq-'+m.id+'" value="'+(Number(m.quote)||1)+'" style="width:70px;padding:5px 7px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit" '+(iCanManage?'':'disabled')+'>'):'—';
+    var right;
+    if(m.statut==='actif'){ right='<span class="msub">'+_FL('quote-part','quote-share')+'</span> <input type="number" step="0.1" min="0" id="cpq-'+m.id+'" value="'+(Number(m.quote)||1)+'" style="width:72px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit" '+(iCanManage?'':'disabled')+'>'; }
+    else { right=iCanManage?('<button class="btn btn-ghost btn-sm" onclick="cpResend(\''+esc(m.email)+'\')">'+_FL('Renvoyer','Resend')+'</button> <button class="linkbtn" onclick="cpRemoveMember(\''+m.id+'\')">'+_FL('Annuler','Cancel')+'</button>'):'—'; }
     var manage=(iAmCreator&&m.role!=='createur'&&m.statut==='actif')?(' · <label class="msub"><input type="checkbox" id="cpm-'+m.id+'" '+(m.peut_gerer?'checked':'')+' onchange="cpSetManage(\''+m.id+'\',this.checked)"> '+_FL('peut gérer','can manage')+'</label>'):'';
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.nom||m.email)+tag+'</div><div class="msub">'+esc(m.email||'')+manage+'</div></div><div class="right"><span class="msub">'+_FL('quote-part','quote-share')+'</span> '+q+'</div></div>';
+    var emailEdit=(m.statut!=='actif'&&iCanManage)?('<button class="linkbtn" title="'+_FL('Corriger l’e-mail','Fix the email')+'" onclick="cpEditPendingEmail(\''+m.id+'\',\''+esc(m.email)+'\')">✎</button> '):'';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(cpDisplayName(m))+(isMe?' <span class="faint">('+_FL('vous','you')+')</span>':'')+tag+'</div><div class="msub">'+emailEdit+esc(m.email||'')+manage+'</div></div><div class="right">'+right+'</div></div>';
   }).join('');
   app().innerHTML='<button class="backlink" onclick="cpOpen(\''+C.id+'\')">‹ '+esc(C.nom||_FL('Notre foyer','Our household'))+'</button>'
     +'<h1 class="page-title">'+_FL('Réglages du foyer','Household settings')+'</h1>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Le foyer','The household')+'</h3></div><div style="padding:14px 20px">'
+      +'<div class="row-gap"><div class="field" style="flex:2;min-width:160px;margin-top:0"><label>'+_FL('Nom du foyer','Household name')+'</label><input id="cp-set-nom" value="'+esc(C.nom||'')+'" '+(iCanManage?'':'disabled')+'></div>'
+      +'<div class="field" style="flex:0 0 160px;margin-top:0"><label>'+_FL('Devise','Currency')+'</label><select id="cp-set-dev" '+(iCanManage?'':'disabled')+'>'+curOpts+'</select></div></div>'
+      +(iCanManage?('<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="cpSaveMeta()">'+_FL('Enregistrer','Save')+'</button></div>'):'')
+      +'<div class="field"><label>'+_FL('Votre prénom (affiché aux autres)','Your first name (shown to others)')+'</label><div class="row-gap"><div class="field" style="flex:1;min-width:160px;margin-top:0"><input id="cp-myname" value="'+esc((me&&me.nom)||'')+'" placeholder="'+esc(cpFirstFromEmail(me&&me.email))+'"></div><button class="btn btn-ghost btn-sm" onclick="cpSaveMyName()">'+_FL('Enregistrer','Save')+'</button></div></div>'
+    +'</div></div>'
     +'<div class="panel"><div class="panel-h"><h3>'+_FL('Membres & quote-parts','Members & quote-shares')+'</h3></div><div style="padding:4px 0">'+memRows+'</div>'
-    +(iCanManage?('<div style="padding:10px 20px"><button class="btn btn-gold btn-sm" onclick="cpSaveQuotes()">'+_FL('Enregistrer les quote-parts','Save quote-shares')+'</button> <span class="hint">'+_FL('Prorata : 1 et 1 = 50/50 ; 6 et 4 = 60/40.','Prorata: 1 and 1 = 50/50; 6 and 4 = 60/40.')+'</span></div>'):'')
+    +(iCanManage?('<div style="padding:10px 20px"><button class="btn btn-gold btn-sm" onclick="cpSaveQuotes()">'+_FL('Enregistrer les quote-parts','Save quote-shares')+'</button> <span class="hint">'+_FL('Prorata : 1 et 1 = 50/50 ; 6 et 4 = 60/40. (La virgule marche : 1,4.)','Prorata: 1 and 1 = 50/50; 6 and 4 = 60/40.')+'</span></div>'):'')
     +'</div>'
-    +(iCanManage?('<div class="panel"><div class="panel-h"><h3>'+_FL('Inviter un membre','Invite a member')+'</h3></div><div style="padding:14px 20px"><div class="row-gap"><div class="field" style="flex:1;min-width:180px;margin-top:0"><input id="cp-inv-email" type="email" placeholder="email@domaine.com"></div><button class="btn btn-ghost btn-sm" onclick="cpDoInvite()">'+_FL('Inviter','Invite')+'</button></div><div class="hint" style="margin-top:6px">'+_FL('La personne doit se connecter avec ce compte pour accepter.','The person must sign in with this account to accept.')+'</div></div></div>'):'')
+    +(iCanManage?('<div class="panel"><div class="panel-h"><h3>'+_FL('Inviter un membre','Invite a member')+'</h3></div><div style="padding:14px 20px"><div class="row-gap"><div class="field" style="flex:1;min-width:180px;margin-top:0"><input id="cp-inv-email" type="email" placeholder="email@domaine.com"></div><button class="btn btn-ghost btn-sm" onclick="cpDoInvite()">'+_FL('Inviter','Invite')+'</button></div><div class="hint" style="margin-top:6px">'+_FL('Un e-mail part, et vous pouvez aussi prévenir par WhatsApp/SMS depuis l’écran du foyer (bannière « invitation en attente »).','An email is sent, and you can also notify by WhatsApp/SMS from the household screen.')+'</div></div></div>'):'')
     +footer();
 }
+async function cpSaveMeta(){ var n=document.getElementById('cp-set-nom'), d=document.getElementById('cp-set-dev'); try{ await cpsb(); var r=await sb.rpc('couple_update_meta',{p_couple:cpCur.id,p_nom:(n?n.value.trim():''),p_devise:(d?d.value:'')}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpSaveMyName(){ var n=document.getElementById('cp-myname'); var v=n?n.value.trim():''; if(!v){alert(_FL('Indiquez votre prénom.','Enter your first name.'));return;} try{ await cpsb(); var r=await sb.rpc('couple_set_my_name',{p_couple:cpCur.id,p_nom:v}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpEditPendingEmail(mid,old){ var v=prompt(_FL('Nouvel e-mail du partenaire :','Partner’s new email:'),old||''); if(!v)return; try{ await cpsb(); var r=await sb.rpc('couple_pending_set_email',{p_couple:cpCur.id,p_membre:mid,p_email:v.trim()}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpRemoveMember(mid){ if(!confirm(_FL('Retirer cette personne du foyer ?','Remove this person from the household?')))return; try{ await cpsb(); var r=await sb.rpc('couple_member_remove',{p_couple:cpCur.id,p_membre:mid}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 async function cpSetManage(mid,val){ try{ await cpsb(); const r=await sb.rpc('couple_set_manage',{p_couple:cpCur.id,p_membre:mid,p_peut:val}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Action refusée : ','Refused: ')+(e.message||e)); } }
-async function cpSaveQuotes(){ try{ await cpsb(); var ms=(cpCur.membres||[]).filter(function(m){return m.statut==='actif';}); for(var i=0;i<ms.length;i++){ var el=document.getElementById('cpq-'+ms[i].id); if(el){ var q=parseFloat(el.value); if(isNaN(q))q=1; var r=await sb.rpc('couple_set_quote',{p_couple:cpCur.id,p_membre:ms[i].id,p_quote:q}); if(r.error)throw r.error; } } await cpRefresh(); alert(_FL('Quote-parts enregistrées ✓','Quote-shares saved ✓')); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
-async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var email=e?e.value.trim():''; if(!email){alert(_FL('Indiquez un e-mail.','Enter an email.'));return;} try{ await cpsb(); const r=await sb.rpc('couple_invite',{p_couple:cpCur.id,p_email:email,p_nom:null}); if(r.error)throw r.error; await cpRefresh(); alert(_FL('Invitation envoyée ✓','Invitation sent ✓')); }catch(err){ alert(_FL('Échec : ','Failed: ')+(err.message||err)); } }
+async function cpResend(email){ var ok=await cpSendInviteEmail(email,(cpCur.couple&&cpCur.couple.nom)||''); alert(ok?_FL('E-mail d’invitation renvoyé ✓','Invitation email resent ✓'):_FL('Envoi impossible pour le moment — vérifiez la fonction d’e-mail.','Could not send right now — check the email function.')); }
+async function cpSaveQuotes(){ try{ await cpsb(); var ms=(cpCur.membres||[]).filter(function(m){return m.statut==='actif';}); for(var i=0;i<ms.length;i++){ var el=document.getElementById('cpq-'+ms[i].id); if(el){ var q=parseFloat(String(el.value).replace(',','.')); if(isNaN(q))q=1; var r=await sb.rpc('couple_set_quote',{p_couple:cpCur.id,p_membre:ms[i].id,p_quote:q}); if(r.error)throw r.error; } } await cpRefresh(); alert(_FL('Quote-parts enregistrées ✓','Quote-shares saved ✓')); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var email=e?e.value.trim():''; if(!email){alert(_FL('Indiquez un e-mail.','Enter an email.'));return;} try{ await cpsb(); const r=await sb.rpc('couple_invite',{p_couple:cpCur.id,p_email:email,p_nom:null}); if(r.error)throw r.error; var mailed=await cpSendInviteEmail(email,(cpCur.couple&&cpCur.couple.nom)||''); await cpRefresh(); alert(mailed?_FL('Invitation envoyée ✓ (e-mail envoyé)','Invitation sent ✓ (email sent)'):_FL('Invitation enregistrée ✓ — l’e-mail n’a pas pu partir ; prévenez la personne de se connecter avec cette adresse.','Invitation saved ✓ — email could not be sent; ask the person to sign in with that address.')); }catch(err){ alert(_FL('Échec : ','Failed: ')+(err.message||err)); } }
 
 
 
@@ -9525,7 +9559,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.28';
+const UBORA_BUILD='v9.30';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
