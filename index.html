@@ -6923,7 +6923,6 @@ function pv2InviteBlock(){
     +'<a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a>'
     +'<a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a>'
     +'<button class="btn btn-ghost btn-sm" onclick="pv2ShareQR()">'+_FL('Partager le QR','Share the QR')+'</button></div>'
-    +'<div class="hint" style="margin-top:8px">'+_FL('WhatsApp / SMS / e-mail envoient le lien. Pour transmettre l’image du QR (à scanner en personne), utilisez « Partager le QR ».','WhatsApp / SMS / email send the link. To send the QR image (to scan in person), use “Share the QR”.')+'</div>'
     +'</div></div></div>';
 }
 async function pv2ShareQR(){
@@ -7057,9 +7056,9 @@ function pv2GroupView(){
 }
 
 /* --- Décompte animé (effet « odomètre » premium) + son discret optionnel --- */
-function pv2SoundOn(){ try{return localStorage.getItem('ubora_pv2_sound')==='1';}catch(e){return false;} }
+function pv2SoundOn(){ try{return localStorage.getItem('ubora_pv2_sound')!=='0';}catch(e){return true;} }
 function pv2ToggleSound(){ try{localStorage.setItem('ubora_pv2_sound',pv2SoundOn()?'0':'1');}catch(e){} render(); }
-function pv2Tick(){ if(!pv2SoundOn())return; try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; pv2AC=pv2AC||new AC(); const t=pv2AC.currentTime; const o=pv2AC.createOscillator(),g=pv2AC.createGain(); o.type='sine'; o.frequency.value=1250; o.connect(g); g.connect(pv2AC.destination); g.gain.setValueAtTime(0.028,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05); o.start(t); o.stop(t+0.06); }catch(e){} }
+function pv2Tick(){ if(!pv2SoundOn())return; try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return; pv2AC=pv2AC||new AC(); if(pv2AC.state==='suspended'){try{pv2AC.resume();}catch(_e){}} const t=pv2AC.currentTime; const o=pv2AC.createOscillator(),g=pv2AC.createGain(); o.type='sine'; o.frequency.value=1250; o.connect(g); g.connect(pv2AC.destination); g.gain.setValueAtTime(0.028,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05); o.start(t); o.stop(t+0.06); }catch(e){} }
 function pv2AnimateBalances(){
   const els=document.querySelectorAll('.pv2roll'); if(!els.length)return;
   els.forEach(function(el){
@@ -7170,14 +7169,19 @@ function viewPAttest(){
   try{ window._paData=a; }catch(e){}
   const dt=new Date(a.created_at||Date.now()); const dstr=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
   const m=function(n){return money(Math.abs(Math.round(n)),dev);};
-  const sol=(snap.soldes||[]).map(function(s){var lbl=s.net>1?('<span class="pbal-pos">'+m(s.net)+' · '+_FL('on lui doit','is owed')+'</span>'):(s.net<-1?('<span class="pbal-neg">'+m(s.net)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>');return '<div class="mrow">'+avatar(s.name)+'<div class="stack"><div class="mname">'+esc(s.name)+'</div></div><div class="right">'+lbl+'</div></div>';}).join('');
+  const depRows=(snap.depenses||[]).map(function(d){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(d.intitule||'—')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+esc(d.partage||'')+'</div></div><div class="right"><span class="p-amt">'+money(Math.round(d.montant),d.devise||dev)+'</span></div></div>';}).join('')||'<div class="empty">—</div>';
+  const sol=(snap.soldes||[]).map(function(s){var lbl=s.net>1?('<span class="pbal-pos">'+m(s.net)+' · '+_FL('on lui doit','is owed')+'</span>'):(s.net<-1?('<span class="pbal-neg">'+m(s.net)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>');return '<div class="mrow">'+avatar(s.name)+'<div class="stack"><div class="mname">'+esc(s.name)+'</div></div><div class="right">'+lbl+'</div></div>';}).join('')||'<div class="empty">—</div>';
+  const reg=(snap.reglement||[]).map(function(t){return '<div class="settle-row"><span class="settle-flow">'+esc(t.from)+' <span class="gold">→</span> '+esc(t.to)+'</span><span class="settle-amt">'+money(Math.round(t.amount),dev)+'</span></div>';}).join('')||'<div class="empty">'+_FL('Tout est équilibré ✓','All balanced ✓')+'</div>';
   app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button>'
     +'<div class="eyebrow">'+_FL('Vérification d’attestation','Attestation verification')+'</div>'
     +'<h1 class="page-title">'+esc(a.titre||_FL('Partage','Share'))+'</h1>'
     +'<div class="reassure">● '+_FL('Attestation authentique','Authentic attestation')+' ✓ · <span style="font-family:monospace">'+esc(a.code)+'</span> · '+_FL('émise le','issued on')+' '+dstr+'</div>'
-    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Soldes','Balances')+'</h3></div><div style="padding:4px 0">'+(sol||'<div class="empty">—</div>')+'</div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Dépenses','Expenses')+'</h3></div><div style="padding:4px 0">'+depRows+'</div>'
     +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Total partagé','Total shared')+' : '+money(Math.round(snap.total||0),dev)+'</div></div>'
-    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2AttestOpenDoc(window._paData)">'+_FL('Voir / Imprimer le relevé complet','View / Print full statement')+'</button></div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Soldes','Balances')+'</h3></div><div style="padding:4px 0">'+sol+'</div></div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Règlement suggéré','Suggested settlement')+'</h3></div><div style="padding:10px 20px 8px">'+reg+'</div></div>'
+    +'<div class="msub" style="margin:4px 2px 0">'+_FL('Relevé déclaratif arrêté à la date ci-dessus. UBORA ne détient aucun fonds et ne prend aucune commission.','Declarative statement as of the date above. UBORA holds no funds and takes no commission.')+'</div>'
+    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2AttestOpenDoc(window._paData)">'+_FL('Imprimer / PDF','Print / PDF')+'</button></div>'
     +footer();
 }
 async function pv2OpenArchive(){
@@ -9223,7 +9227,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.24';
+const UBORA_BUILD='v9.25';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
