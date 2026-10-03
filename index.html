@@ -7308,7 +7308,7 @@ function cpShareOf(d){
   if(d.mode==='prorata'){ var tot=0; act.forEach(function(m){tot+=(Number(m.quote)||1);}); if(!tot)tot=act.length||1; act.forEach(function(m){ out[m.uid]=amt*(Number(m.quote)||1)/tot; }); return out; }
   var n=act.length||1; act.forEach(function(m){ out[m.uid]=amt/n; }); return out;
 }
-function cpMonthExp(M){ return (cpCur.depenses||[]).filter(function(d){ if(d.recurrent){ return (d.mois||'')<=M; } return (d.mois||'')===M; }); }
+function cpMonthExp(M){ return (cpCur.depenses||[]).filter(function(d){ if(d.recurrent){ return (d.mois||'')<=M && (!d.fin_mois || M<=d.fin_mois); } return (d.mois||'')===M; }); }
 function cpBalMonth(M){
   const gcur=cpCur.couple.devise||'CHF'; const bal={}; cpActifs().forEach(function(m){bal[m.uid]=0;});
   cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return;
@@ -7322,12 +7322,38 @@ function cpBalCumul(){
   const gcur=cpCur.couple.devise||'CHF'; const now=cpMonthNow(); const bal={}; cpActifs().forEach(function(m){bal[m.uid]=0;});
   (cpCur.depenses||[]).forEach(function(d){ if(d.mode==='offert')return;
     var times=1;
-    if(d.recurrent){ var start=d.mois||now; if(start>now)return; times=cpMonthsBetween(start, now); if(times<1)times=1; }
+    if(d.recurrent){ var start=d.mois||now; var end=d.fin_mois?(d.fin_mois<now?d.fin_mois:now):now; if(start>end)return; times=cpMonthsBetween(start, end); if(times<1)times=1; }
     const amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur)*times;
     if(d.paye_par){ if(bal[d.paye_par]==null)bal[d.paye_par]=0; bal[d.paye_par]+=amt; }
     const sh=cpShareOf(d); Object.keys(sh).forEach(function(u){ if(bal[u]==null)bal[u]=0; bal[u]-=sh[u]*times; });
   });
   return bal;
+}
+
+/* --- Catégories + schéma « où va l'argent » + fin de récurrence --- */
+const CP_CATS=['loyer','courses','energie','transport','sante','enfants','loisirs','abo','autre'];
+function cpCatLabel(k){ var m={loyer:['Loyer','Rent'],courses:['Courses','Groceries'],energie:['Énergie','Utilities'],transport:['Transport','Transport'],sante:['Santé','Health'],enfants:['Enfants','Children'],loisirs:['Loisirs','Leisure'],abo:['Abonnements','Subscriptions'],autre:['Autre','Other']}; var p=m[k]||m.autre; return _FL(p[0],p[1]); }
+async function cpEndRecurrence(id, M){ if(!confirm(_FL('Terminer cette dépense récurrente après '+cpMonthLabel(M)+' ? Elle ne comptera plus les mois suivants (l’historique est conservé).','End this recurring expense after '+cpMonthLabel(M)+'? It will no longer count in later months (history kept).')))return; try{ await cpsb(); var r=await sb.from('couple_depenses').update({fin_mois:M}).eq('id',id); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+function cpSpendViz(M){
+  const gcur=cpCur.couple.devise||'CHF'; const by={}; var total=0;
+  cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return; var amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur); var k=d.categorie||'autre'; by[k]=(by[k]||0)+amt; total+=amt; });
+  if(total<=0)return '';
+  var rows=Object.keys(by).map(function(k){return {k:k,v:by[k]};}).sort(function(a,b){return b.v-a.v;});
+  var max=rows[0].v||1;
+  var bars=rows.map(function(r){ var pct=Math.round(r.v/total*100); var w=Math.max(2,Math.round(r.v/max*100));
+    return '<div style="margin:10px 0"><div class="between" style="margin-bottom:4px"><span class="mname" style="font-size:14px">'+esc(cpCatLabel(r.k))+'</span><span class="msub">'+money(Math.round(r.v),gcur)+' · '+pct+'%</span></div><div style="height:12px;background:#EEE6D4;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div></div>';
+  }).join('');
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Où va l’argent du foyer','Where the household money goes')+' — '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:12px 20px 18px">'+bars+'<div class="msub" style="margin-top:10px">'+_FL('Total des dépenses du mois','Total spending this month')+' : '+money(Math.round(total),gcur)+'</div></div></div>';
+}
+function cpInvestCatLabel(k){ var m={loyer:'Loyer',courses:'Alimentation',energie:'Charges',transport:'Transports',sante:'Santé',enfants:'Famille / Soutien',loisirs:'Loisirs',abo:'Internet / Téléphone',autre:'Divers / Imprévus'}; return m[k]||'Divers / Imprévus'; }
+function cpInvestLink(d){
+  if(d.mode==='offert')return '';
+  var sh=cpShareOf(d); var mine=sh[state.uid]||0; if(!(mine>0))return '';
+  var gcur=cpCur.couple.devise||'CHF';
+  var date=(d.created_at?String(d.created_at).slice(0,10):'');
+  var lang=(state.lang==='en')?'en':'fr';
+  var url='https://ubora.caroletchatcho.com/?ub_budget=1&date='+encodeURIComponent(date)+'&montant='+encodeURIComponent(String(Math.round(mine*100)/100))+'&devise='+encodeURIComponent(gcur)+'&libelle='+encodeURIComponent(d.intitule||_FL('Dépense du foyer','Household expense'))+'&categorie='+encodeURIComponent(cpInvestCatLabel(d.categorie||'autre'))+'&lang='+lang;
+  return '<a class="linkbtn" href="'+url+'" target="_blank" rel="noopener" title="'+_FL('Ajouter ma part (','Add my share (')+money(Math.round(mine),gcur)+_FL(') à mon budget Invest',') to my Invest budget')+'">→ '+_FL('Ma part dans mon budget Invest','My share in my Invest budget')+'</a>';
 }
 
 /* --- Entrée + liste --- */
@@ -7436,10 +7462,11 @@ function viewCouple(){
     +cpAddBlock()
     +cpExpList(M)
     +cpBalBlock(M)
+    +cpSpendViz(M)
     +footer();
   setTimeout(pv2AnimateBalances,30);
 }
-function cpToggleAdd(){ if(cpExp){cpExp=null;} else { var act=cpActifs(); cpExp={intitule:'',montant:'',devise:(cpCur.couple.devise||'CHF'),paye_par:(cpMyUid()||(act[0]&&act[0].uid)||''),mode:'prorata',recurrent:false,note:'',shares:{}}; } render(); }
+function cpToggleAdd(){ if(cpExp){cpExp=null;} else { var act=cpActifs(); cpExp={intitule:'',montant:'',devise:(cpCur.couple.devise||'CHF'),paye_par:(cpMyUid()||(act[0]&&act[0].uid)||''),mode:'prorata',recurrent:false,note:'',shares:{},categorie:'autre'}; } render(); }
 function cpAddBlock(){
   if(!cpExp) return '<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="cpToggleAdd()">+ '+_FL('Ajouter une dépense','Add an expense')+'</button></div>';
   const x=cpExp; const act=cpActifs();
@@ -7455,6 +7482,7 @@ function cpAddBlock(){
     +'<div class="row-gap"><div class="field" style="flex:1;min-width:140px"><label>'+_FL('Payé par','Paid by')+'</label><select id="cp-payer">'+payerOpts+'</select></div>'
     +'<div class="field" style="flex:1;min-width:110px"><label>'+_FL('Montant','Amount')+'</label><input type="number" id="cp-mont" value="'+(x.montant!==''?esc(String(x.montant)):'')+'" placeholder="0"></div>'
     +'<div class="field" style="flex:0 0 100px"><label>'+_FL('Devise','Currency')+'</label><select id="cp-dev">'+curOpts+'</select></div></div>'
+    +'<div class="field"><label>'+_FL('Catégorie','Category')+'</label><select id="cp-cat">'+CP_CATS.map(function(c){return '<option value="'+c+'" '+(c===(x.categorie||'autre')?'selected':'')+'>'+cpCatLabel(c)+'</option>';}).join('')+'</select></div>'
     +'<div class="field"><label>'+_FL('Répartition','Split')+'</label><div class="split-modes">'+mb('prorata',_FL('Prorata','Prorata'))+mb('egal',_FL('Égal','Equal'))+mb('exact',_FL('Exact','Exact'))+mb('offert',_FL('Offert','Gift'))+'</div>'+detail+'</div>'
     +'<label class="psplit-chk" style="margin-top:6px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="cp-rec" '+(x.recurrent?'checked':'')+'> '+_FL('Dépense récurrente (chaque mois)','Recurring expense (every month)')+'</label>'
     +'<div class="field"><label>'+_FL('Note (facultatif)','Note (optional)')+'</label><input id="cp-note" value="'+esc(x.note||'')+'"></div>'
@@ -7463,7 +7491,7 @@ function cpAddBlock(){
 }
 function cpReadAdd(){ if(!cpExp)return; var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
   cpExp.intitule=g('cp-int'); if(g('cp-mont')!=='')cpExp.montant=g('cp-mont'); cpExp.devise=g('cp-dev')||cpExp.devise; cpExp.paye_par=g('cp-payer')||cpExp.paye_par;
-  var rec=document.getElementById('cp-rec'); cpExp.recurrent=!!(rec&&rec.checked); cpExp.note=g('cp-note');
+  var rec=document.getElementById('cp-rec'); cpExp.recurrent=!!(rec&&rec.checked); cpExp.note=g('cp-note'); cpExp.categorie=g('cp-cat')||cpExp.categorie;
   if(cpExp.mode==='exact'){ var sh={}; document.querySelectorAll('[id^="cpsh-"]').forEach(function(inp){ var u=inp.id.slice(5); if(inp.value!=='')sh[u]=+inp.value; }); cpExp.shares=sh; }
 }
 function cpSetMode(m){ cpReadAdd(); cpExp.mode=m; render(); }
@@ -7471,7 +7499,7 @@ async function cpDoAdd(){
   cpReadAdd(); var x=cpExp; var amt=parseFloat(String(x.montant).replace(',','.'));
   if(!(amt>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
   if(!x.paye_par){alert(_FL('Indiquez qui a payé.','Say who paid.'));return;}
-  var row={couple_id:cpCur.id, intitule:x.intitule||'', montant:amt, devise:x.devise||cpCur.couple.devise, paye_par:x.paye_par, mode:x.mode, shares:(x.mode==='exact'?(x.shares||{}):null), mois:(cpMonth||cpMonthNow()), recurrent:!!x.recurrent, preuve_note:x.note||null };
+  var row={couple_id:cpCur.id, intitule:x.intitule||'', montant:amt, devise:x.devise||cpCur.couple.devise, paye_par:x.paye_par, mode:x.mode, shares:(x.mode==='exact'?(x.shares||{}):null), mois:(cpMonth||cpMonthNow()), recurrent:!!x.recurrent, categorie:x.categorie||'autre', preuve_note:x.note||null };
   if(cpBusy)return; cpBusy=true;
   try{ await cpsb(); const r=await sb.from('couple_depenses').insert(row); if(r.error)throw r.error; cpExp=null; cpBusy=false; await cpRefresh(); }
   catch(e){ cpBusy=false; alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)); }
@@ -7483,8 +7511,11 @@ function cpExpList(M){
     const off=d.mode==='offert'; const rec=d.recurrent;
     const modeL=off?_FL('Offert','Gift'):(d.mode==='prorata'?'prorata':(d.mode==='egal'?_FL('égal','equal'):_FL('exact','exact')));
     const trace=d.auteur?('<div class="msub" style="margin-top:3px;color:var(--faint)">'+_FL('ajoutée par ','added by ')+esc(cpMemName(d.auteur))+(d.created_at?' · '+esc(pv2FmtWhen(d.created_at)):'')+'</div>'):'';
+    var endAction='';
+    if(rec){ if(d.fin_mois){ endAction='<div class="msub" style="margin-top:2px;color:var(--faint)">'+_FL('jusqu’à ','until ')+esc(cpMonthLabel(d.fin_mois))+'</div>'; } else if(d.auteur===state.uid||canManage){ endAction='<div style="margin-top:4px"><button class="linkbtn" onclick="cpEndRecurrence(\''+d.id+'\',\''+M+'\')">'+_FL('terminer la récurrence','end recurrence')+'</button></div>'; } }
     const canDel=(!d.recurrent||((d.mois||'')===M)) && (d.auteur===state.uid || canManage);
-    return '<div class="panel"><div style="padding:14px 18px"><div class="between"><div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(rec?'<span class="pill p-face">↻ '+_FL('récurrente','recurring')+'</span>':'')+(off?' <span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(cpMemName(d.paye_par))+' · '+modeL+'</div>'+trace+'</div><div class="right"><span class="p-amt">'+money(Number(d.montant)||0,d.devise||gcur)+'</span>'+(canDel?'<button class="linkbtn" onclick="cpDoDel(\''+d.id+'\')">✕</button>':'')+'</div></div></div></div>';
+    var il=cpInvestLink(d); var investRow=il?('<div style="margin-top:6px">'+il+'</div>'):'';
+    return '<div class="panel"><div style="padding:14px 18px"><div class="between"><div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(rec?'<span class="pill p-face">↻ '+_FL('récurrente','recurring')+'</span>':'')+(off?' <span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(cpMemName(d.paye_par))+' · '+modeL+' · '+esc(cpCatLabel(d.categorie||'autre'))+'</div>'+trace+endAction+investRow+'</div><div class="right"><span class="p-amt">'+money(Number(d.montant)||0,d.devise||gcur)+'</span>'+(canDel?'<button class="linkbtn" onclick="cpDoDel(\''+d.id+'\')">✕</button>':'')+'</div></div></div></div>';
   }).join('');
   return rows||'<div class="panel"><div class="empty">'+_FL('Aucune dépense ce mois-ci.','No expense this month.')+'</div></div>';
 }
@@ -9572,7 +9603,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.31';
+const UBORA_BUILD='v9.32';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
