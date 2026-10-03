@@ -3000,7 +3000,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,pattest:viewPAttest,pattestlist:viewPAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -6820,7 +6820,8 @@ function viewPartages(){
     +'<p class="lead">'+_FL('Les dépenses partagées entre proches — un voyage, une sortie, la maison. Chacun saisit, tout le monde voit qui doit quoi, sans qu’UBORA ne détienne un centime.','Shared expenses among friends — a trip, a night out, the home. Everyone enters, everyone sees who owes what, with UBORA never holding a cent.')+'</p>'
     +'<div class="reassure">● '+_FL('UBORA enregistre qui doit quoi — l’argent circule entre vous, jamais par UBORA.','UBORA records who owes what — money flows between you, never through UBORA.')+'</div>'
     +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2StartCreate()">+ '+_FL('Nouveau partage','New share')+'</button>'
-    +'<button class="btn btn-ghost btn-sm" onclick="pv2PromptJoin()">'+_FL('Rejoindre par un lien','Join via a link')+'</button></div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2PromptJoin()">'+_FL('Rejoindre par un lien','Join via a link')+'</button>'
+    +((state&&state.uid)?'<button class="btn btn-ghost btn-sm" onclick="pv2OpenArchive()">'+_FL('Mes attestations','My attestations')+'</button>':'')+'</div>'
     +(cards||'<div class="panel"><div class="empty">'+_FL('Aucun partage pour l’instant. Créez-en un, ou ouvrez le lien qu’on vous a envoyé.','No share yet. Create one, or open the link you were sent.')+'</div></div>')
     +footer();
 }
@@ -7052,7 +7053,7 @@ function pv2GroupView(){
     +'<div style="padding:4px 0">'+balRows+'</div>'
     +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Total des dépenses partagées','Total shared expenses')+' : '+money(Math.round(total),gcur)+'</div></div>'
     +'<div class="panel"><div class="panel-h"><h3>'+_FL('Règlement suggéré','Suggested settlement')+'</h3></div>'
-    +'<div style="padding:10px 20px 8px"><div class="msub" style="margin-bottom:10px">'+_FL('Qui rembourse qui, en un minimum de virements. Transparent pour tout le monde — pour lever toute suspicion.','Who pays back whom, in as few transfers as possible. Transparent for everyone — to remove any suspicion.')+'</div>'+sRows+'</div></div>';
+    +'<div style="padding:10px 20px 8px"><div class="msub" style="margin-bottom:10px">'+_FL('Qui rembourse qui, en un minimum de virements. Transparent pour tout le monde — pour lever toute suspicion.','Who pays back whom, in as few transfers as possible. Transparent for everyone — to remove any suspicion.')+'</div>'+sRows+'</div></div>'+pv2AttestPanel();
 }
 
 /* --- Décompte animé (effet « odomètre » premium) + son discret optionnel --- */
@@ -7076,6 +7077,126 @@ function pv2AnimateBalances(){
       if(k<1)requestAnimationFrame(stepf); else el.textContent=money(Math.abs(Math.round(to)),cur); }
     requestAnimationFrame(stepf);
   });
+}
+
+/* --- Attestation / archive (premium) --- */
+let pv2LastAttest=null;
+function pv2Snapshot(){
+  const b=pv2Balances(), gcur=b.gcur, names=b.names, bal=b.bal;
+  const deps=(pv2Cur.depenses||[]).map(function(d){ const pe=pv2PE(d);
+    const partage=(pe&&pe.mode==='offert')?_FL('offert','gift'):((pe&&pe.who&&pe.who.length&&pe.who.length<names.length)?(_FL('entre ','among ')+pe.who.join(', ')):_FL('entre tous','among all'));
+    return {intitule:d.intitule||'', montant:Number(d.montant)||0, devise:d.devise||gcur, paye_par:d.paye_par||'', partage:partage}; });
+  const soldes=names.map(function(n){return {name:n, net:Math.round(bal[n]||0)};});
+  const reglement=pv2Settle(bal,names).map(function(t){return {from:t.from,to:t.to,amount:Math.round(t.amount)};});
+  const total=(pv2Cur.depenses||[]).reduce(function(s,d){const pe=pv2PE(d);if(pe&&pe.mode==='offert')return s;return s+fxConvert(Number(d.montant)||0,d.devise||gcur,gcur);},0);
+  return {as_of:new Date().toISOString(), devise:gcur, participants:names, depenses:deps, soldes:soldes, reglement:reglement, total:Math.round(total)};
+}
+async function pv2DoAttest(){
+  if(!(state&&state.uid)){ alert(_FL('Créez un compte / connectez-vous pour générer l’attestation (fonction premium).','Create an account / sign in to generate the attestation (premium feature).')); return; }
+  if(pv2Busy)return; pv2Busy=true;
+  try{ const snap=pv2Snapshot(); await pv2sb();
+    const r=await sb.rpc('partage_attestation_issue',{p_id:pv2Cur.id,p_token:pv2Cur.token,p_snapshot:snap});
+    if(r.error)throw r.error;
+    pv2LastAttest={code:r.data.code, titre:pv2Cur.partage.titre, devise:pv2Cur.partage.devise, snapshot:snap, created_at:new Date().toISOString(), _pid:pv2Cur.id};
+    pv2Busy=false; render();
+  }catch(e){ pv2Busy=false; alert(_FL('Attestation échouée : ','Attestation failed: ')+(e.message||e)); }
+}
+function pv2AttestLink(code){ return location.origin+location.pathname+'?pa='+encodeURIComponent(code); }
+function pv2CopyAttest(code){ try{navigator.clipboard.writeText(pv2AttestLink(code));}catch(e){} try{ const b=(typeof event!=='undefined')&&event&&event.target; if(b){const t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);} }catch(e){} }
+function pv2OpenDocLast(){ if(pv2LastAttest)pv2AttestOpenDoc(pv2LastAttest); }
+function pv2AttestPanel(){
+  const a=pv2LastAttest;
+  const intro='<div class="panel" style="margin-top:14px;border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:16px 20px">'
+    +'<div class="mname" style="color:#7A5C12">'+_FL('Attestation & archive','Attestation & archive')+' <span class="pill p-face">'+_FL('Premium','Premium')+'</span></div>'
+    +'<div class="msub" style="margin-top:4px">'+_FL('Un relevé daté, figé et vérifiable de ce partage — qui a payé quoi, soldes et règlement. Archivé et consultable par un code.','A dated, frozen, verifiable statement of this share — who paid what, balances and settlement. Archived and checkable by a code.')+'</div>';
+  if(!a||a._pid!==pv2Cur.id){
+    return intro+'<div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="pv2DoAttest()">'+_FL('Générer l’attestation','Generate the attestation')+'</button>'
+      +((state&&state.uid)?'':' <span class="msub">'+_FL('(compte requis)','(account required)')+'</span>')+'</div></div></div>';
+  }
+  return intro
+    +'<div style="margin-top:10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px">'
+    +'<div class="mname">'+_FL('Attestation émise','Attestation issued')+' ✓ · <span style="font-family:monospace;letter-spacing:1px">'+esc(a.code)+'</span></div>'
+    +'<div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="pv2OpenDocLast()">'+_FL('Voir / Imprimer','View / Print')+'</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2CopyAttest(\''+a.code+'\')">'+_FL('Copier le lien de vérification','Copy verification link')+'</button></div>'
+    +'<div class="hint" style="margin-top:8px">'+_FL('Archivée dans « Mes attestations ». Toute personne ayant le lien peut vérifier son authenticité.','Archived in “My attestations”. Anyone with the link can verify its authenticity.')+'</div>'
+    +'</div></div></div>';
+}
+function pv2AttestOpenDoc(a){
+  if(!a){ return; }
+  const snap=a.snapshot||{}; const dev=a.devise||snap.devise||'CHF'; const L=(state.lang==='en');
+  const dt=new Date(a.created_at||snap.as_of||Date.now());
+  const dstr=dt.toLocaleDateString(L?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  const m=function(n){return money(Math.abs(Math.round(n)),dev);};
+  const depRows=(snap.depenses||[]).map(function(d){return '<tr><td>'+esc(d.intitule||'—')+'</td><td>'+esc(d.paye_par||'')+'</td><td>'+esc(d.partage||'')+'</td><td style="text-align:right">'+money(Math.round(d.montant),d.devise||dev)+'</td></tr>';}).join('');
+  const solRows=(snap.soldes||[]).map(function(s){var lbl=s.net>1?((L?'is owed ':'on lui doit ')+m(s.net)):(s.net<-1?((L?'owes ':'doit ')+m(s.net)):(L?'settled':'à jour'));return '<tr><td>'+esc(s.name)+'</td><td style="text-align:right">'+lbl+'</td></tr>';}).join('');
+  const regRows=(snap.reglement||[]).map(function(t){return '<tr><td>'+esc(t.from)+' → '+esc(t.to)+'</td><td style="text-align:right">'+money(Math.round(t.amount),dev)+'</td></tr>';}).join('')||('<tr><td colspan="2">'+(L?'All balanced.':'Tout est équilibré.')+'</td></tr>');
+  const verifyUrl=pv2AttestLink(a.code);
+  const html='<!doctype html><html lang="'+(L?'en':'fr')+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+(L?'UBORA attestation':'Attestation UBORA')+' '+esc(a.code)+'</title>'
+    +'<style>body{font-family:Georgia,"Cormorant Garamond",serif;color:#2A2018;max-width:720px;margin:28px auto;padding:0 20px;background:#fff}'
+    +'h1{font-size:26px;margin:0 0 2px}h3{margin:18px 0 4px}.ey{letter-spacing:3px;text-transform:uppercase;font-size:11px;color:#9A7230;font-family:Arial,sans-serif}'
+    +'.gold{color:#9A7230}.muted{color:#6E6457;font-size:13px}table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-family:Arial,sans-serif;font-size:13px}'
+    +'th,td{border-bottom:1px solid #e8e0cf;padding:7px 6px;text-align:left}th{color:#9A7230;font-weight:600}'
+    +'.code{font-family:monospace;letter-spacing:2px;font-size:18px}.box{border:1px solid #C9A24B66;border-radius:10px;padding:14px 16px;background:#FBF7EC;margin:16px 0}'
+    +'.foot{margin-top:22px;font-size:11.5px;color:#8c8475;font-family:Arial,sans-serif;border-top:1px solid #e8e0cf;padding-top:10px}'
+    +'@media print{.noprint{display:none}body{margin:0}}</style></head><body>'
+    +'<div class="ey">UBORA · '+(L?'Trust registry':'Registre de confiance')+'</div>'
+    +'<h1>'+(L?'Shared-expense statement':'Relevé de partage de dépenses')+'</h1>'
+    +'<div class="muted">'+esc(a.titre||'')+' · '+(L?'currency':'devise')+' '+esc(dev)+' · '+(L?'issued on':'émis le')+' '+dstr+'</div>'
+    +'<div class="box"><div>'+(L?'Verification code':'Code de vérification')+' : <span class="code">'+esc(a.code)+'</span></div>'
+    +'<div class="muted" style="margin-top:4px">'+(L?'Verify at':'Vérifier sur')+' : '+esc(verifyUrl)+'</div></div>'
+    +'<h3 class="gold">'+(L?'Expenses':'Dépenses')+'</h3><table><tr><th>'+(L?'Item':'Intitulé')+'</th><th>'+(L?'Paid by':'Payé par')+'</th><th>'+(L?'Split':'Partagé')+'</th><th style="text-align:right">'+(L?'Amount':'Montant')+'</th></tr>'+depRows+'</table>'
+    +'<div class="muted">'+(L?'Total shared':'Total partagé')+' : '+money(Math.round(snap.total||0),dev)+'</div>'
+    +'<h3 class="gold">'+(L?'Balances':'Soldes')+'</h3><table>'+solRows+'</table>'
+    +'<h3 class="gold">'+(L?'Suggested settlement':'Règlement suggéré')+'</h3><table>'+regRows+'</table>'
+    +'<div class="foot">'+(L?'UBORA records who owes what — it holds no funds and takes no commission. This is a declarative statement of the share as of the date above, not a bank or accounting document. Figures reflect the entries made by participants.':'UBORA enregistre qui doit quoi — elle ne détient aucun fonds et ne prend aucune commission. Ce relevé est déclaratif, arrêté à la date ci-dessus ; ce n’est pas un document bancaire ou comptable. Les montants reflètent les saisies des participants.')+'</div>'
+    +'<div class="noprint" style="margin-top:18px;font-family:Arial,sans-serif"><button onclick="window.print()" style="padding:10px 16px;background:#9A7230;color:#fff;border:none;border-radius:8px;cursor:pointer">'+(L?'Print / Save as PDF':'Imprimer / Enregistrer en PDF')+'</button></div>'
+    +'</body></html>';
+  try{ const w=window.open('','_blank'); if(w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(e){}
+  try{ const blob=new Blob([html],{type:'text/html'}); const url=URL.createObjectURL(blob); window.open(url,'_blank'); setTimeout(function(){URL.revokeObjectURL(url);},4000); }catch(e){ alert(_FL('Impossible d’ouvrir le document ici.','Could not open the document here.')); }
+}
+async function pv2VerifyOpen(code){
+  state.view='pattest'; state.pattest={code:code,loading:true}; render();
+  try{ await pv2sb(); const r=await sb.rpc('partage_attestation_verify',{p_code:code});
+    if(r.error||!r.data||!r.data.trouve){ state.pattest={code:code,notfound:true}; }
+    else { state.pattest={code:code,data:r.data}; }
+  }catch(e){ state.pattest={code:code,notfound:true}; }
+  render();
+}
+function viewPAttest(){
+  const p=state.pattest||{};
+  if(p.loading){ app().innerHTML='<div class="panel"><div class="empty">'+_FL('Vérification…','Verifying…')+'</div></div>'+footer(); return; }
+  if(p.notfound){ app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Attestation introuvable','Attestation not found')+'</div><div class="msub" style="margin-top:6px">'+_FL('Ce code ne correspond à aucune attestation. Vérifiez le lien.','This code matches no attestation. Check the link.')+' ('+esc(p.code||'')+')</div></div></div>'+footer(); return; }
+  const a=p.data, snap=a.snapshot||{}, dev=a.devise||'CHF';
+  try{ window._paData=a; }catch(e){}
+  const dt=new Date(a.created_at||Date.now()); const dstr=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  const m=function(n){return money(Math.abs(Math.round(n)),dev);};
+  const sol=(snap.soldes||[]).map(function(s){var lbl=s.net>1?('<span class="pbal-pos">'+m(s.net)+' · '+_FL('on lui doit','is owed')+'</span>'):(s.net<-1?('<span class="pbal-neg">'+m(s.net)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>');return '<div class="mrow">'+avatar(s.name)+'<div class="stack"><div class="mname">'+esc(s.name)+'</div></div><div class="right">'+lbl+'</div></div>';}).join('');
+  app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button>'
+    +'<div class="eyebrow">'+_FL('Vérification d’attestation','Attestation verification')+'</div>'
+    +'<h1 class="page-title">'+esc(a.titre||_FL('Partage','Share'))+'</h1>'
+    +'<div class="reassure">● '+_FL('Attestation authentique','Authentic attestation')+' ✓ · <span style="font-family:monospace">'+esc(a.code)+'</span> · '+_FL('émise le','issued on')+' '+dstr+'</div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Soldes','Balances')+'</h3></div><div style="padding:4px 0">'+(sol||'<div class="empty">—</div>')+'</div>'
+    +'<div class="msub" style="padding:8px 20px 14px">'+_FL('Total partagé','Total shared')+' : '+money(Math.round(snap.total||0),dev)+'</div></div>'
+    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="pv2AttestOpenDoc(window._paData)">'+_FL('Voir / Imprimer le relevé complet','View / Print full statement')+'</button></div>'
+    +footer();
+}
+async function pv2OpenArchive(){
+  state.view='pattestlist'; state.pattestList={loading:true}; render();
+  try{ await pv2sb(); const r=await sb.rpc('partage_attestation_mine'); state.pattestList={rows:(r&&!r.error&&Array.isArray(r.data))?r.data:[]}; }
+  catch(e){ state.pattestList={rows:[]}; }
+  render();
+}
+function viewPAttestList(){
+  const LS=state.pattestList||{};
+  if(LS.loading){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button><div class="panel"><div class="empty">'+_FL('Chargement…','Loading…')+'</div></div>'+footer(); return; }
+  const rows=(LS.rows||[]);
+  const list=rows.length?rows.map(function(a){ var dt=new Date(a.created_at); var ds=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'short',year:'numeric'});
+    return '<div class="mrow" style="cursor:pointer" onclick="pv2VerifyOpen(\''+esc(a.code)+'\')"><div class="stack"><div class="mname">'+esc(a.titre||'—')+'</div><div class="msub" style="font-family:monospace">'+esc(a.code)+' · '+ds+'</div></div><div class="right"><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div>';
+  }).join(''):'<div class="empty">'+_FL('Aucune attestation pour l’instant.','No attestation yet.')+'</div>';
+  app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
+    +'<h1 class="page-title">'+_FL('Mes attestations','My attestations')+'</h1>'
+    +'<p class="lead">'+_FL('Vos relevés de partage émis — archivés et vérifiables.','Your issued share statements — archived and verifiable.')+'</p>'
+    +'<div class="panel"><div style="padding:6px 16px 12px">'+list+'</div></div>'+footer();
 }
 
 
@@ -9102,7 +9223,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.23';
+const UBORA_BUILD='v9.24';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -9756,6 +9877,17 @@ async function boot(){
       if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
       pv2LoadReg();
       await pv2OpenPublic(decodeURIComponent(_pp[1]), _pp[2]);
+      try{ showBackendBadge(); }catch(e){}
+      return;
+    }
+  }catch(e){}
+
+  /* 0-septies) Vérification d'une ATTESTATION de partage (?pa=CODE) — PUBLIC, sans compte */
+  try{
+    var _pa=(location.search||'').match(/[?&]pa=([A-Za-z0-9-]{4,})/) || (location.hash||'').match(/[#&]pa=([A-Za-z0-9-]{4,})/);
+    if(_pa){
+      if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
+      await pv2VerifyOpen(decodeURIComponent(_pa[1]));
       try{ showBackendBadge(); }catch(e){}
       return;
     }
