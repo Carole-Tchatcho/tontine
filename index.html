@@ -2981,7 +2981,7 @@ function render(){
   if(state.view==='tarifs')$('#nav-tarifs').classList.add('on');
   if(state.view==='entraide'||state.view==='mandate'||state.view==='caisse'||state.view==='registre'||state.view==='federation'||state.view==='fedhome'||state.view==='fedask'||state.view==='fedadmin'||state.view==='caissecreate'||state.view==='attestation')$('#nav-entraide').classList.add('on');
   if(state.view==='events'||state.view==='event'||state.view==='eventcreate'||state.view==='diffusion')$('#nav-events').classList.add('on');
-  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate'||state.view==='partageedit'||state.view==='pattestlist'||state.view==='couples'||state.view==='couplecreate'||state.view==='couple'||state.view==='couplesettings')$('#nav-partage').classList.add('on');
+  if(state.view==='partages'||state.view==='partage'||state.view==='partagecreate'||state.view==='partageedit'||state.view==='pattestlist'||state.view==='couples'||state.view==='couplecreate'||state.view==='couple'||state.view==='couplesettings'||state.view==='fattestlist')$('#nav-partage').classList.add('on');
   /* Niveaux et Diffusion ne sont plus dans la barre : le bandeau « Votre
      niveau » de l'accueil mène déjà à la pyramide, et « Diffusion » est un
      bouton posé à côté de ce qu'on diffuse. Deux onglets qui doublonnaient
@@ -3000,7 +3000,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -7292,7 +7292,9 @@ async function cpLoad(id){
   const c=await sb.from('couples').select('*').eq('id',id).single(); if(c.error)throw c.error;
   const mem=await sb.from('couple_membres').select('*').eq('couple_id',id); if(mem.error)throw mem.error;
   const dep=await sb.from('couple_depenses').select('*').eq('couple_id',id); if(dep.error)throw dep.error;
-  cpCur={id:id, couple:c.data, membres:mem.data||[], depenses:dep.data||[]};
+  cpCur={id:id, couple:c.data, membres:mem.data||[], depenses:dep.data||[], cagnottes:[], cagContribs:[]};
+  try{ const cg=await sb.from('couple_cagnottes').select('*').eq('couple_id',id); if(!cg.error)cpCur.cagnottes=cg.data||[];
+       const co=await sb.from('couple_cagnotte_contribs').select('*').eq('couple_id',id); if(!co.error)cpCur.cagContribs=co.data||[]; }catch(e){}
 }
 function cpActifs(){ return (cpCur.membres||[]).filter(function(m){return m.statut==='actif'&&m.uid;}); }
 function cpFirstFromEmail(email){ try{ var p=String(email||'').split('@')[0].split(/[._-]+/)[0]; return p?(p.charAt(0).toUpperCase()+p.slice(1)):(email||'?'); }catch(e){ return email||'?'; } }
@@ -7455,7 +7457,7 @@ function viewCouple(){
   const nav='<div class="between" style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,-1)+'\';render()">‹</button><span class="mname">'+esc(cpMonthLabel(M))+'</span><button class="btn btn-ghost btn-sm" onclick="cpMonth=\''+cpMonthAdd(M,1)+'\';render()">›</button></div>';
   app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button>'
     +'<div><h1 class="page-title">'+esc(C.nom||_FL('Notre foyer','Our household'))+'</h1><div class="t-meta">'+memLine+' · '+esc(C.devise||'CHF')+'</div></div>'
-    +'<div class="row-gap" style="margin:6px 0 2px"><button class="btn btn-ghost btn-sm" onclick="cpOpenSettings()">⚙ '+_FL('Réglages du foyer','Household settings')+'</button></div>'
+    +'<div class="row-gap" style="margin:6px 0 2px"><button class="btn btn-ghost btn-sm" onclick="cpOpenSettings()">⚙ '+_FL('Réglages du foyer','Household settings')+'</button><button class="btn btn-ghost btn-sm" onclick="cpOpenFArchive()">📄 '+_FL('Attestations','Statements')+'</button></div>'
     +'<div class="reassure">● '+_FL('Espace confidentiel — visible uniquement par vous deux.','Private space — visible only to the two of you.')+'</div>'
     +cpPendingInviteBlock()
     +nav
@@ -7463,6 +7465,8 @@ function viewCouple(){
     +cpExpList(M)
     +cpBalBlock(M)
     +cpSpendViz(M)
+    +cpCagnotteBlock()
+    +cpAttestPanel(M)
     +footer();
   setTimeout(pv2AnimateBalances,30);
 }
@@ -7577,6 +7581,107 @@ async function cpSetManage(mid,val){ try{ await cpsb(); const r=await sb.rpc('co
 async function cpResend(email){ var ok=await cpSendInviteEmail(email,(cpCur.couple&&cpCur.couple.nom)||''); alert(ok?_FL('E-mail d’invitation renvoyé ✓','Invitation email resent ✓'):_FL('Envoi impossible pour le moment — vérifiez la fonction d’e-mail.','Could not send right now — check the email function.')); }
 async function cpSaveQuotes(){ try{ await cpsb(); var ms=(cpCur.membres||[]).filter(function(m){return m.statut==='actif';}); for(var i=0;i<ms.length;i++){ var el=document.getElementById('cpq-'+ms[i].id); if(el){ var q=parseFloat(String(el.value).replace(',','.')); if(isNaN(q))q=1; var r=await sb.rpc('couple_set_quote',{p_couple:cpCur.id,p_membre:ms[i].id,p_quote:q}); if(r.error)throw r.error; } } await cpRefresh(); alert(_FL('Quote-parts enregistrées ✓','Quote-shares saved ✓')); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var email=e?e.value.trim():''; if(!email){alert(_FL('Indiquez un e-mail.','Enter an email.'));return;} try{ await cpsb(); const r=await sb.rpc('couple_invite',{p_couple:cpCur.id,p_email:email,p_nom:null}); if(r.error)throw r.error; var mailed=await cpSendInviteEmail(email,(cpCur.couple&&cpCur.couple.nom)||''); await cpRefresh(); alert(mailed?_FL('Invitation envoyée ✓ (e-mail envoyé)','Invitation sent ✓ (email sent)'):_FL('Invitation enregistrée ✓ — l’e-mail n’a pas pu partir ; prévenez la personne de se connecter avec cette adresse.','Invitation saved ✓ — email could not be sent; ask the person to sign in with that address.')); }catch(err){ alert(_FL('Échec : ','Failed: ')+(err.message||err)); } }
+
+/* --- Cagnottes du foyer --- */
+function cpCagRaised(cid){ return (cpCur.cagContribs||[]).filter(function(c){return c.cagnotte_id===cid;}).reduce(function(s,c){return s+(Number(c.montant)||0);},0); }
+function cpCagnotteBlock(){
+  const gcur=cpCur.couple.devise||'CHF'; const list=(cpCur.cagnottes||[]);
+  var cards=list.map(function(cg){ var raised=cpCagRaised(cg.id); var goal=Number(cg.objectif)||0; var pct=goal>0?Math.min(100,Math.round(raised/goal*100)):0;
+    return '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div class="mname">🎯 '+esc(cg.titre||_FL('Objectif','Goal'))+'</div><button class="linkbtn" onclick="cpCagDelete(\''+cg.id+'\')">✕</button></div>'
+      +'<div class="between" style="margin-top:6px"><span class="msub">'+money(Math.round(raised),cg.devise||gcur)+(goal>0?(' / '+money(Math.round(goal),cg.devise||gcur)):'')+'</span><span class="gold">'+(goal>0?pct+'%':'')+'</span></div>'
+      +(goal>0?'<div style="height:10px;background:#EEE6D4;border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>':'')
+      +'<div class="row-gap" style="margin-top:10px"><span style="display:inline-flex;gap:6px;align-items:center"><input id="cgc-'+cg.id+'" type="number" placeholder="0" style="width:92px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><button class="btn btn-gold btn-sm" onclick="cpCagContribute(\''+cg.id+'\')">'+_FL('Contribuer','Contribute')+'</button></span>'
+      +'<a class="btn btn-ghost btn-sm" href="https://ubora.caroletchatcho.com/#calculateurs" target="_blank" rel="noopener">'+_FL('Faire fructifier sur Invest','Grow it on Invest')+'</a></div>'
+      +'</div></div>';
+  }).join('');
+  var createBtn = state._cpCagNew
+    ? '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>'+_FL('Intitulé','Label')+'</label><input id="cg-titre" placeholder="'+_FL('Ex. Vacances, école des enfants…','E.g. Holiday, kids’ school…')+'"></div><div class="field" style="flex:1;min-width:110px;margin-top:0"><label>'+_FL('Objectif','Goal')+'</label><input id="cg-goal" type="number" placeholder="0"></div></div><div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="cpCagCreate()">'+_FL('Créer la cagnotte','Create the goal')+'</button> <button class="btn btn-ghost btn-sm" onclick="state._cpCagNew=false;render()">'+_FL('Annuler','Cancel')+'</button></div></div></div>'
+    : '<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="state._cpCagNew=true;render()">+ '+_FL('Nouvelle cagnotte','New goal')+'</button></div>';
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Cagnottes du foyer','Household goals')+'</h3></div><div style="padding:8px 16px 14px"><div class="msub">'+_FL('Épargnez ensemble vers un objectif (vacances, enfants…) — et faites-le fructifier avec Invest.','Save together toward a goal (holiday, children…) — and grow it with Invest.')+'</div>'+cards+createBtn+'</div></div>';
+}
+async function cpCagCreate(){ var t=document.getElementById('cg-titre'), g=document.getElementById('cg-goal'); var titre=t?t.value.trim():''; var goal=g?parseFloat(String(g.value).replace(',','.')):0; if(!titre){alert(_FL('Indiquez un intitulé.','Enter a label.'));return;} try{ await cpsb(); var r=await sb.from('couple_cagnottes').insert({couple_id:cpCur.id,titre:titre,objectif:(isNaN(goal)?null:goal),devise:cpCur.couple.devise}); if(r.error)throw r.error; state._cpCagNew=false; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpCagContribute(cid){ var el=document.getElementById('cgc-'+cid); var v=el?parseFloat(String(el.value).replace(',','.')):0; if(!(v>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;} try{ await cpsb(); var r=await sb.from('couple_cagnotte_contribs').insert({cagnotte_id:cid,couple_id:cpCur.id,montant:v}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpCagDelete(cid){ if(!confirm(_FL('Supprimer cette cagnotte et ses contributions ?','Delete this goal and its contributions?')))return; try{ await cpsb(); var r=await sb.from('couple_cagnottes').delete().eq('id',cid); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+
+/* --- Attestation mensuelle du foyer --- */
+let cpLastAttest=null;
+function cpSnapshotMonth(M){
+  const b1=cpBalMonth(M), b2=cpBalCumul(), gcur=cpCur.couple.devise||'CHF'; const act=cpActifs();
+  const membres=act.map(function(m){return {nom:cpDisplayName(m), quote:Number(m.quote)||1};});
+  const depenses=cpMonthExp(M).map(function(d){ return {intitule:d.intitule||'', montant:Number(d.montant)||0, devise:d.devise||gcur, paye_par:cpMemName(d.paye_par), mode:d.mode, categorie:cpCatLabel(d.categorie||'autre'), recurrent:!!d.recurrent}; });
+  const soldes=act.map(function(m){return {nom:cpDisplayName(m), net:Math.round(b1[m.uid]||0)};});
+  const credit=act.map(function(m){return {nom:cpDisplayName(m), net:Math.round(b2[m.uid]||0)};});
+  var total=0; cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return; total+=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur); });
+  return {as_of:new Date().toISOString(), mois:M, devise:gcur, membres:membres, depenses:depenses, soldes:soldes, credit:credit, total:Math.round(total)};
+}
+async function cpDoAttest(M){
+  if(!(state&&state.uid)){ alert(_FL('Connectez-vous.','Sign in.')); return; }
+  if(cpBusy)return; cpBusy=true;
+  try{ var snap=cpSnapshotMonth(M); await cpsb();
+    var r=await sb.rpc('couple_attestation_issue',{p_couple:cpCur.id,p_mois:M,p_snapshot:snap}); if(r.error)throw r.error;
+    cpLastAttest={code:r.data.code, titre:cpCur.couple.nom, devise:cpCur.couple.devise, mois:M, snapshot:snap, created_at:new Date().toISOString(), _cid:cpCur.id};
+    cpBusy=false; render();
+  }catch(e){ cpBusy=false; alert(_FL('Attestation échouée : ','Attestation failed: ')+(e.message||e)); }
+}
+function cpAttestLink(code){ return location.origin+location.pathname+'?fa='+encodeURIComponent(code); }
+function cpCopyAttest(code){ try{navigator.clipboard.writeText(cpAttestLink(code));}catch(e){} try{var b=(typeof event!=='undefined')&&event&&event.target;if(b){var t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);}}catch(e){} }
+function cpAttestPanel(M){
+  var a=cpLastAttest;
+  var intro='<div class="panel" style="border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:14px 18px"><div class="mname" style="color:#7A5C12">'+_FL('Attestation mensuelle','Monthly statement')+' <span class="pill p-face">'+_FL('clôture du mois','month close')+'</span></div><div class="msub" style="margin-top:4px">'+_FL('Un relevé figé et vérifiable du foyer pour ce mois — archivé, consultable par un code.','A frozen, verifiable household statement for this month — archived, checkable by a code.')+'</div>';
+  if(!a||a._cid!==cpCur.id||a.mois!==M){ return intro+'<div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="cpDoAttest(\''+M+'\')">'+_FL('Attester / clôturer ce mois','Attest / close this month')+'</button></div></div></div>'; }
+  return intro+'<div style="margin-top:10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px"><div class="mname">'+_FL('Attestation émise','Statement issued')+' ✓ · <span style="font-family:monospace;letter-spacing:1px">'+esc(a.code)+'</span></div><div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="cpAttestOpenDoc(cpLastAttest)">'+_FL('Voir / Imprimer','View / Print')+'</button><button class="btn btn-ghost btn-sm" onclick="cpCopyAttest(\''+a.code+'\')">'+_FL('Copier le lien de vérification','Copy verification link')+'</button></div><div class="hint" style="margin-top:8px">'+_FL('Archivée dans « Attestations du foyer ».','Archived in “Household statements”.')+'</div></div></div></div>';
+}
+function cpAttestOpenDoc(a){
+  if(!a)return; var snap=a.snapshot||{}; var dev=a.devise||snap.devise||'CHF'; var L=(state.lang==='en');
+  var dt=new Date(a.created_at||Date.now()); var dstr=dt.toLocaleDateString(L?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  var m=function(n){return money(Math.abs(Math.round(n)),dev);};
+  var depRows=(snap.depenses||[]).map(function(d){return '<tr><td>'+esc(d.intitule||'—')+(d.recurrent?' ↻':'')+'</td><td>'+esc(d.paye_par||'')+'</td><td>'+esc(d.categorie||'')+'</td><td style="text-align:right">'+money(Math.round(d.montant),d.devise||dev)+'</td></tr>';}).join('');
+  var solRows=(snap.soldes||[]).map(function(s){var lbl=s.net>1?((L?'is owed ':'on lui doit ')+m(s.net)):(s.net<-1?((L?'owes ':'doit ')+m(s.net)):(L?'settled':'à jour'));return '<tr><td>'+esc(s.nom)+'</td><td style="text-align:right">'+lbl+'</td></tr>';}).join('');
+  var creRows=(snap.credit||[]).map(function(s){var lbl=s.net>1?((L?'credit ':'crédit ')+m(s.net)):(s.net<-1?((L?'to repay ':'à rembourser ')+m(s.net)):(L?'balanced':'équilibré'));return '<tr><td>'+esc(s.nom)+'</td><td style="text-align:right">'+lbl+'</td></tr>';}).join('');
+  var verifyUrl=cpAttestLink(a.code);
+  var html='<!doctype html><html lang="'+(L?'en':'fr')+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+(L?'UBORA household statement':'Attestation foyer UBORA')+' '+esc(a.code)+'</title>'
+    +'<style>body{font-family:Georgia,serif;color:#2A2018;max-width:720px;margin:28px auto;padding:0 20px;background:#fff}h1{font-size:25px;margin:0 0 2px}h3{margin:18px 0 4px}.ey{letter-spacing:3px;text-transform:uppercase;font-size:11px;color:#9A7230;font-family:Arial,sans-serif}.gold{color:#9A7230}.muted{color:#6E6457;font-size:13px}table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-family:Arial,sans-serif;font-size:13px}th,td{border-bottom:1px solid #e8e0cf;padding:7px 6px;text-align:left}th{color:#9A7230}.code{font-family:monospace;letter-spacing:2px;font-size:18px}.box{border:1px solid #C9A24B66;border-radius:10px;padding:14px 16px;background:#FBF7EC;margin:16px 0}.foot{margin-top:22px;font-size:11.5px;color:#8c8475;font-family:Arial,sans-serif;border-top:1px solid #e8e0cf;padding-top:10px}@media print{.noprint{display:none}body{margin:0}}</style></head><body>'
+    +'<div class="ey">UBORA · '+(L?'Trust registry':'Registre de confiance')+'</div>'
+    +'<h1>'+(L?'Household monthly statement':'Relevé mensuel du foyer')+'</h1>'
+    +'<div class="muted">'+esc(a.titre||'')+' · '+(L?'month':'mois')+' '+esc(snap.mois||a.mois||'')+' · '+(L?'currency':'devise')+' '+esc(dev)+' · '+(L?'issued on':'émis le')+' '+dstr+'</div>'
+    +'<div class="box"><div>'+(L?'Verification code':'Code de vérification')+' : <span class="code">'+esc(a.code)+'</span></div><div class="muted" style="margin-top:4px">'+(L?'Verify at':'Vérifier sur')+' : '+esc(verifyUrl)+'</div></div>'
+    +'<h3 class="gold">'+(L?'Expenses':'Dépenses')+'</h3><table><tr><th>'+(L?'Item':'Intitulé')+'</th><th>'+(L?'Paid by':'Payé par')+'</th><th>'+(L?'Category':'Catégorie')+'</th><th style="text-align:right">'+(L?'Amount':'Montant')+'</th></tr>'+depRows+'</table><div class="muted">'+(L?'Total':'Total')+' : '+money(Math.round(snap.total||0),dev)+'</div>'
+    +'<h3 class="gold">'+(L?'This month':'Solde du mois')+'</h3><table>'+solRows+'</table>'
+    +'<h3 class="gold">'+(L?'Carried-over credit':'Crédit reporté')+'</h3><table>'+creRows+'</table>'
+    +'<div class="foot">'+(L?'UBORA records who owes what — it holds no funds. Declarative statement as of the date above; not a bank or accounting document.':'UBORA enregistre qui doit quoi — elle ne détient aucun fonds. Relevé déclaratif arrêté à la date ci-dessus ; ce n’est pas un document bancaire ou comptable.')+'</div>'
+    +'<div class="noprint" style="margin-top:18px;font-family:Arial,sans-serif"><button onclick="window.print()" style="padding:10px 16px;background:#9A7230;color:#fff;border:none;border-radius:8px;cursor:pointer">'+(L?'Print / Save as PDF':'Imprimer / Enregistrer en PDF')+'</button></div></body></html>';
+  try{ var w=window.open('','_blank'); if(w){ w.document.open(); w.document.write(html); w.document.close(); return; } }catch(e){}
+  try{ var blob=new Blob([html],{type:'text/html'}); var url=URL.createObjectURL(blob); window.open(url,'_blank'); setTimeout(function(){URL.revokeObjectURL(url);},4000); }catch(e){ alert(_FL('Impossible d’ouvrir le document.','Could not open the document.')); }
+}
+async function cpVerifyFOpen(code){
+  state.view='fattest'; state.fattest={code:code,loading:true}; render();
+  try{ await cpsb(); var r=await sb.rpc('couple_attestation_verify',{p_code:code}); if(r.error||!r.data||!r.data.trouve){ state.fattest={code:code,notfound:true}; } else { state.fattest={code:code,data:r.data}; } }catch(e){ state.fattest={code:code,notfound:true}; }
+  render();
+}
+function viewFAttest(){
+  var p=state.fattest||{};
+  if(p.loading){ app().innerHTML='<div class="panel"><div class="empty">'+_FL('Vérification…','Verifying…')+'</div></div>'+footer(); return; }
+  if(p.notfound){ app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Attestation introuvable','Statement not found')+'</div><div class="msub" style="margin-top:6px">'+esc(p.code||'')+'</div></div></div>'+footer(); return; }
+  var a=p.data, snap=a.snapshot||{}, dev=a.devise||'CHF'; try{window._faData=a;}catch(e){}
+  var dt=new Date(a.created_at||Date.now()); var dstr=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  var m=function(n){return money(Math.abs(Math.round(n)),dev);};
+  var sol=(snap.soldes||[]).map(function(s){var lbl=s.net>1?('<span class="pbal-pos">'+m(s.net)+' · '+_FL('on lui doit','is owed')+'</span>'):(s.net<-1?('<span class="pbal-neg">'+m(s.net)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>');return '<div class="mrow">'+avatar(s.nom)+'<div class="stack"><div class="mname">'+esc(s.nom)+'</div></div><div class="right">'+lbl+'</div></div>';}).join('');
+  app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button>'
+    +'<div class="eyebrow">'+_FL('Vérification d’attestation','Statement verification')+'</div>'
+    +'<h1 class="page-title">'+esc(a.titre||_FL('Foyer','Household'))+'</h1>'
+    +'<div class="reassure">● '+_FL('Attestation authentique','Authentic statement')+' ✓ · <span style="font-family:monospace">'+esc(a.code)+'</span> · '+_FL('mois','month')+' '+esc(a.mois||snap.mois||'')+' · '+_FL('émise le','issued on')+' '+dstr+'</div>'
+    +'<div class="panel"><div class="panel-h"><h3>'+_FL('Solde du mois','This month')+'</h3></div><div style="padding:4px 0">'+(sol||'<div class="empty">—</div>')+'</div><div class="msub" style="padding:8px 20px 14px">'+_FL('Total des dépenses','Total expenses')+' : '+money(Math.round(snap.total||0),dev)+'</div></div>'
+    +'<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="cpAttestOpenDoc(window._faData)">'+_FL('Voir / Imprimer le relevé complet','View / Print full statement')+'</button></div>'
+    +footer();
+}
+async function cpOpenFArchive(){ state.view='fattestlist'; state.fattestList={loading:true}; render(); try{ await cpsb(); var r=await sb.rpc('couple_attestation_mine'); state.fattestList={rows:(r&&!r.error&&Array.isArray(r.data))?r.data:[]}; }catch(e){ state.fattestList={rows:[]}; } render(); }
+function viewFAttestList(){
+  var LS=state.fattestList||{};
+  if(LS.loading){ app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button><div class="panel"><div class="empty">'+_FL('Chargement…','Loading…')+'</div></div>'+footer(); return; }
+  var rows=(LS.rows||[]);
+  var list=rows.length?rows.map(function(a){ var dt=new Date(a.created_at); var ds=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'short',year:'numeric'}); return '<div class="mrow" style="cursor:pointer" onclick="cpVerifyFOpen(\''+esc(a.code)+'\')"><div class="stack"><div class="mname">'+esc(a.titre||'—')+' · '+esc(a.mois||'')+'</div><div class="msub" style="font-family:monospace">'+esc(a.code)+' · '+ds+'</div></div><div class="right"><span class="gold" style="font-size:13.5px">'+_FL('Ouvrir','Open')+' ›</span></div></div>';}).join(''):'<div class="empty">'+_FL('Aucune attestation.','No statement.')+'</div>';
+  app().innerHTML='<button class="backlink" onclick="go(\'couples\')">‹ '+_FL('Espace couple','Couple space')+'</button><h1 class="page-title">'+_FL('Attestations du foyer','Household statements')+'</h1><div class="panel"><div style="padding:6px 16px 12px">'+list+'</div></div>'+footer();
+}
 
 
 
@@ -9603,7 +9708,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.32';
+const UBORA_BUILD='v9.33';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10268,6 +10373,17 @@ async function boot(){
     if(_pa){
       if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
       await pv2VerifyOpen(decodeURIComponent(_pa[1]));
+      try{ showBackendBadge(); }catch(e){}
+      return;
+    }
+  }catch(e){}
+
+  /* 0-octies) Vérification d'une ATTESTATION de FOYER (?fa=CODE) — PUBLIC */
+  try{
+    var _fa=(location.search||'').match(/[?&]fa=([A-Za-z0-9-]{4,})/) || (location.hash||'').match(/[#&]fa=([A-Za-z0-9-]{4,})/);
+    if(_fa){
+      if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
+      await cpVerifyFOpen(decodeURIComponent(_fa[1]));
       try{ showBackendBadge(); }catch(e){}
       return;
     }
