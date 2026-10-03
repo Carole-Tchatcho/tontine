@@ -7359,12 +7359,31 @@ function viewCoupleCreate(){
     +'<button class="btn btn-ghost" onclick="go(\'couples\')">'+_FL('Annuler','Cancel')+'</button></div>'
     +footer();
 }
+function cpInviteEmailHtml(inviter, foyer, url){
+  const L=state.lang==='en';
+  return '<div style="font-family:Georgia,serif;color:#2A2018;max-width:520px;margin:0 auto;padding:8px">'
+    +'<div style="letter-spacing:3px;text-transform:uppercase;font-size:11px;color:#9A7230;font-family:Arial,sans-serif">UBORA · '+(L?'Trust registry':'Le registre de confiance')+'</div>'
+    +'<h1 style="font-size:24px;margin:6px 0 10px">'+(L?'You’re invited to a couple space':'Invitation à un espace couple')+'</h1>'
+    +'<p style="line-height:1.7;color:#4a4a46;font-family:Arial,sans-serif;font-size:14px">'+(L?('<b>'+esc(inviter)+'</b> invites you to share the household accounts of <b>'+esc(foyer)+'</b> on UBORA — a private space, visible only to its members.'):('<b>'+esc(inviter)+'</b> vous invite à partager les comptes du foyer <b>'+esc(foyer)+'</b> sur UBORA — un espace privé, visible uniquement par ses membres.'))+'</p>'
+    +'<p style="line-height:1.7;color:#4a4a46;font-family:Arial,sans-serif;font-size:14px">'+(L?'To accept: sign in to UBORA <b>with this email address</b>, open the <b>Partage</b> tab, then click <b>Accept</b> on the invitation.':'Pour accepter : connectez-vous à UBORA <b>avec cette adresse e-mail</b>, ouvrez l’onglet <b>Partage</b>, puis cliquez sur <b>Accepter</b> sur l’invitation.')+'</p>'
+    +'<p style="margin:18px 0"><a href="'+url+'" style="display:inline-block;background:#2A2017;color:#F5E6C0;text-decoration:none;padding:11px 20px;border-radius:8px;font-family:Arial,sans-serif;font-size:14px">'+(L?'Open UBORA':'Ouvrir UBORA')+'</a></p>'
+    +'<p style="color:#9a968c;font-size:12px;font-family:Arial,sans-serif;line-height:1.6">'+(L?'UBORA records who owes what — it holds no funds. If you weren’t expecting this, you can ignore this email.':'UBORA enregistre qui doit quoi — elle ne détient aucun fonds. Si vous n’attendiez pas cette invitation, ignorez cet e-mail.')+'</p>'
+    +'</div>';
+}
+async function cpSendInviteEmail(email, foyerNom){
+  if(!email)return false;
+  try{ const inviter=state.user||state.email||'UBORA'; const url='https://tontine.caroletchatcho.com/';
+    const subj=_FL('Invitation à votre espace couple — UBORA','Invitation to your couple space — UBORA');
+    await db.sendEmail(email, subj, cpInviteEmailHtml(inviter, foyerNom||'', url)); return true;
+  }catch(e){ return false; }
+}
 async function cpDoCreate(){
   const g=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
   const nom=g('cp-nom')||_FL('Notre foyer','Our household'), devise=g('cp-cur')||'CHF', email=g('cp-email');
   if(cpBusy)return; cpBusy=true;
   try{ await cpsb(); const r=await sb.rpc('couple_create',{p_nom:nom,p_devise:devise,p_invite_email:email,p_invite_nom:null}); if(r.error)throw r.error;
-    cpBusy=false; cpOpen(r.data);
+    cpBusy=false; var mailed=email?await cpSendInviteEmail(email,nom):true; cpOpen(r.data);
+    if(email&&!mailed){ setTimeout(function(){ alert(_FL('Espace créé ✓ — mais l’e-mail d’invitation n’a pas pu partir. Prévenez votre partenaire de se connecter avec '+email+' puis d’accepter dans l’onglet Partage.','Space created ✓ — but the invitation email could not be sent. Ask your partner to sign in with '+email+' then accept in the Partage tab.')); },400); }
   }catch(e){ cpBusy=false; alert(_FL('Création échouée : ','Creation failed: ')+(e.message||e)); }
 }
 async function cpAccept(id){
@@ -9506,7 +9525,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.27';
+const UBORA_BUILD='v9.28';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
