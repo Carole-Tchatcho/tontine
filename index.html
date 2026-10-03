@@ -2448,7 +2448,7 @@ async function profilLoad(){
         state.text_size=pr.text_size||'normal';
         state.consent_future_projects=!!pr.consent_future_projects;
         state.consent_cross_platform_sharing=!!pr.consent_cross_platform_sharing;
-        if(pr.nom && !state.user) state.user=pr.nom;
+        if(pr.nom) state.user=pr.nom;
       }
       try{ const {data:u}=await sb.auth.getUser(); if(u && u.user) state.email=u.user.email; }catch(e){}
       try{ const {data:bl}=await sb.from('member_blocks').select('id,blocked_id').eq('blocker_id',state.uid); state.profilBlocks=bl||[]; }catch(e){ state.profilBlocks=[]; }
@@ -2546,7 +2546,7 @@ function viewProfil(){
     '</div></div>'+
     '<h2 class="section-h">'+tr('prof_account_h')+'</h2>'+
     '<div class="panel"><div style="padding:10px 16px 14px">'+
-      '<div class="prof-acct"><span class="prof-hint">'+_FL('Nom','Name')+'</span><span>'+esc(state.user||'—')+'</span></div>'+
+      '<div class="prof-acct"><span class="prof-hint">'+_FL('Nom affich\u00e9','Display name')+'</span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><input id="prof-name" type="text" value="'+esc((state.user&&state.user.indexOf('@')<0)?state.user:'')+'" placeholder="'+_FL('Votre pr\u00e9nom','Your first name')+'" style="padding:7px 10px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit;font-size:14px;max-width:170px" onkeydown="if(event.key===\'Enter\')saveMyFirstName()"><button class="btn btn-ghost btn-sm" onclick="saveMyFirstName()">'+_FL('Enregistrer','Save')+'</button></span></div>'+
       '<div class="prof-acct"><span class="prof-hint">'+_FL('E-mail','Email')+'</span><span>'+esc(state.email||'—')+'</span></div>'+
       '<div class="row-gap" style="margin-top:12px"><button type="button" class="btn btn-ghost btn-sm" onclick="profilExport()">'+tr('prof_export')+'</button></div>'+
       '<div class="prof-hint" style="margin-top:6px">'+tr('prof_export_hint')+'</div>'+
@@ -8389,13 +8389,12 @@ function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.g
 function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a> · <a href="#" onclick="go('support');return false" style="color:#C9A84C;text-decoration:underline">Support</a>`:''}</div>`;}
 
 function greetWord(){ var h=new Date().getHours(); if(typeof state!=='undefined'&&state.lang==='en'){ return h<12?'Good morning':(h<18?'Good afternoon':'Good evening'); } return (h>=5&&h<18)?'Bonjour':'Bonsoir'; }
-async function saveMyFirstName(){ var el=document.getElementById('acc-firstname'); if(!el)return; var v=(el.value||'').trim(); if(!v)return; if(typeof sb==='undefined'||!sb||!state.uid){ state.user=v; render(); return; } try{ const r=await sb.from('profiles').update({nom:v}).eq('id',state.uid); if(r.error)throw r.error; state.user=v; }catch(e){ try{alert(_FL('Enregistrement \u00e9chou\u00e9 : ','Save failed: ')+(e.message||e));}catch(_){} return; } render(); }
+function uboraNiceFirst(){ var raw=(state.user||'').trim(); var emLocal=((state.email||'').split('@')[0]||''); var isReal=raw&&raw.indexOf('@')<0&&raw.toLowerCase()!==emLocal.toLowerCase(); var base=isReal?raw:emLocal; if(!base)return ''; var tok=isReal?(base.split(' ')[0]||base):((base.split(/[._+\-0-9]+/)[0])||base); if(!tok)return ''; return isReal?tok:(tok.charAt(0).toUpperCase()+tok.slice(1).toLowerCase()); }
+async function saveMyFirstName(){ var el=document.getElementById('prof-name')||document.getElementById('acc-firstname'); if(!el)return; var v=(el.value||'').trim(); if(!v)return; if(typeof sb==='undefined'||!sb||!state.uid){ state.user=v; render(); return; } try{ const r=await sb.from('profiles').update({nom:v}).eq('id',state.uid); if(r.error)throw r.error; state.user=v; }catch(e){ try{alert(_FL('Enregistrement \u00e9chou\u00e9 : ','Save failed: ')+(e.message||e));}catch(_){} return; } render(); }
 function viewAccueil(){
   const gold='#C9A84C';
   if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){try{repLoadStats();}catch(e){}}
-  const _emLocal=((state.email||'').split('@')[0]||'').toLowerCase();
-  const _rawNm=(state.user||'').trim();
-  const first=(!_rawNm || _rawNm.indexOf('@')>=0 || _rawNm.toLowerCase()===_emLocal) ? '' : (_rawNm.split(' ')[0]||'');
+  const first=uboraNiceFirst();
   const T=(typeof state_tontines!=='undefined'&&state_tontines)?state_tontines:[];
   const R=(typeof state_reunions!=='undefined'&&state_reunions)?state_reunions:[];
   const C=(typeof state_caisses!=='undefined'&&state_caisses)?state_caisses:[];
@@ -8404,7 +8403,7 @@ function viewAccueil(){
   const lv=(typeof LEVELS!=='undefined'&&LEVELS[myLevel()])?LEVELS[myLevel()]:{name:'Découverte',bg:'#F3E8D4',color:'#C8B187',unlock:''};
   const nextLv=(typeof LEVELS!=='undefined'&&LEVELS[myLevel()+1])?LEVELS[myLevel()+1].name:null;
   const hello=first?(greetWord()+' '+esc(first)+'.'):(greetWord()+(state.lang==='en'?'.':' !'));
-  const _askName=(state.uid && !first)?`<div class="panel" style="margin-top:12px;border:1px solid rgba(201,168,76,.4);background:linear-gradient(180deg,rgba(201,168,76,.06),var(--card2,#FFFDF8))"><div style="padding:14px 18px"><div class="mname">${_FL('Comment aimeriez-vous qu\u2019on vous appelle ?','What should we call you?')}</div><div class="msub" style="margin-top:4px">${_FL('Votre pr\u00e9nom, pour un accueil plus chaleureux. Vous seul\u00b7e le voyez ici.','Your first name, for a warmer welcome. Only you see it here.')}</div><div class="row-gap" style="margin-top:10px"><input id="acc-firstname" type="text" placeholder="${_FL('Votre pr\u00e9nom','Your first name')}" style="flex:1;min-width:160px;padding:9px 12px;border:1px solid rgba(0,0,0,.18);border-radius:10px;font:inherit" onkeydown="if(event.key==='Enter')saveMyFirstName()"><button class="btn btn-gold btn-sm" onclick="saveMyFirstName()">${_FL('Enregistrer','Save')}</button></div></div></div>`:'';
+  const _askName=(false)?`<div class="panel" style="margin-top:12px;border:1px solid rgba(201,168,76,.4);background:linear-gradient(180deg,rgba(201,168,76,.06),var(--card2,#FFFDF8))"><div style="padding:14px 18px"><div class="mname">${_FL('Comment aimeriez-vous qu\u2019on vous appelle ?','What should we call you?')}</div><div class="msub" style="margin-top:4px">${_FL('Votre pr\u00e9nom, pour un accueil plus chaleureux. Vous seul\u00b7e le voyez ici.','Your first name, for a warmer welcome. Only you see it here.')}</div><div class="row-gap" style="margin-top:10px"><input id="acc-firstname" type="text" placeholder="${_FL('Votre pr\u00e9nom','Your first name')}" style="flex:1;min-width:160px;padding:9px 12px;border:1px solid rgba(0,0,0,.18);border-radius:10px;font:inherit" onkeydown="if(event.key==='Enter')saveMyFirstName()"><button class="btn btn-gold btn-sm" onclick="saveMyFirstName()">${_FL('Enregistrer','Save')}</button></div></div></div>`:'';
   const circlesLine = nCircles>0
     ? _FL(nCircles+' cercle'+(nCircles>1?'s':'')+(nAppels>0?(' · '+nAppels+' rappel'+(nAppels>1?'s':'')+' à traiter'):' · rien à confirmer aujourd’hui'),
           nCircles+' circle'+(nCircles>1?'s':'')+(nAppels>0?(' · '+nAppels+' reminder'+(nAppels>1?'s':'')+' to handle'):' · nothing to confirm today'))
@@ -8504,7 +8503,7 @@ function viewAccueil(){
       <div style="margin-top:12px;font-size:10.5px;line-height:1.45;color:#9FA2C4">${_FL('Illustration éducative · hypothèse 9 %/an (moyenne historique du MSCI World) · les performances passées ne préjugent pas des performances futures · ceci n’est pas un conseil en investissement.','Educational illustration · 9%/yr assumption (MSCI World historical average) · past performance does not guarantee future results · this is not investment advice.')}</div>
     </div>`;
   } else {
-    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com','_blank','noopener')">
+    invest=`<div class="acc-invest" role="link" tabindex="0" onclick="window.open('https://ubora.caroletchatcho.com/simulateur','_blank','noopener')" onkeydown="if(event.key==='Enter')window.open('https://ubora.caroletchatcho.com/simulateur','_blank','noopener')">
       <div class="acc-invest-k">${_FL('LA MÉTHODE UBORA','THE UBORA METHOD')}</div>
       <div class="acc-invest-t">${_FL('Faire grandir votre épargne','Grow your savings')}</div>
       <div class="acc-invest-d">${_FL('Au-delà de la tontine, la méthode d’investissement UBORA — pas à pas, à votre rythme.','Beyond the tontine, the UBORA investment method — step by step, at your pace.')} →</div>
@@ -8517,7 +8516,6 @@ function viewAccueil(){
     <div class="kicker">${_FL('VOTRE ESPACE','YOUR SPACE')}</div>
     <h1 class="page-title">${hello}</h1>
     <p class="lead">${circlesLine}</p>
-    ${_askName}
     ${repStatsBand()}
     ${cercles}
     ${parcours}
@@ -8953,7 +8951,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.18';
+const UBORA_BUILD='v9.19';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
