@@ -6910,6 +6910,7 @@ function viewPartageEdit(){
     +'</div></div>'
     +'<div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="pv2DoUpdate()">'+_FL('Enregistrer','Save')+'</button>'
     +'<button class="btn btn-ghost" onclick="pv2EditDraft=null;state.view=\'partage\';render()">'+_FL('Annuler','Cancel')+'</button></div>'
+    +((state&&state.uid&&pv2Cur.partage&&pv2Cur.partage.created_by===state.uid)?('<div class="panel" style="margin-top:16px;border:1px solid #B4452855"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:8px">'+_FL('Zone sensible — réservé au créateur','Danger zone — creator only')+'</div><button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="pv2DeletePartage()">🗑 '+_FL('Supprimer ce partage','Delete this share')+'</button></div></div>'):'')
     +footer();
 }
 async function pv2DoUpdate(){
@@ -6918,6 +6919,12 @@ async function pv2DoUpdate(){
     pv2EditDraft=null; pv2Busy=false; state.view='partage'; await pv2Refresh();
     try{ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,titre:pv2Cur.partage.titre}); }catch(e){}
   }catch(e){ pv2Busy=false; alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)); }
+}
+async function pv2DeletePartage(){
+  if(!confirm(_FL('Supprimer définitivement ce partage et toutes ses dépenses ? Cette action est irréversible.','Permanently delete this share and all its expenses? This cannot be undone.')))return;
+  try{ await pv2sb(); var r=await sb.rpc('partage_delete',{p_id:pv2Cur.id,p_token:pv2Cur.token}); if(r.error)throw r.error;
+    pv2Forget(pv2Cur.id); pv2EditDraft=null; pv2Cur=null; go('partages');
+  }catch(e){ alert(_FL('Suppression refusée : ','Deletion refused: ')+(e.message||e)); }
 }
 
 /* --- Détail --- */
@@ -7471,11 +7478,12 @@ async function cpDoAdd(){
 }
 function cpExpList(M){
   const gcur=cpCur.couple.devise||'CHF';
+  const canManage=(cpCur.membres||[]).some(function(m){return m.uid===state.uid&&m.statut==='actif'&&(m.role==='createur'||m.peut_gerer);});
   const rows=cpMonthExp(M).slice().sort(function(a,b){return String(b.created_at||'').localeCompare(String(a.created_at||''));}).map(function(d){
     const off=d.mode==='offert'; const rec=d.recurrent;
     const modeL=off?_FL('Offert','Gift'):(d.mode==='prorata'?'prorata':(d.mode==='egal'?_FL('égal','equal'):_FL('exact','exact')));
     const trace=d.auteur?('<div class="msub" style="margin-top:3px;color:var(--faint)">'+_FL('ajoutée par ','added by ')+esc(cpMemName(d.auteur))+(d.created_at?' · '+esc(pv2FmtWhen(d.created_at)):'')+'</div>'):'';
-    const canDel=(!d.recurrent||((d.mois||'')===M));
+    const canDel=(!d.recurrent||((d.mois||'')===M)) && (d.auteur===state.uid || canManage);
     return '<div class="panel"><div style="padding:14px 18px"><div class="between"><div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(rec?'<span class="pill p-face">↻ '+_FL('récurrente','recurring')+'</span>':'')+(off?' <span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(cpMemName(d.paye_par))+' · '+modeL+'</div>'+trace+'</div><div class="right"><span class="p-amt">'+money(Number(d.montant)||0,d.devise||gcur)+'</span>'+(canDel?'<button class="linkbtn" onclick="cpDoDel(\''+d.id+'\')">✕</button>':'')+'</div></div></div></div>';
   }).join('');
   return rows||'<div class="panel"><div class="empty">'+_FL('Aucune dépense ce mois-ci.','No expense this month.')+'</div></div>';
@@ -7523,8 +7531,13 @@ function viewCoupleSettings(){
     +(iCanManage?('<div style="padding:10px 20px"><button class="btn btn-gold btn-sm" onclick="cpSaveQuotes()">'+_FL('Enregistrer les quote-parts','Save quote-shares')+'</button> <span class="hint">'+_FL('Prorata : 1 et 1 = 50/50 ; 6 et 4 = 60/40. (La virgule marche : 1,4.)','Prorata: 1 and 1 = 50/50; 6 and 4 = 60/40.')+'</span></div>'):'')
     +'</div>'
     +(iCanManage?('<div class="panel"><div class="panel-h"><h3>'+_FL('Inviter un membre','Invite a member')+'</h3></div><div style="padding:14px 20px"><div class="row-gap"><div class="field" style="flex:1;min-width:180px;margin-top:0"><input id="cp-inv-email" type="email" placeholder="email@domaine.com"></div><button class="btn btn-ghost btn-sm" onclick="cpDoInvite()">'+_FL('Inviter','Invite')+'</button></div><div class="hint" style="margin-top:6px">'+_FL('Un e-mail part, et vous pouvez aussi prévenir par WhatsApp/SMS depuis l’écran du foyer (bannière « invitation en attente »).','An email is sent, and you can also notify by WhatsApp/SMS from the household screen.')+'</div></div></div>'):'')
+    +'<div class="panel" style="margin-top:14px;border:1px solid #B4452855"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:8px">'+_FL('Zone sensible','Danger zone')+'</div>'
+    +(iAmCreator?('<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="cpDeleteCouple()">🗑 '+_FL('Supprimer le foyer','Delete the household')+'</button> <span class="hint">'+_FL('Supprime définitivement le foyer et toutes ses dépenses.','Permanently deletes the household and all its expenses.')+'</span>'):('<button class="btn btn-ghost btn-sm" onclick="cpLeaveCouple()">'+_FL('Quitter le foyer','Leave the household')+'</button>'))
+    +'</div></div>'
     +footer();
 }
+async function cpDeleteCouple(){ if(!confirm(_FL('Supprimer définitivement ce foyer et toutes ses dépenses ? Cette action est irréversible.','Permanently delete this household and all its expenses? This cannot be undone.')))return; try{ await cpsb(); var r=await sb.rpc('couple_delete',{p_couple:cpCur.id}); if(r.error)throw r.error; cpCur=null; cpStart(); }catch(e){ alert(_FL('Suppression refusée : ','Deletion refused: ')+(e.message||e)); } }
+async function cpLeaveCouple(){ if(!confirm(_FL('Quitter ce foyer ? Vous n’y aurez plus accès.','Leave this household? You will lose access to it.')))return; try{ await cpsb(); var r=await sb.rpc('couple_leave',{p_couple:cpCur.id}); if(r.error)throw r.error; cpCur=null; cpStart(); }catch(e){ alert(_FL('Action refusée : ','Refused: ')+(e.message||e)); } }
 async function cpSaveMeta(){ var n=document.getElementById('cp-set-nom'), d=document.getElementById('cp-set-dev'); try{ await cpsb(); var r=await sb.rpc('couple_update_meta',{p_couple:cpCur.id,p_nom:(n?n.value.trim():''),p_devise:(d?d.value:'')}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 async function cpSaveMyName(){ var n=document.getElementById('cp-myname'); var v=n?n.value.trim():''; if(!v){alert(_FL('Indiquez votre prénom.','Enter your first name.'));return;} try{ await cpsb(); var r=await sb.rpc('couple_set_my_name',{p_couple:cpCur.id,p_nom:v}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 async function cpEditPendingEmail(mid,old){ var v=prompt(_FL('Nouvel e-mail du partenaire :','Partner’s new email:'),old||''); if(!v)return; try{ await cpsb(); var r=await sb.rpc('couple_pending_set_email',{p_couple:cpCur.id,p_membre:mid,p_email:v.trim()}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
@@ -9559,7 +9572,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.30';
+const UBORA_BUILD='v9.31';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
