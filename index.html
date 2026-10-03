@@ -6753,6 +6753,29 @@ async function pv2AddDep(id,token,obj){ await pv2sb(); const r=await sb.rpc('par
 async function pv2DelDep(id,token,depId){ await pv2sb(); const r=await sb.rpc('partage_del_depense',{p_id:id,p_token:token,p_depense:depId}); if(r.error)throw r.error; return r.data; }
 async function pv2UpdatePartage(id,token,titre,participants){ await pv2sb(); const r=await sb.rpc('partage_update',{p_id:id,p_token:token,p_titre:titre,p_participants:participants}); if(r.error)throw r.error; return r.data; }
 function pv2FmtWhen(iso){ try{ var dt=new Date(iso); return dt.toLocaleString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return String(iso||'').slice(0,16).replace('T',' '); } }
+/* Ma PART d'une dépense (ce que j'ai consommé) — pour le budget perso Invest */
+function pv2MyShare(d){
+  const me=pv2Me(); if(!me)return 0;
+  const pe=pv2PE(d); if(pe&&pe.mode==='offert')return 0;
+  let who=(pe&&pe.who&&pe.who.length)?pe.who:pv2Names();
+  if(who.indexOf(me)<0)return 0;
+  const n=who.length||1; return (Number(d.montant)||0)/n;
+}
+/* Lien profond vers le budget UBORA Invest, pré-rempli avec MA PART */
+function pv2InvestLink(d){
+  const share=pv2MyShare(d); if(!(share>0))return '';
+  const dev=d.devise||pv2Cur.partage.devise||'CHF';
+  const date=(d.preuve_date||(d.created_at?String(d.created_at).slice(0,10):''))||'';
+  const lang=(state.lang==='en')?'en':'fr';
+  const url='https://ubora.caroletchatcho.com/?ub_budget=1'
+    +'&date='+encodeURIComponent(date)
+    +'&montant='+encodeURIComponent(String(Math.round(share*100)/100))
+    +'&devise='+encodeURIComponent(dev)
+    +'&libelle='+encodeURIComponent(d.intitule||_FL('Dépense partagée','Shared expense'))
+    +'&categorie='+encodeURIComponent('Divers / Imprévus')
+    +'&lang='+lang;
+  return '<a class="linkbtn" href="'+url+'" target="_blank" rel="noopener" title="'+_FL('Ajouter ma part (','Add my share (')+money(Math.round(share),dev)+_FL(') à mon budget UBORA Invest',') to my UBORA Invest budget')+'">→ '+_FL('Ma part dans mon budget Invest','My share in my Invest budget')+'</a>';
+}
 
 /* --- Ouverture --- */
 function openPartage(id){ const reg=pv2Reg(id); if(!reg){ go('partages'); return; } pv2LoadById(id); }
@@ -7002,9 +7025,10 @@ function pv2DepCard(d){
   const proof=(d.preuve_date||d.preuve_lieu||d.preuve_note)?'<div class="msub" style="margin-top:4px">📎 '+[d.preuve_date,d.preuve_lieu,d.preuve_note].filter(Boolean).map(esc).join(' · ')+'</div>':'';
   const who=off?_FL('Offert','Gift'):((pe&&pe.who&&pe.who.length)?_FL('entre ','among ')+pe.who.length:_FL('entre tous','among all'));
   const trace=d.auteur?('<div class="msub" style="margin-top:3px;color:var(--faint)">'+_FL('ajoutée par ','added by ')+esc(d.auteur)+(d.created_at?' · '+esc(pv2FmtWhen(d.created_at)):'')+'</div>'):'';
+  const invest=pv2InvestLink(d); const investRow=invest?('<div style="margin-top:6px">'+invest+'</div>'):'';
   return '<div class="panel"><div style="padding:14px 18px"><div class="between">'
     +'<div class="stack"><div class="mname">'+esc(d.intitule||_FL('Dépense','Expense'))+' '+(off?'<span class="pill poffert">'+_FL('Offert','Gift')+'</span>':'')+'</div>'
-    +'<div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+who+'</div>'+proof+trace+'</div>'
+    +'<div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+who+'</div>'+proof+trace+investRow+'</div>'
     +'<div class="right"><span class="p-amt">'+money(Number(d.montant)||0, d.devise||P.devise)+'</span>'
     +'<button class="linkbtn" onclick="pv2DoDel(\''+d.id+'\')">✕</button></div></div></div>';
 }
@@ -9264,7 +9288,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.26';
+const UBORA_BUILD='v9.27';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
