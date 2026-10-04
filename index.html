@@ -9561,7 +9561,7 @@ async function postLoginRoute(){
   state.view='accueil';render();showBackendBadge();
 }
 
-const BUREAU_ROLES=[['president','Pr\u00E9sident\u00B7e'],['secretaire','Secr\u00E9taire'],['commissaire','Commissaire aux comptes']];
+const BUREAU_ROLES=[['president','Pr\u00E9sident\u00B7e'],['tresorier','Tr\u00E9sorier\u00B7\u00E8re'],['secretaire','Secr\u00E9taire'],['commissaire','Commissaire aux comptes']];
 function dashGov(t){
   if(BACKEND!=='supabase') return `<div class="asnote">La gouvernance est disponible en mode connect\u00E9.</div>`;
   const myMid=t.members[t.me]&&t.members[t.me]._membershipId;
@@ -9721,7 +9721,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.34';
+const UBORA_BUILD='v9.35';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
