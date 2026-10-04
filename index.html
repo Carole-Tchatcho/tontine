@@ -2396,6 +2396,9 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
     try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
       window._rec={stats:(a&&a.data)||{},rows:(b&&b.data)||[],err:(a&&a.error&&a.error.message)||(b&&b.error&&b.error.message)||''};
     }catch(e){window._rec={stats:{},rows:[],err:String(e.message||e)};}}
+  if(BACKEND==='supabase'&&v==='founder'&&isUboraAdmin()){
+    try{const a=await sb.rpc('founder_stats'); window._founder={stats:(a&&a.data)||{},err:(a&&a.error&&a.error.message)||''};}
+    catch(e){window._founder={stats:{},err:String(e.message||e)};}}
   if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}
     try{const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body','edition0_html']);
       const _g=k=>(((_s||[]).find(x=>x.key===k)||{}).value)||'';
@@ -3025,7 +3028,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
+  else ({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)();
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -9224,7 +9227,7 @@ function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCas
 function setTextZoom(m){ m=Math.max(1,Math.min(1.6,Math.round(m*100)/100)); try{document.documentElement.style.zoom=String(m);localStorage.setItem('ubora_zoom',String(m));}catch(e){} var el=document.getElementById('zoomPct'); if(el)el.textContent=Math.round(m*100)+'%'; }
 function bumpZoom(d){ var cur=1; try{cur=parseFloat(localStorage.getItem('ubora_zoom'))||1;}catch(e){} setTextZoom(cur+d); }
 function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.getFullYear() > new Date().getFullYear()+50) return _FL('acc\u00e8s permanent','permanent access'); return _FL('actif jusqu\u2019au','active until')+' '+d.toLocaleDateString((typeof state!=='undefined'&&state.lang==='en')?'en-GB':'fr-CH'); }
-function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a> · <a href="#" onclick="go('support');return false" style="color:#C9A84C;text-decoration:underline">Support</a>`:''}</div>`;}
+function footer(){return `<div class="footer">${(typeof state!=='undefined'&&!state.uid)?`<a href="#" onclick="go('landing');return false" style="color:inherit;text-decoration:underline">${state.lang==='en'?'Home':'Accueil'}</a> \u00b7 `:''}UBORA ne détient aucun fonds — registre de confiance · <span style="opacity:.75">non enregistrée auprès de la FINMA · contenu éducatif</span> · <a href="#" onclick="go('privacy');return false" style="color:inherit;text-decoration:underline">Confidentialité</a> · <a href="#" onclick="go('cgv');return false" style="color:inherit;text-decoration:underline">Conditions</a> · <a href="#" onclick="go('faq');return false" style="color:inherit;text-decoration:underline">FAQ</a> · <a href="mailto:contact@caroletchatcho.com" style="color:inherit;text-decoration:underline">Contact</a>${isUboraAdmin()?` · <a href="#" onclick="go('founder');return false" style="color:#C9A84C;text-decoration:underline">Pilotage</a> · <a href="#" onclick="go('recolte');return false" style="color:#C9A84C;text-decoration:underline">Récolte</a> · <a href="#" onclick="go('support');return false" style="color:#C9A84C;text-decoration:underline">Support</a>`:''}</div>`;}
 
 function greetWord(){ var h=new Date().getHours(); if(typeof state!=='undefined'&&state.lang==='en'){ return h<12?'Good morning':(h<18?'Good afternoon':'Good evening'); } return (h>=5&&h<18)?'Bonjour':'Bonsoir'; }
 function uboraNiceFirst(){ var raw=(state.user||'').trim(); var emLocal=((state.email||'').split('@')[0]||''); var isReal=raw&&raw.indexOf('@')<0&&raw.toLowerCase()!==emLocal.toLowerCase(); var base=isReal?raw:emLocal; if(!base)return ''; var tok=isReal?(base.split(' ')[0]||base):((base.split(/[._+\-0-9]+/)[0])||base); if(!tok)return ''; return isReal?tok:(tok.charAt(0).toUpperCase()+tok.slice(1).toLowerCase()); }
@@ -9509,6 +9512,42 @@ function recolteCSV(){
   const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ubora-recolte-consentis.csv'; a.click(); URL.revokeObjectURL(a.href);
 }
+/* --- Pilotage (tableau de bord fondatrice \u2014 admin only) --- */
+function founderBar(label,val,max){
+  var pct=(max>0)?Math.round(((val||0)/max)*100):0;
+  return '<div style="margin:7px 0"><div style="display:flex;justify-content:space-between;font-size:13px;color:#1E2128"><span>'+esc(label)+'</span><span style="color:#9c7c2a;font-weight:600">'+(val||0)+'</span></div>'
+    +'<div style="height:8px;background:#F1E7D2;border-radius:6px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#E6CF87,#C9A84C);border-radius:6px"></div></div></div>';
+}
+function viewFounder(){
+  if(!isUboraAdmin()) return '<h1 class="page-title">Pilotage</h1><div class="asnote">R\u00E9serv\u00E9 \u00E0 l\u2019\u00E9quipe UBORA.</div>'+footer();
+  var f=(window._founder&&window._founder.stats)||{}; var err=(window._founder&&window._founder.err)||'';
+  var num=function(x){return (x===0||x)?x:'\u2014';};
+  var card=function(n,l){return '<div style="flex:1;min-width:148px;background:#FFFFFF;border:1px solid rgba(201,168,76,.4);border-radius:14px;padding:16px 18px;text-align:center"><div style="font-size:32px;font-family:\'Cormorant Garamond\',Georgia,serif;color:#1E2128">'+num(n)+'</div><div class="msub">'+l+'</div></div>';};
+  var types=[['Tontines',f.tontines],['Caisses',f.caisses],['R\u00E9unions',f.reunions],['Associations',f.associations],['F\u00E9d\u00E9rations',f.federations],['Partages',f.partages],['Couples',f.couples]].filter(function(x){return x[1]===0||x[1];}).sort(function(a,b){return (b[1]||0)-(a[1]||0);});
+  var maxT=types.reduce(function(m,x){return Math.max(m,x[1]||0);},0);
+  var barsT=types.map(function(x){return founderBar(x[0],x[1],maxT);}).join('')||'<div class="msub">\u2014</div>';
+  var ap=f.abo_par_palier||{}; var PN=[['kwen','Kw\u00E8n'],['fagot','Fagot'],['baobab','Baobab']];
+  var maxP=PN.reduce(function(m,x){return Math.max(m,ap[x[0]]||0);},0);
+  var barsP=PN.map(function(x){return founderBar(x[1],ap[x[0]]||0,maxP);}).join('');
+  var cercles=(f.tontines||0)+(f.caisses||0)+(f.reunions||0)+(f.associations||0)+(f.federations||0);
+  var when=f.generated_at?new Date(f.generated_at).toLocaleString('fr-CH'):'';
+  return '<a class="backlink" href="#" onclick="go(\'home\');return false">\u2039 Retour</a>'
+   +'<div class="kicker">\u00C9QUIPE UBORA</div><h1 class="page-title">Pilotage</h1>'
+   +'<div class="asnote">Vue d\u2019ensemble de la sant\u00E9 d\u2019UBORA Trust \u2014 r\u00E9serv\u00E9e \u00E0 toi. Compl\u00E8te \u00AB R\u00E9colte \u00BB (contacts consentis).</div>'
+   +(err?'<div class="asnote" style="border-color:#B3402A">Erreur\u00A0: '+esc(err)+' \u2014 le script SQL \u00AB founder_stats \u00BB est-il ex\u00E9cut\u00E9\u00A0?</div>':'')
+   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">'
+     +card(f.comptes,'comptes')+card(f.adhesions,'adh\u00E9sions')+card(f.abo_actifs,'abonnements actifs')+card(cercles,'cercles (hors partage)')
+   +'</div>'
+   +'<div class="panel"><div class="panel-h"><h3>Cercles par type</h3></div><div style="padding:12px 20px 16px">'+barsT+'</div></div>'
+   +'<div class="panel"><div class="panel-h"><h3>Abonnements actifs par palier</h3></div><div style="padding:12px 20px 16px">'+barsP+'</div></div>'
+   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">'
+     +card(f.comptes_30j,'comptes (30\u00A0j)')+card(f.tontines_30j,'tontines (30\u00A0j)')+card(f.partages_30j,'partages (30\u00A0j)')+card(f.contrib_30j,'cotisations (30\u00A0j)')
+   +'</div>'
+   +(f.fapshi_ok?('<div style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 14px">'+card(f.fapshi_ok,'paiements Fapshi r\u00E9ussis')+'</div>'):'')
+   +'<div class="row-gap" style="margin:6px 0 14px"><button class="btn btn-ghost btn-sm" onclick="go(\'founder\')">\u21BB Actualiser</button></div>'
+   +(when?'<div class="msub" style="text-align:center;opacity:.7">Donn\u00E9es au '+esc(when)+'</div>':'')
+   +footer();
+}
 function viewAuth(){
   app().innerHTML=`
     <div class="eyebrow">${tr('au_eyebrow')}</div>
@@ -9789,7 +9828,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.37';
+const UBORA_BUILD='v9.38';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
