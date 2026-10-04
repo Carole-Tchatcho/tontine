@@ -7299,6 +7299,8 @@ async function pv2DoAttest(){
 function pv2AttestLink(code){ return location.origin+location.pathname+'?pa='+encodeURIComponent(code); }
 function pv2CopyAttest(code){ try{navigator.clipboard.writeText(pv2AttestLink(code));}catch(e){} try{ const b=(typeof event!=='undefined')&&event&&event.target; if(b){const t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);} }catch(e){} }
 function pv2OpenDocLast(){ if(pv2LastAttest)pv2AttestOpenDoc(pv2LastAttest); }
+function pv2SnapSig(snap){ try{ var ds=(snap&&snap.depenses)||[]; return ds.map(function(d){ return [String(d.intitule||''),Math.round(Number(d.montant)||0),String(d.devise||''),String(d.paye_par||''),String(d.partage||'')].join('~'); }).sort().join('|'); }catch(e){ return ''; } }
+function pv2IssuedWhen(a){ try{ var dt=new Date((a&&a.created_at)||(a&&a.snapshot&&a.snapshot.as_of)||Date.now()); var L=(state.lang==='en'); return dt.toLocaleDateString(L?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'})+' \u00b7 '+dt.toLocaleTimeString(L?'en-GB':'fr-CH',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
 function pv2AttestPanel(){
   const a=pv2LastAttest;
   const intro='<div class="panel" style="margin-top:14px;border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:16px 20px">'
@@ -7308,19 +7310,32 @@ function pv2AttestPanel(){
     return intro+'<div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="pv2DoAttest()">'+_FL('Générer l’attestation','Generate the attestation')+'</button>'
       +((state&&state.uid)?'':' <span class="msub">'+_FL('(compte requis)','(account required)')+'</span>')+'</div></div></div>';
   }
+  var _curSig=pv2SnapSig(pv2Snapshot());
+  var _issSig=pv2SnapSig(a.snapshot);
+  var _when=pv2IssuedWhen(a);
+  if(_curSig!==_issSig){
+    return intro
+      +'<div style="margin-top:10px;padding:12px 14px;background:#FBEEE6;border:1px solid #C27A4A;border-radius:10px">'
+      +'<div class="mname" style="color:#8A3E16">\u26a0 '+_FL('Le partage a chang\u00e9 depuis cette attestation','The share changed since this attestation')+'</div>'
+      +'<div class="msub" style="margin-top:4px">'+_FL('L\u2019attestation','Attestation')+' <span style="font-family:monospace">'+esc(a.code)+'</span> '+_FL('(\u00e9mise le ','(issued ')+esc(_when)+_FL(') ne refl\u00e8te plus l\u2019\u00e9tat actuel. Ne la diffusez pas comme \u00e0 jour \u2014 g\u00e9n\u00e9rez-en une nouvelle.',') no longer reflects the current state. Don\u2019t share it as current \u2014 generate a new one.')+'</div>'
+      +'<div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="pv2DoAttest()">'+_FL('G\u00e9n\u00e9rer une attestation \u00e0 jour','Generate an up-to-date attestation')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" onclick="pv2OpenDocLast()">'+_FL('Voir l\u2019archiv\u00e9e (\u00e9tat fig\u00e9)','View archived (frozen state)')+'</button></div>'
+      +'</div></div></div>';
+  }
   return intro
     +'<div style="margin-top:10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px">'
-    +'<div class="mname">'+_FL('Attestation émise','Attestation issued')+' ✓ · <span style="font-family:monospace;letter-spacing:1px">'+esc(a.code)+'</span></div>'
+    +'<div class="mname">'+_FL('Attestation \u00e9mise','Attestation issued')+' \u2713 \u00b7 <span style="font-family:monospace;letter-spacing:1px">'+esc(a.code)+'</span></div>'
+    +'<div class="msub" style="margin-top:2px">'+_FL('\u00c9tat fig\u00e9 au ','Frozen state at ')+esc(_when)+'</div>'
     +'<div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="pv2OpenDocLast()">'+_FL('Voir / Imprimer','View / Print')+'</button>'
-    +'<button class="btn btn-ghost btn-sm" onclick="pv2CopyAttest(\''+a.code+'\')">'+_FL('Copier le lien de vérification','Copy verification link')+'</button></div>'
-    +'<div class="hint" style="margin-top:8px">'+_FL('Archivée dans « Mes attestations ». Toute personne ayant le lien peut vérifier son authenticité.','Archived in “My attestations”. Anyone with the link can verify its authenticity.')+'</div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="pv2CopyAttest(\''+a.code+'\')">'+_FL('Copier le lien de v\u00e9rification','Copy verification link')+'</button></div>'
+    +'<div class="hint" style="margin-top:8px">'+_FL('Archiv\u00e9e dans \u00ab Mes attestations \u00bb. Toute personne ayant le lien peut v\u00e9rifier son authenticit\u00e9.','Archived in \u201cMy attestations\u201d. Anyone with the link can verify its authenticity.')+'</div>'
     +'</div></div></div>';
 }
 function pv2AttestOpenDoc(a){
   if(!a){ return; }
   const snap=a.snapshot||{}; const dev=a.devise||snap.devise||'CHF'; const L=(state.lang==='en');
   const dt=new Date(a.created_at||snap.as_of||Date.now());
-  const dstr=dt.toLocaleDateString(L?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  const dstr=dt.toLocaleDateString(L?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString(L?'en-GB':'fr-CH',{hour:'2-digit',minute:'2-digit'});
   const m=function(n){return money(Math.abs(Math.round(n)),dev);};
   const depRows=(snap.depenses||[]).map(function(d){return '<tr><td>'+esc(d.intitule||'—')+'</td><td>'+esc(d.paye_par||'')+'</td><td>'+esc(d.partage||'')+'</td><td style="text-align:right">'+money(Math.round(d.montant),d.devise||dev)+'</td></tr>';}).join('');
   const solRows=(snap.soldes||[]).map(function(s){var lbl=s.net>1?((L?'is owed ':'on lui doit ')+m(s.net)):(s.net<-1?((L?'owes ':'doit ')+m(s.net)):(L?'settled':'à jour'));return '<tr><td>'+esc(s.name)+'</td><td style="text-align:right">'+lbl+'</td></tr>';}).join('');
@@ -7338,7 +7353,8 @@ function pv2AttestOpenDoc(a){
     +'<h1>'+(L?'Shared-expense statement':'Relevé de partage de dépenses')+'</h1>'
     +'<div class="muted">'+esc(a.titre||'')+' · '+(L?'currency':'devise')+' '+esc(dev)+' · '+(L?'issued on':'émis le')+' '+dstr+'</div>'
     +'<div class="box"><div>'+(L?'Verification code':'Code de vérification')+' : <span class="code">'+esc(a.code)+'</span></div>'
-    +'<div class="muted" style="margin-top:4px">'+(L?'Verify at':'Vérifier sur')+' : '+esc(verifyUrl)+'</div></div>'
+    +'<div class="muted" style="margin-top:4px">'+(L?'Verify at':'Vérifier sur')+' : '+esc(verifyUrl)+'</div>'
+    +'<div class="muted" style="margin-top:6px;font-style:italic">'+(L?'This statement reflects the share as of the date and time above. Any later change does not appear here.':'Ce relevé reflète l’état du partage à la date et l’heure ci-dessus. Toute modification postérieure n’y figure pas.')+'</div></div>'
     +'<h3 class="gold">'+(L?'Expenses':'Dépenses')+'</h3><table><tr><th>'+(L?'Item':'Intitulé')+'</th><th>'+(L?'Paid by':'Payé par')+'</th><th>'+(L?'Split':'Partagé')+'</th><th style="text-align:right">'+(L?'Amount':'Montant')+'</th></tr>'+depRows+'</table>'
     +'<div class="muted">'+(L?'Total shared':'Total partagé')+' : '+money(Math.round(snap.total||0),dev)+'</div>'
     +'<h3 class="gold">'+(L?'Balances':'Soldes')+'</h3><table>'+solRows+'</table>'
@@ -7363,7 +7379,7 @@ function viewPAttest(){
   if(p.notfound){ app().innerHTML='<button class="backlink" onclick="go(\'home\')">‹ UBORA</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Attestation introuvable','Attestation not found')+'</div><div class="msub" style="margin-top:6px">'+_FL('Ce code ne correspond à aucune attestation. Vérifiez le lien.','This code matches no attestation. Check the link.')+' ('+esc(p.code||'')+')</div></div></div>'+footer(); return; }
   const a=p.data, snap=a.snapshot||{}, dev=a.devise||'CHF';
   try{ window._paData=a; }catch(e){}
-  const dt=new Date(a.created_at||Date.now()); const dstr=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'});
+  const dt=new Date(a.created_at||Date.now()); const dstr=dt.toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'})+' · '+dt.toLocaleTimeString(state.lang==='en'?'en-GB':'fr-CH',{hour:'2-digit',minute:'2-digit'});
   const m=function(n){return money(Math.abs(Math.round(n)),dev);};
   const depRows=(snap.depenses||[]).map(function(d){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(d.intitule||'—')+'</div><div class="msub">'+_FL('Payé par','Paid by')+' '+esc(d.paye_par||'?')+' · '+esc(d.partage||'')+'</div></div><div class="right"><span class="p-amt">'+money(Math.round(d.montant),d.devise||dev)+'</span></div></div>';}).join('')||'<div class="empty">—</div>';
   const sol=(snap.soldes||[]).map(function(s){var lbl=s.net>1?('<span class="pbal-pos">'+m(s.net)+' · '+_FL('on lui doit','is owed')+'</span>'):(s.net<-1?('<span class="pbal-neg">'+m(s.net)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>');return '<div class="mrow">'+avatar(s.name)+'<div class="stack"><div class="mname">'+esc(s.name)+'</div></div><div class="right">'+lbl+'</div></div>';}).join('')||'<div class="empty">—</div>';
