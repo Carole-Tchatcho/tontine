@@ -1574,7 +1574,7 @@ Object.assign(I18N.fr,{
   cc_name:'Nom de la caisse',cc_name_ph:'ex. Caisse de solidarité',cc_object:'Objet',cc_cur:'Devise',
   cc_fed:'Réseau / fédération (optionnel)',cc_fed_ph:'ex. RPN, Le Challenge…',
   cc_fed_hint:'Laissez vide si aucun. Sinon, saisissez librement le nom de votre réseau fédérateur (RPN, Le Challenge en Allemagne, ou tout autre) : votre groupe rejoindra son annuaire, bâti par le bas.',
-  cc_board:'Bureau',cc_pres:'Président·e',cc_name_field:'nom',cc_tres:'Trésorier·ère',cc_comm:'Commissaire',
+  cc_board:'Bureau (facultatif)',cc_pres:'Président·e',cc_name_field:'nom',cc_tres:'Trésorier·ère',cc_comm:'Commissaire',
   cc_board_note:'La double-signature — déclare → le trésorier confirme → le commissaire certifie — protège chaque versement. Les rôles changent, l\u2019histoire reste.',
   cc_cotis:'Cotisation (optionnel)',cc_amount:'Montant',cc_freq:'Fréquence',cc_create_btn:'Créer la caisse',
   rl_c_tour:'Tour',rl_c_benef:'Bénéficiaire',rl_c_mvt:'Mouvement',rl_c_amount:'Montant',rl_c_cur:'Devise',rl_c_statut:'Statut',
@@ -1631,7 +1631,7 @@ Object.assign(I18N.en,{
   cc_name:'Fund name',cc_name_ph:'e.g. Solidarity fund',cc_object:'Purpose',cc_cur:'Currency',
   cc_fed:'Network / federation (optional)',cc_fed_ph:'e.g. RPN, Le Challenge…',
   cc_fed_hint:'Leave empty if none. Otherwise, freely type the name of your federating network (RPN, Le Challenge in Germany, or any other): your group will join its directory, built from the ground up.',
-  cc_board:'Board',cc_pres:'President',cc_name_field:'name',cc_tres:'Treasurer',cc_comm:'Auditor',
+  cc_board:'Board (optional)',cc_pres:'President',cc_name_field:'name',cc_tres:'Treasurer',cc_comm:'Auditor',
   cc_board_note:'The dual signature — declare → the treasurer confirms → the auditor certifies — protects every payment. Roles change, the history stays.',
   cc_cotis:'Dues (optional)',cc_amount:'Amount',cc_freq:'Frequency',cc_create_btn:'Create the fund',
   rl_c_tour:'Round',rl_c_benef:'Beneficiary',rl_c_mvt:'Movement',rl_c_amount:'Amount',rl_c_cur:'Currency',rl_c_statut:'Status',
@@ -3033,7 +3033,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -5650,7 +5650,7 @@ function viewCaisse(){
   const head=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div><h1 class="page-title">${c.name}</h1>
-      <div class="t-meta">${c.group} · ${typeCaisseLabel(c.type)} · ${c.foyers.length} ${tr('ca_foyers')} · ${money(c.fonds,c.currency)} ${tr('ca_in_fund')}</div></div>
+      <div class="t-meta">${c.group} · ${typeCaisseLabel(c.type)} · ${c.foyers.length} ${tr('ca_foyers')} · ${money(caisseSolde(c),c.currency)} ${tr('ca_in_fund')}</div></div>
     <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCaisse('${c.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delCaisse('${c.id}')">🗑 Supprimer</button></div>
     <div class="reassure">● ${tr('ca_reassure')}</div>
     <div>${trustSeal(tr('ca_seal'))}</div>
@@ -5662,10 +5662,10 @@ function viewCaisse(){
     <div class="seg" style="margin-top:12px">
       <button class="${state.caisseTab==='appels'?'on':''}" onclick="state.caisseTab='appels';render()">${tr('ca_tab_appels')}</button>
       <button class="${state.caisseTab==='foyers'?'on':''}" onclick="state.caisseTab='foyers';render()">${tr('ca_tab_foyers')}</button>
-      <button class="${state.caisseTab==='journal'?'on':''}" onclick="state.caisseTab='journal';render()">${tr('ca_tab_journal')}</button>
+      <button class="${state.caisseTab==='mouvements'?'on':''}" onclick="state.caisseTab='mouvements';render()">${_FL('Mouvements','Movements')}</button><button class="${state.caisseTab==='journal'?'on':''}" onclick="state.caisseTab='journal';render()">${tr('ca_tab_journal')}</button>
     </div>`;
-  const body={appels:caisseAppels,foyers:caisseFoyers,journal:caisseJournal}[state.caisseTab](c);
-  app().innerHTML=head+body+footer();
+  const body=({appels:caisseAppels,mouvements:caisseMouvements,foyers:caisseFoyers,journal:caisseJournal}[state.caisseTab]||caisseAppels)(c);
+  app().innerHTML=head+caisseInvitePanel(c)+body+footer();
 }
 
 function caisseAppels(c){
@@ -5789,6 +5789,77 @@ function caisseFoyers(c){
       <div>${rows}</div></div>`;
 }
 
+function caisseSolde(c){ var s=0; (c.mouvements||[]).forEach(function(m){ var v=Number(m.montant)||0; s+=(m.sens==='out'?-v:v); }); return Math.round(s); }
+function caisseMouvements(c){
+  c.mouvements=c.mouvements||[]; var cur=c.currency; var role=state.caisseRole; var canEdit=(role==='tresorier'||role==='president');
+  var solde=caisseSolde(c); var totIn=0,totOut=0; c.mouvements.forEach(function(m){var v=Number(m.montant)||0; if(m.sens==='out')totOut+=v; else totIn+=v;});
+  var sens=(state.caisseMvtSens==='out')?'out':'in';
+  var form = (canEdit && state.caisseMvtNew) ? (
+    '<div class="panel"><div class="panel-h"><h3>'+_FL('Nouveau mouvement','New movement')+'</h3></div><div style="padding:16px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Sens','Direction')+'</label><div class="split-modes">'
+      +'<button type="button" class="smode '+(sens==='in'?'on':'')+'" onclick="state.caisseMvtSens=\'in\';render()">'+_FL('Entr\u00e9e (contribution)','In (contribution)')+'</button>'
+      +'<button type="button" class="smode '+(sens==='out'?'on':'')+'" onclick="state.caisseMvtSens=\'out\';render()">'+_FL('Sortie (aide vers\u00e9e)','Out (aid given)')+'</button>'
+    +'</div></div>'
+    +'<div class="field"><label>'+(sens==='out'?_FL('B\u00e9n\u00e9ficiaire','Beneficiary'):_FL('Contributeur\u00b7trice','Contributor'))+'</label><input id="mvt-who" placeholder="'+_FL('Nom','Name')+'"></div>'
+    +'<div class="field"><label>'+_FL('Motif / libell\u00e9','Reason / label')+'</label><input id="mvt-lib" placeholder="'+_FL('Ex. contribution de mars, aide maladie\u2026','E.g. March contribution, illness support\u2026')+'"></div>'
+    +'<div class="row-gap"><div class="field" style="flex:1;min-width:120px"><label>'+_FL('Montant','Amount')+' ('+(CUR_SYM[cur]||cur)+')</label><input id="mvt-mont" type="number" placeholder="0"></div>'
+    +'<div class="field" style="flex:1;min-width:150px"><label>'+_FL('Date','Date')+'</label><input id="mvt-date" type="date" value="'+(new Date().toISOString().slice(0,10))+'"></div></div>'
+    +'<button class="btn btn-gold" style="margin-top:8px" onclick="caisseAddMouvement(\''+c.id+'\')">'+_FL('Enregistrer le mouvement','Save the movement')+'</button>'
+    +' <button class="btn btn-ghost" onclick="state.caisseMvtNew=false;render()">'+_FL('Annuler','Cancel')+'</button>'
+    +'</div></div>'
+  ) : (canEdit ? '<div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="state.caisseMvtNew=true;render()">+ '+_FL('Ajouter un mouvement','Add a movement')+'</button></div>' : '');
+  var list = c.mouvements.slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));}).map(function(m){
+    var isOut=m.sens==='out'; var v=Number(m.montant)||0;
+    return '<div class="mrow"><div class="stack"><div class="mname">'+(isOut?'\u2191 ':'\u2193 ')+esc(m.libelle||(isOut?_FL('Aide','Aid'):_FL('Contribution','Contribution')))+(m.who?(' \u00b7 '+esc(m.who)):'')+'</div><div class="msub">'+esc(String(m.date||'').slice(0,10))+' \u00b7 '+(isOut?_FL('sortie','out'):_FL('entr\u00e9e','in'))+'</div></div><div class="right"><span class="p-amt" style="color:'+(isOut?'#8A2E16':'#8A6A24')+'">'+(isOut?'\u2212':'+')+money(v,cur)+'</span>'+(canEdit?'<button class="linkbtn" onclick="caisseDelMouvement(\''+c.id+'\',\''+m.id+'\')">\u2715</button>':'')+'</div></div>';
+  }).join('');
+  return '<div class="asnote">'+_FL('Toutes les entr\u00e9es et sorties du fonds, visibles par tout le groupe. UBORA tient le registre \u2014 l\u2019argent circule entre vous, jamais par UBORA.','All fund movements, visible to the whole group. UBORA keeps the register \u2014 the money moves among you, never through UBORA.')+'</div>'
+    +'<div class="kvs" style="margin:10px 0"><div class="kv"><div class="k">'+_FL('Solde du fonds','Fund balance')+'</div><div class="v">'+money(solde,cur)+'</div></div><div class="kv"><div class="k">'+_FL('Total entr\u00e9es','Total in')+'</div><div class="v">'+money(Math.round(totIn),cur)+'</div></div><div class="kv"><div class="k">'+_FL('Total sorties','Total out')+'</div><div class="v">'+money(Math.round(totOut),cur)+'</div></div></div>'
+    +form
+    +'<div class="panel">'+(list||'<div class="empty">'+_FL('Aucun mouvement enregistr\u00e9.','No movement recorded.')+'</div>')+'</div>';
+}
+function caisseAddMouvement(id){
+  var c=getC(id); if(!c)return; c.mouvements=c.mouvements||[];
+  var g=function(x){var e=document.getElementById(x);return e?e.value:'';};
+  var mont=parseFloat(String(g('mvt-mont')).replace(',','.')); if(!(mont>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  var sens=(state.caisseMvtSens==='out')?'out':'in';
+  c.mouvements.unshift({id:newId('m'), date:(g('mvt-date')||new Date().toISOString().slice(0,10)), sens:sens, libelle:(g('mvt-lib')||'').trim(), who:(g('mvt-who')||'').trim(), montant:mont, by:(state.user||'')});
+  state.caisseMvtNew=false; state.caisseMvtSens='in'; cPersist(id); render();
+}
+function caisseDelMouvement(id,mid){
+  if(!confirm(_FL('Supprimer ce mouvement ?','Delete this movement?')))return;
+  var c=getC(id); if(!c)return; c.mouvements=(c.mouvements||[]).filter(function(m){return m.id!==mid;}); cPersist(id); render();
+}
+function caisseGenToken(){ return (Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Date.now().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,24); }
+function caisseInvitePanel(c){
+  if(!c.token){ c.token=caisseGenToken(); try{cPersist(c.id);}catch(e){} }
+  var link=location.origin+location.pathname+'?caisse='+c.id+'~'+c.token;
+  if(!state.caisseInvite){ return '<div class="releve-actions" style="margin-top:4px"><button class="btn btn-ghost btn-sm" onclick="state.caisseInvite=true;render()">\u29c9 '+_FL('Inviter les membres (lien / QR)','Invite members (link / QR)')+'</button></div>'; }
+  var opts={msg:_FL('Rejoignez notre caisse d\u2019entraide \u00ab ','Join our mutual-aid fund \u201c')+c.name+_FL(' \u00bb sur UBORA : ','\u201d on UBORA: ')+link, caption:_FL('Scanner pour voir la caisse','Scan to view the fund')};
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Inviter les membres','Invite members')+'</h3><button class="btn btn-ghost btn-sm" onclick="state.caisseInvite=false;render()">'+_FL('Fermer','Close')+'</button></div><div style="padding:6px 20px 16px"><div class="msub">'+_FL('Envoyez ce lien ou ce QR : chaque membre voit le registre de la caisse (mouvements, solde) en lecture seule.','Send this link or QR: each member sees the fund register (movements, balance) read-only.')+'</div>'+inviteShareBlock(link,c.name,opts)+'</div></div>';
+}
+async function caisseOpenPublic(id,token){
+  state.caisseShared={id:id,token:token,loading:true}; state.view='caisseshared'; render();
+  try{ if(typeof sb==='undefined'||!sb){ await initSB(); } var r=await sb.rpc('caisse_open',{p_id:id,p_token:token}); if(r.error||!r.data){ state.caisseShared.notfound=true; } else { state.caisseShared.data=r.data; } }
+  catch(e){ state.caisseShared.notfound=true; }
+  state.caisseShared.loading=false; render();
+}
+function viewCaisseShared(){
+  var sh=state.caisseShared||{};
+  if(sh.loading){ app().innerHTML='<div class="panel"><div class="empty">'+_FL('Ouverture\u2026','Opening\u2026')+'</div></div>'+footer(); return; }
+  if(sh.notfound||!sh.data){ app().innerHTML='<button class="backlink" onclick="go(\'home\')">\u2039 UBORA</button><div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Caisse introuvable','Fund not found')+'</div><div class="msub" style="margin-top:6px">'+_FL('Ce lien n\u2019est pas valable, ou la caisse a \u00e9t\u00e9 supprim\u00e9e.','This link is not valid, or the fund was deleted.')+'</div></div></div>'+footer(); return; }
+  var c=sh.data; c.mouvements=c.mouvements||[]; c.appels=c.appels||[]; c.foyers=c.foyers||[]; var cur=c.currency||'XAF'; var solde=caisseSolde(c);
+  var totIn=0,totOut=0; c.mouvements.forEach(function(m){var v=Number(m.montant)||0; if(m.sens==='out')totOut+=v; else totIn+=v;});
+  var mvts=c.mouvements.slice().sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));}).map(function(m){ var isOut=m.sens==='out'; var v=Number(m.montant)||0; return '<div class="mrow"><div class="stack"><div class="mname">'+(isOut?'\u2191 ':'\u2193 ')+esc(m.libelle||(isOut?_FL('Aide','Aid'):_FL('Contribution','Contribution')))+(m.who?(' \u00b7 '+esc(m.who)):'')+'</div><div class="msub">'+esc(String(m.date||'').slice(0,10))+'</div></div><div class="right"><span class="p-amt" style="color:'+(isOut?'#8A2E16':'#8A6A24')+'">'+(isOut?'\u2212':'+')+money(v,cur)+'</span></div></div>'; }).join('')||'<div class="empty">'+_FL('Aucun mouvement.','No movement.')+'</div>';
+  app().innerHTML='<button class="backlink" onclick="go(\'home\')">\u2039 UBORA</button>'
+    +'<div class="eyebrow">'+_FL('Caisse d\u2019entraide','Mutual-aid fund')+'</div>'
+    +'<h1 class="page-title">'+esc(c.name||'')+'</h1>'
+    +'<div class="t-meta">'+esc(c.group||'')+(c.type?(' \u00b7 '+typeCaisseLabel(c.type)):'')+' \u00b7 '+(c.foyers.length)+' '+tr('ca_foyers')+'</div>'
+    +'<div class="reassure">\u25cf '+_FL('UBORA tient le registre \u2014 l\u2019argent circule entre vous, jamais par UBORA.','UBORA keeps the register \u2014 the money moves among you, never through UBORA.')+'</div>'
+    +'<div>'+trustSeal(_FL('Registre \u00b7 sans d\u00e9p\u00f4t \u00b7 sans garantie','Register \u00b7 no deposit \u00b7 no guarantee'))+'</div>'
+    +'<div class="kvs" style="margin:12px 0"><div class="kv"><div class="k">'+_FL('Solde du fonds','Fund balance')+'</div><div class="v">'+money(solde,cur)+'</div></div><div class="kv"><div class="k">'+_FL('Total entr\u00e9es','Total in')+'</div><div class="v">'+money(Math.round(totIn),cur)+'</div></div><div class="kv"><div class="k">'+_FL('Total sorties','Total out')+'</div><div class="v">'+money(Math.round(totOut),cur)+'</div></div></div>'
+    +'<h2 class="section-h">'+_FL('Mouvements','Movements')+'</h2><div class="panel">'+mvts+'</div>'
+    +footer();
+}
 function caisseJournal(c){
   const ev=[];
   c.appels.forEach(a=>{
@@ -9995,7 +10066,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.48';
+const UBORA_BUILD='v9.50';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10642,6 +10713,17 @@ async function boot(){
       </div></div>`;
     return;
   }
+  /* 0-sexies-0) Lien de CAISSE d'entraide (?caisse=<id>~<token>) — lecture seule par le token */
+  try{
+    var _cz=(location.search||'').match(/[?&]caisse=([^~&]+)~([A-Za-z0-9]+)/) || (location.hash||'').match(/[#&]caisse=([^~&]+)~([A-Za-z0-9]+)/);
+    if(_cz){
+      if(BACKEND==='supabase'){ try{ await initSB(); }catch(e){} }
+      await caisseOpenPublic(decodeURIComponent(_cz[1]), _cz[2]);
+      try{ showBackendBadge(); }catch(e){}
+      return;
+    }
+  }catch(e){}
+
   /* 0-sexies) Lien de PARTAGE v2 (#p=<id>~<token>) — accès SANS compte par le token du lien */
   try{
     var _pp=(location.hash||'').match(/[#&]p=([^~&]+)~([A-Za-z0-9]+)/);
