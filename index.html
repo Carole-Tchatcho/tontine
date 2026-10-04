@@ -4978,6 +4978,12 @@ function dashInvite(t){
           <button class="btn btn-gold" onclick="copyLink(event)">${tr('di_copy')}</button></div>
         <div style="margin-top:10px"><a class="btn btn-ghost btn-sm" href="${mailtoHref}">✉ Inviter par email</a></div>
         <div class="hint" style="margin-top:8px">${tr('di_code_hint').replace('{c}',t.code).replace('{n}',t.places-filled(t))}</div>
+        <div style="margin-top:18px;text-align:center">
+          <div style="display:inline-block;background:#fff;border:1px solid rgba(201,168,76,.4);border-radius:16px;padding:16px 16px 12px">
+            <div style="width:170px;height:170px;margin:0 auto">${repQR(link)}</div>
+            <div class="msub" style="margin-top:8px">${_FL('Scanner pour rejoindre','Scan to join')} « ${esc(t.name)} »</div>
+          </div>
+        </div>
       </div>
     </div></div>${grow}`;
 }
@@ -9520,7 +9526,7 @@ function founderBar(label,val,max){
 }
 function founderDelta(n){
   if(!(n>0)) return '<span style="color:#A79E8C;font-size:12.5px">rien de nouveau ce mois</span>';
-  return '<span style="color:#2E7D5B;font-size:12.5px;font-weight:600">↑ '+n+' ce mois</span>';
+  return '<span style="color:#9c7c2a;font-size:12.5px;font-weight:600">↑ '+n+' ce mois</span>';
 }
 function founderKpi(big,label,sub){
   var n=((big===0||big)?big:'—');
@@ -9567,16 +9573,16 @@ function viewFounder(){
    +(err?'<div class="asnote" style="border-color:#B3402A;margin-top:12px">Le tableau de bord n’a pas pu charger : '+esc(err)+'. Exécutez le script SQL « founder_stats » dans Supabase, puis réessayez.</div>':'')
    +hero
    +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin:0 0 18px">'
-     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3>Répartition des cercles</h3></div><div style="padding:14px 20px 18px">'+barsT+'</div></div>'
-     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3>Abonnements actifs</h3></div><div style="padding:14px 20px 18px">'+barsP+'<div class="msub" style="margin-top:8px">Cercles au palier payant, en cours de validité.</div></div></div>'
+     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> Répartition des cercles</h3></div><div style="padding:14px 20px 18px">'+barsT+'</div></div>'
+     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> Abonnements actifs</h3></div><div style="padding:14px 20px 18px">'+barsP+'<div class="msub" style="margin-top:8px">Cercles au palier payant, en cours de validité.</div></div></div>'
    +'</div>'
-   +'<div class="panel" style="margin:0 0 18px"><div class="panel-h"><h3>Croissance · 30 derniers jours</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
+   +'<div class="panel" style="margin:0 0 18px"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> Croissance · 30 derniers jours</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
      +founderKpi(f.comptes_30j,'Nouvelles personnes',founderDelta(f.comptes_30j))
      +founderKpi(f.tontines_30j,'Nouvelles tontines',founderDelta(f.tontines_30j))
      +founderKpi(f.partages_30j,'Nouveaux partages',founderDelta(f.partages_30j))
      +founderKpi(f.contrib_30j,'Cotisations confirmées',founderDelta(f.contrib_30j))
    +'</div></div>'
-   +'<div class="panel" style="margin:0 0 14px"><div class="panel-h"><h3>Bientôt dans le pilotage</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
+   +'<div class="panel" style="margin:0 0 14px"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> Bientôt dans le pilotage</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
      +founderSoon('Paiements Mobile Money',(f.fapshi_ok?(f.fapshi_ok+' réussis à ce jour'):'dès l’ouverture Fapshi'))
      +founderSoon('Remboursements IMANI','avec la caisse de prêt solidaire')
      +founderSoon('Écarts de solde','attendu vs réel, alertes auto')
@@ -9865,7 +9871,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.40';
+const UBORA_BUILD='v9.41';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
