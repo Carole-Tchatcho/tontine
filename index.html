@@ -6593,7 +6593,8 @@ function caseDelBlock(c){
   const mc=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
   const iAmBureau=!!(mc&&mc.bureau);
   const iAmCreator=!!(state.uid&&c._creator&&String(c._creator)===String(state.uid));
-  const purgeBtn=iAmCreator?`<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="caseDeleteNow('${c.id}')">🗑 ${_FL('Supprimer définitivement','Delete permanently')}</button>`:'';
+  const canPurge=iAmCreator||(typeof isUboraAdmin==='function'&&isUboraAdmin());
+  const purgeBtn=canPurge?`<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="caseDeleteNow('${c.id}')">🗑 ${_FL('Supprimer définitivement','Delete permanently')}</button>`:'';
   const st=c.del_status||null;
   const iRequested = c.del_requested_by && state.uid && String(c.del_requested_by)===String(state.uid);
   var when='';
@@ -9994,7 +9995,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.46';
+const UBORA_BUILD='v9.48';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
