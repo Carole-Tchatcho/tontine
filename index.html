@@ -6824,6 +6824,19 @@ function pv2Settle(bal,names){
 function pv2Me(){ const reg=pv2Reg(pv2Cur.id); return (reg&&reg.me)||''; }
 function pv2SetMe(name){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:name}); render(); }
 function pv2ChangeMe(){ pv2Remember({id:pv2Cur.id,token:pv2Cur.token,me:''}); render(); }
+/* Qui peut supprimer tout le partage ?
+   - créé AVEC compte (created_by) → ce compte seul (verrou fort).
+   - créé SANS compte (created_by null) → tout détenteur du lien présent sur
+     cet appareil (pas d'identité à protéger → verrou souple, cohérent). */
+function pv2IsCreatorLocal(id){ var r=pv2Reg(id); return !!(r&&r.creator); }
+function pv2CanDelete(){
+  if(!pv2Cur||!pv2Cur.partage)return false;
+  var P=pv2Cur.partage;
+  if(state&&state.uid&&P.created_by&&P.created_by===state.uid)return true;   // compte créateur
+  if(!P.created_by&&pv2Reg(pv2Cur.id))return true;                            // partage sans compte
+  return false;
+}
+function pv2DeleteIsAnon(){ return !!(pv2Cur&&pv2Cur.partage&&!pv2Cur.partage.created_by); }
 
 /* --- Liste (mes partages sur cet appareil) --- */
 async function pv2LoadMine(){
@@ -6881,7 +6894,7 @@ async function pv2DoCreate(){
   const mem=g('pv2-mem').split('\n').map(function(s){return s.trim();}).filter(Boolean);
   if(pv2Busy)return; pv2Busy=true;
   try{ const r=await pv2Create(titre,devise,mem);
-    pv2Remember({id:r.id,token:r.token,titre:titre,devise:devise,me:(mem[0]||state.user||'')});
+    pv2Remember({id:r.id,token:r.token,titre:titre,devise:devise,me:(mem[0]||state.user||''),creator:1});
     pv2Draft=null; pv2Busy=false; pv2LoadById(r.id);
   }catch(e){ pv2Busy=false; alert(_FL('Création échouée : ','Creation failed: ')+(e.message||e)); }
 }
@@ -6910,7 +6923,7 @@ function viewPartageEdit(){
     +'</div></div>'
     +'<div class="row-gap" style="margin-top:16px"><button class="btn btn-gold" onclick="pv2DoUpdate()">'+_FL('Enregistrer','Save')+'</button>'
     +'<button class="btn btn-ghost" onclick="pv2EditDraft=null;state.view=\'partage\';render()">'+_FL('Annuler','Cancel')+'</button></div>'
-    +((state&&state.uid&&pv2Cur.partage&&pv2Cur.partage.created_by===state.uid)?('<div class="panel" style="margin-top:16px;border:1px solid #B4452855"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:8px">'+_FL('Zone sensible — réservé au créateur','Danger zone — creator only')+'</div><button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="pv2DeletePartage()">🗑 '+_FL('Supprimer ce partage','Delete this share')+'</button></div></div>'):'')
+    +(pv2CanDelete()?('<div class="panel" style="margin-top:16px;border:1px solid #B4452855"><div style="padding:14px 18px"><div class="msub" style="margin-bottom:8px">'+(pv2DeleteIsAnon()?_FL('Zone sensible — partage sans compte : tout détenteur du lien peut le supprimer, pour tout le monde.','Danger zone — no-account share: anyone with the link can delete it, for everyone.'):_FL('Zone sensible — réservé au créateur','Danger zone — creator only'))+'</div><button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="pv2DeletePartage()">🗑 '+_FL('Supprimer ce partage','Delete this share')+'</button></div></div>'):'')
     +footer();
 }
 async function pv2DoUpdate(){
@@ -9708,7 +9721,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.33';
+const UBORA_BUILD='v9.34';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
