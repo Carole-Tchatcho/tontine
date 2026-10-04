@@ -7457,15 +7457,37 @@ const CP_CATS=['loyer','courses','energie','transport','sante','enfants','loisir
 function cpCatLabel(k){ var m={loyer:['Loyer','Rent'],courses:['Courses','Groceries'],energie:['Énergie','Utilities'],transport:['Transport','Transport'],sante:['Santé','Health'],enfants:['Enfants','Children'],loisirs:['Loisirs','Leisure'],abo:['Abonnements','Subscriptions'],autre:['Autre','Other']}; var p=m[k]||m.autre; return _FL(p[0],p[1]); }
 async function cpEndRecurrence(id, M){ if(!confirm(_FL('Terminer cette dépense récurrente après '+cpMonthLabel(M)+' ? Elle ne comptera plus les mois suivants (l’historique est conservé).','End this recurring expense after '+cpMonthLabel(M)+'? It will no longer count in later months (history kept).')))return; try{ await cpsb(); var r=await sb.from('couple_depenses').update({fin_mois:M}).eq('id',id); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 function cpSpendViz(M){
-  const gcur=cpCur.couple.devise||'CHF'; const by={}; var total=0;
-  cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return; var amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur); var k=d.categorie||'autre'; by[k]=(by[k]||0)+amt; total+=amt; });
+  const gcur=cpCur.couple.devise||'CHF'; const by={}; var total=0; var autreList=[];
+  cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return; var amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur); var k=d.categorie||'autre'; by[k]=(by[k]||0)+amt; total+=amt; if(k==='autre'&&amt>0){ autreList.push({label:(d.intitule||'').trim(),v:amt}); } });
   if(total<=0)return '';
   var rows=Object.keys(by).map(function(k){return {k:k,v:by[k]};}).sort(function(a,b){return b.v-a.v;});
   var max=rows[0].v||1;
   var bars=rows.map(function(r){ var pct=Math.round(r.v/total*100); var w=Math.max(2,Math.round(r.v/max*100));
-    return '<div style="margin:10px 0"><div class="between" style="margin-bottom:4px"><span class="mname" style="font-size:14px">'+esc(cpCatLabel(r.k))+'</span><span class="msub">'+money(Math.round(r.v),gcur)+' · '+pct+'%</span></div><div style="height:12px;background:#EEE6D4;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div></div>';
+    var detail='';
+    if(r.k==='autre'&&autreList.length){
+      var items=autreList.slice().sort(function(a,b){return b.v-a.v;}).map(function(it){ return '<div class="between" style="margin:2px 0"><span class="msub" style="font-size:12.5px">'+(it.label?esc(it.label):_FL('(sans intitul\u00e9)','(no label)'))+'</span><span class="msub" style="font-size:12.5px">'+money(Math.round(it.v),gcur)+'</span></div>'; }).join('');
+      detail='<div style="margin:6px 0 2px 0;padding:8px 12px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.22);border-radius:10px">'+items+'</div>';
+    }
+    return '<div style="margin:10px 0"><div class="between" style="margin-bottom:4px"><span class="mname" style="font-size:14px">'+esc(cpCatLabel(r.k))+'</span><span class="msub">'+money(Math.round(r.v),gcur)+' \u00b7 '+pct+'%</span></div><div style="height:12px;background:#EEE6D4;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>'+detail+'</div>';
   }).join('');
-  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Où va l’argent du foyer','Where the household money goes')+' — '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:12px 20px 18px">'+bars+'<div class="msub" style="margin-top:10px">'+_FL('Total des dépenses du mois','Total spending this month')+' : '+money(Math.round(total),gcur)+'</div></div></div>';
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('O\u00f9 va l\u2019argent du foyer','Where the household money goes')+' \u2014 '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:12px 20px 18px">'+bars+'<div class="msub" style="margin-top:10px">'+_FL('Total des d\u00e9penses du mois','Total spending this month')+' : '+money(Math.round(total),gcur)+'</div></div></div>';
+}
+function cpExtraViz(M){
+  /* Qui d\u00e9pense le plus HORS charges fixes (r\u00e9currentes), et en quoi. */
+  const gcur=cpCur.couple.devise||'CHF'; var byPayer={}; var any=false;
+  cpMonthExp(M).forEach(function(d){ if(d.mode==='offert')return; if(d.recurrent)return; var p=d.paye_par; if(!p)return; var amt=fxConvert(Number(d.montant)||0,d.devise||gcur,gcur); if(!(amt>0))return; any=true; if(!byPayer[p])byPayer[p]={total:0,cats:{}}; byPayer[p].total+=amt; var k=d.categorie||'autre'; byPayer[p].cats[k]=(byPayer[p].cats[k]||0)+amt; });
+  if(!any)return '';
+  var rows=cpActifs().map(function(m){ var b=byPayer[m.uid]; if(!b||!(b.total>0))return null; var topK=Object.keys(b.cats).sort(function(a,c){return b.cats[c]-b.cats[a];})[0]; return {name:cpDisplayName(m),total:b.total,topK:topK,topV:b.cats[topK]}; }).filter(function(x){return x;}).sort(function(a,b){return b.total-a.total;});
+  if(!rows.length)return '';
+  var grand=rows.reduce(function(s,r){return s+r.total;},0); var max=rows[0].total||1;
+  var list=rows.map(function(r,i){ var w=Math.max(3,Math.round(r.total/max*100)); var lead=(i===0);
+    return '<div style="margin:10px 0"><div class="between" style="margin-bottom:4px"><span class="mname" style="font-size:14px">'+esc(r.name)+(lead?' <span class="pill p-face" style="font-size:10px">'+_FL('le plus','top')+'</span>':'')+'</span><span class="msub">'+money(Math.round(r.total),gcur)+'</span></div>'
+      +'<div style="height:10px;background:#EEE6D4;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#8E7CC3,#5B4A8A);border-radius:6px"></div></div>'
+      +'<div class="msub" style="margin-top:3px;font-size:12px">'+_FL('surtout ','mostly ')+esc(cpCatLabel(r.topK))+' ('+money(Math.round(r.topV),gcur)+')</div></div>';
+  }).join('');
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Hors charges fixes','Outside fixed charges')+' \u2014 '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:12px 20px 18px">'
+    +'<div class="msub" style="margin-bottom:8px">'+_FL('D\u00e9penses ponctuelles (hors loyer, \u00e9nergie, abonnements r\u00e9currents) : qui a d\u00e9pens\u00e9 le plus, et en quoi.','One-off spending (outside recurring rent, utilities, subscriptions): who spent the most, and on what.')+'</div>'
+    +list+'<div class="msub" style="margin-top:10px">'+_FL('Total ponctuel du mois','One-off total this month')+' : '+money(Math.round(grand),gcur)+'</div></div></div>';
 }
 function cpInvestCatLabel(k){ var m={loyer:'Loyer',courses:'Alimentation',energie:'Charges',transport:'Transports',sante:'Santé',enfants:'Famille / Soutien',loisirs:'Loisirs',abo:'Internet / Téléphone',autre:'Divers / Imprévus'}; return m[k]||'Divers / Imprévus'; }
 function cpInvestLink(d){
@@ -7585,6 +7607,7 @@ function viewCouple(){
     +cpExpList(M)
     +cpBalBlock(M)
     +cpSpendViz(M)
+    +cpExtraViz(M)
     +cpCagnotteBlock()
     +cpAttestPanel(M)
     +footer();
@@ -7706,23 +7729,38 @@ async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var 
 /* --- Cagnottes du foyer --- */
 function cpCagRaised(cid){ return (cpCur.cagContribs||[]).filter(function(c){return c.cagnotte_id===cid;}).reduce(function(s,c){return s+(Number(c.montant)||0);},0); }
 function cpCagByMember(cid){ var by={}; (cpCur.cagContribs||[]).forEach(function(c){ if(c.cagnotte_id===cid){ by[c.auteur]=(by[c.auteur]||0)+(Number(c.montant)||0); } }); return cpActifs().map(function(m){ return {name:cpDisplayName(m), amount:Math.round(by[m.uid]||0)}; }).filter(function(x){return x.amount>0;}); }
+function cpCagMemberBars(cg,gcur){
+  var goal=Number(cg.objectif)||0; var by={}; (cpCur.cagContribs||[]).forEach(function(c){ if(c.cagnotte_id===cg.id){ by[c.auteur]=(by[c.auteur]||0)+(Number(c.montant)||0); } });
+  return cpActifs().map(function(m){ var amt=Math.round(by[m.uid]||0); var pct=goal>0?Math.min(100,Math.round(amt/goal*100)):0;
+    return '<div style="margin-top:8px"><div class="between"><span class="msub">'+esc(cpDisplayName(m))+'</span><span class="msub">'+money(amt,cg.devise||gcur)+(goal>0?(' / '+money(Math.round(goal),cg.devise||gcur)+' \u00b7 '+pct+'%'):'')+'</span></div>'+(goal>0?'<div style="height:9px;background:#EEE6D4;border-radius:6px;margin-top:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>':'')+'</div>';
+  }).join('');
+}
 function cpCagnotteBlock(){
   const gcur=cpCur.couple.devise||'CHF'; const list=(cpCur.cagnottes||[]);
-  var cards=list.map(function(cg){ var raised=cpCagRaised(cg.id); var goal=Number(cg.objectif)||0; var pct=goal>0?Math.min(100,Math.round(raised/goal*100)):0;
-    return '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div class="mname">🎯 '+esc(cg.titre||_FL('Objectif','Goal'))+'</div><button class="linkbtn" onclick="cpCagDelete(\''+cg.id+'\')">✕</button></div>'
-      +'<div class="between" style="margin-top:6px"><span class="msub">'+money(Math.round(raised),cg.devise||gcur)+(goal>0?(' / '+money(Math.round(goal),cg.devise||gcur)):'')+'</span><span class="gold">'+(goal>0?pct+'%':'')+'</span></div>'
-      +(goal>0?'<div style="height:10px;background:#EEE6D4;border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>':'')
-      +(function(){ var bm=cpCagByMember(cg.id); if(!bm.length)return ''; return '<div class="msub" style="margin-top:7px">'+_FL('Ensemble','Together')+' : '+bm.map(function(x){return esc(x.name)+' '+money(x.amount,cg.devise||gcur);}).join(' · ')+'</div>'; })()
+  var cards=list.map(function(cg){ var raised=cpCagRaised(cg.id); var goal=Number(cg.objectif)||0; var pct=goal>0?Math.min(100,Math.round(raised/goal*100)):0; var shared=(cg.partagee!==false);
+    var modePill='<span class="pill p-face" style="font-size:10px;margin-left:6px">'+(shared?_FL('commune','shared'):_FL('individuelle','individual'))+'</span>';
+    var body = shared
+      ? ('<div class="between" style="margin-top:6px"><span class="msub">'+money(Math.round(raised),cg.devise||gcur)+(goal>0?(' / '+money(Math.round(goal),cg.devise||gcur)):'')+'</span><span class="gold">'+(goal>0?pct+'%':'')+'</span></div>'
+        +(goal>0?'<div style="height:10px;background:#EEE6D4;border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>':'')
+        +(function(){ var bm=cpCagByMember(cg.id); if(!bm.length)return ''; return '<div class="msub" style="margin-top:7px">'+_FL('Ensemble','Together')+' : '+bm.map(function(x){return esc(x.name)+' '+money(x.amount,cg.devise||gcur);}).join(' \u00b7 ')+'</div>'; })())
+      : (cpCagMemberBars(cg,gcur)+(goal>0?('<div class="msub" style="margin-top:7px">'+_FL('Chacun vise ','Each aims for ')+money(Math.round(goal),cg.devise||gcur)+'</div>'):''));
+    return '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div class="mname">\ud83c\udfaf '+esc(cg.titre||_FL('Objectif','Goal'))+modePill+'</div><button class="linkbtn" onclick="cpCagDelete(\''+cg.id+'\')">\u2715</button></div>'
+      +body
       +'<div class="row-gap" style="margin-top:10px"><span style="display:inline-flex;gap:6px;align-items:center"><input id="cgc-'+cg.id+'" type="number" placeholder="0" style="width:92px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><button class="btn btn-gold btn-sm" onclick="cpCagContribute(\''+cg.id+'\')">'+_FL('Contribuer','Contribute')+'</button></span>'
       +'<a class="btn btn-ghost btn-sm" href="https://ubora.caroletchatcho.com/#calculateurs" target="_blank" rel="noopener">'+_FL('Faire fructifier sur Invest','Grow it on Invest')+'</a></div>'
+      +'<div style="margin-top:8px"><button class="linkbtn" onclick="cpCagSetMode(\''+cg.id+'\','+(shared?'false':'true')+')">'+(shared?_FL('\u25c7 Passer en individuelle (chacun la sienne)','\u25c7 Switch to individual (each their own)'):_FL('\u25c7 Passer en commune (ensemble)','\u25c7 Switch to shared (together)'))+'</button></div>'
       +'</div></div>';
   }).join('');
   var createBtn = state._cpCagNew
-    ? '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>'+_FL('Intitulé','Label')+'</label><input id="cg-titre" placeholder="'+_FL('Ex. Vacances, école des enfants…','E.g. Holiday, kids’ school…')+'"></div><div class="field" style="flex:1;min-width:110px;margin-top:0"><label>'+_FL('Objectif','Goal')+'</label><input id="cg-goal" type="number" placeholder="0"></div></div><div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="cpCagCreate()">'+_FL('Créer la cagnotte','Create the goal')+'</button> <button class="btn btn-ghost btn-sm" onclick="state._cpCagNew=false;render()">'+_FL('Annuler','Cancel')+'</button></div></div></div>'
+    ? (function(){ var sharedNew=(state._cpCagMode!=='individuelle'); var mb=function(v,l){return '<button type="button" class="smode '+(((v==='commune')===sharedNew)?'on':'')+'" onclick="state._cpCagMode=\''+v+'\';render()">'+l+'</button>';};
+      return '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>'+_FL('Intitul\u00e9','Label')+'</label><input id="cg-titre" placeholder="'+_FL('Ex. Vacances, \u00e9cole des enfants\u2026','E.g. Holiday, kids\u2019 school\u2026')+'"></div><div class="field" style="flex:1;min-width:110px;margin-top:0"><label>'+_FL('Objectif','Goal')+'</label><input id="cg-goal" type="number" placeholder="0"></div></div>'
+      +'<div class="field"><label>'+_FL('Type de cagnotte','Goal type')+'</label><div class="split-modes">'+mb('commune',_FL('Commune','Shared'))+mb('individuelle',_FL('Individuelle','Individual'))+'</div><div class="hint" style="margin-top:6px">'+(sharedNew?_FL('Commune : vous \u00e9pargnez ensemble vers un seul objectif.','Shared: you save together toward one goal.'):_FL('Individuelle : chacun vise l\u2019objectif de son c\u00f4t\u00e9, suivi s\u00e9par\u00e9ment.','Individual: each aims for the goal on their own, tracked separately.'))+'</div></div>'
+      +'<div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="cpCagCreate()">'+_FL('Cr\u00e9er la cagnotte','Create the goal')+'</button> <button class="btn btn-ghost btn-sm" onclick="state._cpCagNew=false;render()">'+_FL('Annuler','Cancel')+'</button></div></div></div>'; })()
     : '<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="state._cpCagNew=true;render()">+ '+_FL('Nouvelle cagnotte','New goal')+'</button></div>';
-  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Cagnottes du foyer','Household goals')+'</h3></div><div style="padding:8px 16px 14px"><div class="msub">'+_FL('Épargnez ensemble vers un objectif (vacances, enfants…) — et faites-le fructifier avec Invest.','Save together toward a goal (holiday, children…) — and grow it with Invest.')+'</div>'+cards+createBtn+'</div></div>';
+  return '<div class="panel"><div class="panel-h"><h3>'+_FL('Cagnottes du foyer','Household goals')+'</h3></div><div style="padding:8px 16px 14px"><div class="msub">'+_FL('\u00c9pargnez ensemble vers un objectif (vacances, enfants\u2026) \u2014 ou chacun la sienne. Faites fructifier avec Invest.','Save toward a goal (holiday, children\u2026) \u2014 together or each their own. Grow it with Invest.')+'</div>'+cards+createBtn+'</div></div>';
 }
-async function cpCagCreate(){ var t=document.getElementById('cg-titre'), g=document.getElementById('cg-goal'); var titre=t?t.value.trim():''; var goal=g?parseFloat(String(g.value).replace(',','.')):0; if(!titre){alert(_FL('Indiquez un intitulé.','Enter a label.'));return;} try{ await cpsb(); var r=await sb.from('couple_cagnottes').insert({couple_id:cpCur.id,titre:titre,objectif:(isNaN(goal)?null:goal),devise:cpCur.couple.devise}); if(r.error)throw r.error; state._cpCagNew=false; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
+async function cpCagCreate(){ var t=document.getElementById('cg-titre'), g=document.getElementById('cg-goal'); var titre=t?t.value.trim():''; var goal=g?parseFloat(String(g.value).replace(',','.')):0; if(!titre){alert(_FL('Indiquez un intitul\u00e9.','Enter a label.'));return;} var shared=(state._cpCagMode!=='individuelle'); try{ await cpsb(); var r=await sb.from('couple_cagnottes').insert({couple_id:cpCur.id,titre:titre,objectif:(isNaN(goal)?null:goal),devise:cpCur.couple.devise,partagee:shared}); if(r.error)throw r.error; state._cpCagNew=false; state._cpCagMode='commune'; await cpRefresh(); }catch(e){ alert(_FL('\u00c9chec : ','Failed: ')+(e.message||e)); } }
+async function cpCagSetMode(cid,shared){ try{ await cpsb(); var r=await sb.from('couple_cagnottes').update({partagee:!!shared}).eq('id',cid); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('\u00c9chec : ','Failed: ')+(e.message||e)); } }
 async function cpCagContribute(cid){ var el=document.getElementById('cgc-'+cid); var v=el?parseFloat(String(el.value).replace(',','.')):0; if(!(v>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;} try{ await cpsb(); var r=await sb.from('couple_cagnotte_contribs').insert({cagnotte_id:cid,couple_id:cpCur.id,montant:v}); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 async function cpCagDelete(cid){ if(!confirm(_FL('Supprimer cette cagnotte et ses contributions ?','Delete this goal and its contributions?')))return; try{ await cpsb(); var r=await sb.from('couple_cagnottes').delete().eq('id',cid); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Échec : ','Failed: ')+(e.message||e)); } }
 
@@ -9904,7 +9942,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.42';
+const UBORA_BUILD='v9.43';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
