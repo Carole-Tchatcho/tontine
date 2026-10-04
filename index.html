@@ -840,6 +840,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      sandbox n'est pas validé : le bouton FCFA affiche alors « bientôt ».
      Passer à true une fois la fonction fapshi-pay déployée et testée. */
   window.UBORA_FAPSHI_LIVE   = false;
+  /* RAPPELS AUTO 48 h : false tant que le cron Supabase (pg_cron + fonction « rappels »)
+     n'est PAS déployé. À false, l'app NE PROMET PAS de rappel automatique (UBORA ne ment jamais) :
+     elle décrit le rappel manuel réel. Passer à true une fois le cron déployé et testé. */
+  window.UBORA_RAPPELS_AUTO  = false;
 </script>
 <!-- ===================================================================================== -->
 
@@ -1211,7 +1215,7 @@ Object.assign(I18N.fr,{
   ec2_nudge:'✦ Pour prolonger l\u2019élan : découvrez comment la méthode UBORA aide votre groupe à faire fructifier son épargne.',
   ec2_close:'échéance proche',ec2_group_part:'Participation du groupe',ec2_foyers:'foyers',
   ec2_days_left:'j restants',ec2_deadline_word:'échéance',ec2_see_registry:'Voir le registre',
-  ec2_reminder:'⏰ Rappel automatique envoyé (J-7) : il reste {n} jours pour participer.',
+  ec2_reminder:'⏰ Échéance proche : il reste {n} jours pour participer.',
   rg_contributor:'contributeur',rg_contributors:'contributeurs',
   md_title:'Cotisation automatique',
   md_lead:'Autorisez une fois un moyen de paiement. À chaque événement, vous êtes prévenu·e et libre de refuser.',
@@ -1255,7 +1259,7 @@ Object.assign(I18N.en,{
   ec2_nudge:'✦ To keep the momentum: see how the UBORA method helps your group grow its savings.',
   ec2_close:'deadline near',ec2_group_part:'Group participation',ec2_foyers:'households',
   ec2_days_left:'days left',ec2_deadline_word:'deadline',ec2_see_registry:'View the ledger',
-  ec2_reminder:'⏰ Automatic reminder sent (D-7): {n} days left to take part.',
+  ec2_reminder:'⏰ Deadline approaching: {n} days left to take part.',
   rg_contributor:'contributor',rg_contributors:'contributors',
   md_title:'Automatic contribution',
   md_lead:'Authorize a payment method once. For each event, you are notified and free to decline.',
@@ -2096,6 +2100,7 @@ const caisseRoleName=(c,role)=>{const b=c.bureau.find(x=>x.role===role);return b
    Pour passer en production : définir ces deux variables (schéma SQL + RPC déjà validés). */
 const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON; window.UBORA_VISION_URL=window.UBORA_VISION_URL||'https://ilolqybkejcnvmjxlfdw.supabase.co/functions/v1/ubora-vision';
 const FAPSHI_LIVE=!!window.UBORA_FAPSHI_LIVE;   /* paiement Mobile Money Afrique (Fapshi) — voir bloc de config en tête */
+const RAPPELS_AUTO=!!window.UBORA_RAPPELS_AUTO; /* rappel e-mail automatique 48 h — true seulement si le cron Supabase est déployé */
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
@@ -4690,7 +4695,7 @@ function viewCreate(){
       <div class="field"><label>${tr('cr_freq')}</label>
         <select onchange="draft.frequency=this.value">${Object.keys(FREQ).map(f=>`<option value="${f}" ${draft.frequency===f?'selected':''}>${freqLabel(f)}</option>`).join('')}</select></div>
       <div class="field"><label>Jour de distribution / \u00E9ch\u00E9ance</label>
-        <div class="hint">Le jour du mois o\u00F9 le b\u00E9n\u00E9ficiaire re\u00E7oit \u2014 les versements sont attendus ce jour-l\u00E0, et le rappel automatique part 48\u00A0h avant. Modifiable ensuite par le bureau.</div>
+        <div class="hint">Le jour du mois o\u00F9 le b\u00E9n\u00E9ficiaire re\u00E7oit \u2014 les versements sont attendus ce jour-l\u00E0.${RAPPELS_AUTO?' Un rappel e-mail automatique part 48\u00A0h avant.':' L\u2019organisateur\u00B7trice peut envoyer un rappel en un clic (bouton \u00AB Rappeler \u00BB).'} Modifiable ensuite par le bureau.</div>
         <select onchange="draft.jourEcheance=this.value?+this.value:null"><option value="">\u2014 \u00E0 d\u00E9finir plus tard \u2014</option>${Array.from({length:28},(_,k)=>k+1).map(j=>`<option value="${j}" ${draft.jourEcheance===j?'selected':''}>le ${j} de chaque mois</option>`).join('')}</select></div>
     </div></div>
 
@@ -4816,7 +4821,7 @@ function viewDash(){
           const _propre=(t.premiumSource!=='groupe'&&t.premiumSource!=='admin');
           return (_org&&_propre)?` <a href="#" onclick="gererAbonnement('cercle','${t.id}');return false" style="color:#C9A84C;text-decoration:underline;font-size:12px">${_FL('gérer','manage')}</a>`:'';
         })()}</div>${kwenBand()}`:''}
-        ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b> \u00B7 rappel automatique 48\u00A0h avant</div>`:''}
+        ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b>${RAPPELS_AUTO?' \u00B7 rappel e-mail automatique 48\u00A0h avant':''}</div>`:''}
         ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
         <div>${trustSeal()}</div></div>
       <div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="state.active='${t.id}';state.view='dash';state.tab='invite';render()">${icon('invite')}${tr('db_seg_invite')}</button>${_isOrg?`<button class="btn btn-ghost btn-sm" onclick="delTontine('${t.id}')">🗑 Supprimer</button>`:''}</div>
@@ -7562,7 +7567,14 @@ function cpInviteShareButtons(email){
   var wa='https://wa.me/?text='+encodeURIComponent(msg);
   var sms='sms:?&body='+encodeURIComponent(msg);
   var mail='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('UBORA')+'&body='+encodeURIComponent(msg);
-  return '<div class="row-gap"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a><a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a><button class="btn btn-ghost btn-sm" onclick="cpCopyInvite(\''+esc(email)+'\')">'+_FL('Copier le message','Copy message')+'</button></div>';
+  var link='https://tontine.caroletchatcho.com/';
+  var qid='cpiq_'+Math.random().toString(36).slice(2,8);
+  return '<div class="row-gap"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a><a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a><button class="btn btn-ghost btn-sm" onclick="cpCopyInvite(\''+esc(email)+'\')">'+_FL('Copier le message','Copy message')+'</button></div>'
+    +'<div style="text-align:center;margin-top:12px"><div id="'+qid+'" style="display:inline-block;background:#fff;border:1px solid rgba(201,168,76,.4);border-radius:16px;padding:14px 14px 8px">'
+    +'<div style="width:150px;height:150px;margin:0 auto">'+repQR(link)+'</div>'
+    +'<div class="msub" style="margin-top:6px;max-width:230px;line-height:1.4">'+_FL('Scanner pour ouvrir UBORA, puis se connecter avec <b>'+esc(email)+'</b> et accepter dans l\u2019onglet Partage.','Scan to open UBORA, then sign in with <b>'+esc(email)+'</b> and accept in the Partage tab.')+'</div>'
+    +'<div class="row-gap" style="justify-content:center;gap:6px;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="shareQRImg(\''+qid+'\',\'ubora-couple\')">'+_FL('Partager le QR','Share the QR')+'</button><button class="btn btn-ghost btn-sm" onclick="downloadQRImg(\''+qid+'\',\'ubora-couple\')">'+_FL('T\u00e9l\u00e9charger','Download')+'</button></div>'
+    +'</div></div>';
 }
 function cpCopyInvite(email){ try{navigator.clipboard.writeText(cpInviteMsg(email));}catch(e){} try{var b=(typeof event!=='undefined')&&event&&event.target;if(b){var t=b.textContent;b.textContent=_FL('Copié ✓','Copied ✓');setTimeout(function(){b.textContent=t;},1400);}}catch(e){} }
 function cpPendingInviteBlock(){
@@ -9475,7 +9487,7 @@ function viewLanding(){
       <div class="ob-steps">
         <div class="ob-step"><div class="ob-num">1</div><div class="ob-t">${_FL('Créez ou rejoignez un cercle','Create or join a circle')}</div><div class="ob-d">${_FL('Votre tontine, caisse ou association — en 2 minutes, ou via le lien d’invitation que vous avez reçu.','Your tontine, fund or association — in 2 minutes, or via the invite link you received.')}</div></div>
         <div class="ob-step"><div class="ob-num">2</div><div class="ob-t">${_FL('Chacun verse, le bureau confirme','Everyone pays, the board confirms')}</div><div class="ob-d">${_FL('L’argent reste entre vous. UBORA note qui a versé, qui reçoit, et quand.','The money stays among you. UBORA records who paid, who receives, and when.')}</div></div>
-        <div class="ob-step ob-gold"><div class="ob-num">3</div><div class="ob-t">${_FL('La mémoire est gardée','The memory is kept')}</div><div class="ob-d">${_FL('Relevés clairs, rappels automatiques, et une attestation vérifiable de votre régularité.','Clear statements, automatic reminders, and a verifiable attestation of your regularity.')}</div></div>
+        <div class="ob-step ob-gold"><div class="ob-num">3</div><div class="ob-t">${_FL('La mémoire est gardée','The memory is kept')}</div><div class="ob-d">${_FL('Relevés clairs, rappels, et une attestation vérifiable de votre régularité.','Clear statements, reminders, and a verifiable attestation of your regularity.')}</div></div>
       </div>
       <div class="ob-note">${_FL('Pas de mot de passe : vous entrez avec votre e-mail. « Commencer » vous inscrit et vous connecte en même temps.','No password: you sign in with your email. “Get started” signs you up and in at once.')}</div>
     </div>
@@ -9535,8 +9547,8 @@ function viewFAQ(){
      a:_FL('Le bureau de votre groupe vous envoie une invitation (par e-mail ou par un code personnel). Vous cliquez sur le lien ou saisissez votre code, et vous rejoignez le cercle — vous voyez alors votre part et l’historique qui vous concerne. On ne peut pas rejoindre un groupe sans y être invité : c’est le groupe qui garde la main.',
              'Your group’s committee sends you an invitation (by email or a personal code). You click the link or enter your code, and you join the circle — you then see your own share and the history that concerns you. You cannot join a group without being invited: the group stays in control.')},
     {q:_FL('Que se passe-t-il si quelqu’un ne paie pas ?','What happens if someone doesn’t pay?'),
-     a:_FL('Comme UBORA ne gère pas l’argent, il n’impose aucune sanction — ce n’est pas un gendarme. En revanche, le registre rend les choses visibles : on voit clairement qui a versé et confirmé, et qui est en retard. Cette transparence, avec les rappels automatiques, aide le groupe à régler la situation selon ses propres règles.',
-             'Since UBORA does not handle the money, it imposes no penalty — it is not a police officer. What it does is make things visible: you can clearly see who has paid and confirmed, and who is late. That transparency, together with automatic reminders, helps the group resolve the situation by its own rules.')},
+     a:_FL('Comme UBORA ne gère pas l’argent, il n’impose aucune sanction — ce n’est pas un gendarme. En revanche, le registre rend les choses visibles : on voit clairement qui a versé et confirmé, et qui est en retard. Cette transparence, avec les rappels, aide le groupe à régler la situation selon ses propres règles.',
+             'Since UBORA does not handle the money, it imposes no penalty — it is not a police officer. What it does is make things visible: you can clearly see who has paid and confirmed, and who is late. That transparency, together with reminders, helps the group resolve the situation by its own rules.')},
     {s:_FL('Attestation','Attestation')},
     {q:_FL('À quoi sert l’attestation ? Une banque est-elle obligée de l’accepter ?','What is the attestation for? Is a bank required to accept it?'),
      a:_FL('L’attestation est un relevé de ce qu’UBORA a vérifié à votre nom — votre ancienneté, votre régularité de cotisation — avec une référence qu’un tiers (banque, bailleur) peut vérifier en ligne. Sa force grandit avec votre discipline : tant que votre historique est jeune, c’est un simple relevé d’inscription ; il devient une attestation à mesure que vous cotisez régulièrement. UBORA atteste seulement ses écritures : ce n’est pas un avis financier ni une garantie, et aucune institution n’est obligée de l’accepter. C’est une preuve de sérieux, pas un document bancaire.',
@@ -9802,7 +9814,7 @@ function dashGov(t){
     <div class="panel"><div class="panel-h"><h3>Rythme des \u00E9ch\u00E9ances</h3></div><div style="padding:16px 22px">
       <div class="field" style="margin-top:0"><label>Jour de distribution / \u00E9ch\u00E9ance</label>
       ${can?`<select onchange="govSetJour('${t.id}',this.value)"><option value="">\u2014 non d\u00E9fini \u2014</option>${jours.map(j=>`<option value="${j}" ${t.jourEcheance===j?'selected':''}>le ${j} de chaque mois</option>`).join('')}</select>`:`<div class="msub">${t.jourEcheance?('le '+t.jourEcheance+' de chaque mois'):'\u2014 non d\u00E9fini \u2014'}</div>`}
-      <div class="hint">Le rappel automatique part par e-mail 48\u00A0h avant, sans aucune manipulation.</div></div>
+      <div class="hint">${RAPPELS_AUTO?'Le rappel part par e-mail 48\u00A0h avant, automatiquement.':'\u00C0 l\u2019approche de l\u2019\u00E9ch\u00E9ance, l\u2019organisateur\u00B7trice envoie le rappel en un clic (bouton \u00AB Rappeler \u00BB, \u00E0 c\u00F4t\u00E9 de chaque membre non \u00E0 jour).'}</div></div>
       <div class="field"><label>Exception pour le tour en cours (facultatif)</label>
       ${can?`<input type="date" value="${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||''}" onchange="setTourEcheance('${t.id}',this.value)" style="font:inherit;padding:6px 10px;border:1px solid rgba(201,168,76,.5);border-radius:8px;background:transparent;color:inherit">`:`<div class="msub">${(t.rounds[t.currentRound]&&t.rounds[t.currentRound].echeance)||'\u2014'}</div>`}
       <div class="hint">Remplace le rythme mensuel uniquement pour ce tour (report exceptionnel, etc.).</div></div>
@@ -9942,7 +9954,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.43';
+const UBORA_BUILD='v9.44';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
