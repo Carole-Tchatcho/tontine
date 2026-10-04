@@ -816,6 +816,10 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 <script>
   window.UBORA_SUPABASE_URL  = 'https://ilolqybkejcnvmjxlfdw.supabase.co';
   window.UBORA_SUPABASE_ANON = 'sb_publishable_xsrnkMqE8-JGG_ForpOtSA_jUbk_0IR';
+  /* Paiement Mobile Money (Afrique) par Fapshi. Laisser à false tant que le
+     sandbox n'est pas validé : le bouton FCFA affiche alors « bientôt ».
+     Passer à true une fois la fonction fapshi-pay déployée et testée. */
+  window.UBORA_FAPSHI_LIVE   = false;
 </script>
 <!-- ===================================================================================== -->
 
@@ -2071,6 +2075,7 @@ const caisseRoleName=(c,role)=>{const b=c.bureau.find(x=>x.role===role);return b
    Mode supabase : s'active dès que window.UBORA_SUPABASE_URL et _ANON sont définis.
    Pour passer en production : définir ces deux variables (schéma SQL + RPC déjà validés). */
 const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON; window.UBORA_VISION_URL=window.UBORA_VISION_URL||'https://ilolqybkejcnvmjxlfdw.supabase.co/functions/v1/ubora-vision';
+const FAPSHI_LIVE=!!window.UBORA_FAPSHI_LIVE;   /* paiement Mobile Money Afrique (Fapshi) — voir bloc de config en tête */
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
@@ -6021,6 +6026,49 @@ function abonnementDevise(){
      · un seul cercle organisé → on l'abonne directement ;
      · plusieurs → on demande lequel ;
      · aucun → on invite à créer un cercle d'abord. */
+/* Abonnement par Mobile Money (Afrique) via Fapshi. Même sélection d'entité que
+   Stripe (palier → cercle / Case / fédération, mêmes règles) ; le montant (frais
+   payeur inclus, ÷0,97) et l'initiation du paiement sont calculés CÔTÉ SERVEUR par
+   l'Edge Function fapshi-pay, qui renvoie un lien de paiement hébergé (Orange Money
+   / MTN MoMo). La clé API ne touche jamais le navigateur. L'activation de
+   l'abonnement se fera par le webhook (Phase 2). */
+async function fapshiAbonner(palier, months){
+  if(!state.uid){ go('auth'); return; }
+  const dev = abonnementDevise();          // réutilise exactement la sélection Stripe ci-dessous
+  let _tgt=null;
+  /* --- même logique de sélection que abonnerPalier, mais on capture l'entité --- */
+  if(palier==='fagot'){
+    try{ if(!state_cases || !state_cases.length) await db.loadCases(); }catch(_e){}
+    const miennes=(state_cases||[]);
+    if(miennes.length===0){ alert(_FL('Créez d’abord votre Case : Fagot s’applique à une association, une réunion, un groupe de personnes — pas à un cercle seul.','Create your Case first: Fagot applies to an association or group of people — not to a single circle.')); go('case'); return; }
+    let cid; if(miennes.length===1){ cid=miennes[0].id; } else { const idx=await uboraChoisir(_FL('Quelle Case abonner au palier Fagot ?','Which Case to subscribe to Fagot?'), miennes.map(x=>({label:x.name}))); if(idx==null)return; cid=miennes[idx].id; }
+    _tgt={entity:'case', id:cid};
+  } else if(palier==='baobab'){
+    try{ if(!state_fed || !state_fed.dir) await db.fedLoad(); }catch(_e){}
+    const dir=(state_fed&&state_fed.dir)||[]; const uid=(state_fed&&state_fed.uid)||state.uid;
+    const ids=new Set(((state_fed&&state_fed.bureau)||[]).map(b=>b.fed_id));
+    const miens=dir.filter(f=>ids.has(f.id)||f.owner===uid);
+    if(miens.length===0){ alert(_FL('Créez d’abord votre fédération : Baobab s’applique à un réseau qui relie plusieurs groupes.','Create your federation first: Baobab applies to a network linking several groups.')); go('fedhome'); return; }
+    let fid; if(miens.length===1){ fid=miens[0].id; } else { const idx=await uboraChoisir(_FL('Quel groupe abonner au palier Baobab ?','Which group to subscribe to Baobab?'), miens.map(f=>({label:f.name, sub:f.libelle||''}))); if(idx==null)return; fid=miens[idx].id; }
+    _tgt={entity:'federation', id:fid};
+  } else {
+    const miens=(state_tontines||[]).filter(t=>{ const me=t.members&&t.members[t.me]; return me&&me.role==='organisateur'; });
+    if(miens.length===0){ alert(_FL('Créez d’abord un cercle : l’abonnement s’applique à un cercle que vous organisez.','Create a circle first: the subscription applies to a circle you organise.')); go(state.uid?'create':'auth'); return; }
+    let tid; if(miens.length===1){ tid=miens[0].id; } else { const idx=await uboraChoisir(_FL('Quel cercle abonner au palier Kwèn ?','Which circle to subscribe to Kwèn?'), miens.map(t=>({label:t.name}))); if(idx==null)return; tid=miens[idx].id; }
+    _tgt={entity:'tontine', id:tid};
+  }
+  if(!_tgt) return;
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/fapshi-pay',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({palier, scope:_tgt.entity, targetId:_tgt.id, months:months||1, return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok||!_j.link) throw new Error(_j.error||('Erreur '+_r.status+' — vérifiez que la fonction fapshi-pay est déployée et que « Verify JWT » est sur OFF.'));
+    location.href=_j.link;   /* page de paiement hébergée Fapshi (OM / MTN MoMo) */
+  }catch(e){ alert(_FL('Paiement indisponible : ','Payment unavailable: ')+(e.message||e)); }
+}
+
 async function abonnerPalier(palier){
   const dev = abonnementDevise();
   const price = (STRIPE_PRICES[palier]||{})[dev];
@@ -6130,7 +6178,7 @@ function viewTarifs(){
     const _priceTxt=p.prix?(repFmtNum(_val)+' '+(CUR_SYM[_cur]||_cur)):_FL('Gratuit','Free');
     const _annual=(p.prix&&_isAf)?`<div class="msub" style="margin-top:2px;font-size:11.5px">${_FL('ou '+repFmtNum(_val*10)+' FCFA/an \u00b7 2 mois offerts','or '+repFmtNum(_val*10)+' FCFA/yr \u00b7 2 months free')}</div>`:'';
     const _perM=(_isAf&&_CAPS[p.k])?`<div class="msub" style="margin-top:3px;font-size:11.5px;color:#9c7c2a">${_FL('d\u00e8s ~'+repFmtNum(Math.round(_val/_CAPS[p.k]))+' FCFA / membre \u00b7 pour '+_CAPS[p.k]+' membres','from ~'+repFmtNum(Math.round(_val/_CAPS[p.k]))+' FCFA / member \u00b7 for '+_CAPS[p.k]+' members')}</div>`:'';
-    const _cta=p.prix?(_isAf?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="momentMoMo()">${_FL('Payer par Mobile Money','Pay by Mobile Money')}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Orange Money \u00b7 MTN MoMo \u2014 branchement en pr\u00e9paration','Orange Money \u00b7 MTN MoMo \u2014 coming soon')}</div>`:`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} \u00b7 ${repFmtNum(_val)} ${CUR_SYM[_cur]||_cur}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement s\u00e9curis\u00e9 par Stripe \u00b7 sans engagement, r\u00e9siliable \u00e0 tout moment','Secure payment via Stripe \u00b7 no commitment, cancel anytime')}</div>`):`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`;
+    const _cta=p.prix?(_isAf?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="${FAPSHI_LIVE?`fapshiAbonner('${p.k}')`:'momentMoMo()'}">${_FL('Payer par Mobile Money','Pay by Mobile Money')}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Orange Money \u00b7 MTN MoMo \u2014 branchement en pr\u00e9paration','Orange Money \u00b7 MTN MoMo \u2014 coming soon')}</div>`:`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} \u00b7 ${repFmtNum(_val)} ${CUR_SYM[_cur]||_cur}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement s\u00e9curis\u00e9 par Stripe \u00b7 sans engagement, r\u00e9siliable \u00e0 tout moment','Secure payment via Stripe \u00b7 no commitment, cancel anytime')}</div>`):`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`;
     return `<div class="panel tarif-card" style="flex:1;min-width:230px">
     <div style="padding:20px 20px 22px;text-align:center">
       <div class="tc-sym">${p.svg()}</div>
@@ -9721,7 +9769,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.35';
+const UBORA_BUILD='v9.36';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
