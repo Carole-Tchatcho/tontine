@@ -4151,6 +4151,41 @@ var REP_ISSUER={brand:'Imara', legal:'Imara – Carole Keutchakeu', city:'Neuch�
 /* Seuils ÉDITABLES — ancrés sur l'ancienneté (active_months), pas le volume. La glose se régénère seule. */
 var REP_ATT_SEUILS={ etablie:{am:3}, confirmee:{am:12}, reference:{am:24} };
 function repQR(text){try{var q=qrcode(0,'M');q.addData(String(text||''));q.make();return q.createSvgTag({cellSize:4,margin:0,scalable:true});}catch(e){return '';}}
+/* --- Invitation partageable (lien + WhatsApp/SMS/mail + QR ENVOYABLE) — réutilisable --- */
+function inviteShareBlock(link, title, opts){
+  opts=opts||{}; var t=title||'';
+  var msg=opts.msg||(_FL('Rejoins « ','Join “')+t+_FL(' » sur UBORA : ','” on UBORA: ')+link);
+  var subject=opts.subject||_FL('Invitation — UBORA','Invitation — UBORA');
+  var wa='https://wa.me/?text='+encodeURIComponent(msg);
+  var sms='sms:?&body='+encodeURIComponent(msg);
+  var mail='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(msg);
+  var qid='iqr_'+Math.random().toString(36).slice(2,8);
+  var slug=((t||'ubora').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-+|-+$/g,''))||'ubora';
+  var cap=opts.caption||(_FL('Scanner pour rejoindre','Scan to join')+(t?(' « '+esc(t)+' »'):''));
+  return '<div class="field" style="margin-top:14px"><label>'+_FL('Partager l’invitation','Share the invitation')+'</label>'
+    +'<div class="msub" style="margin-bottom:8px">'+_FL('Envoyez le lien OU le QR par WhatsApp, SMS ou e-mail.','Send the link OR the QR via WhatsApp, SMS or email.')+'</div>'
+    +'<div class="row-gap" style="gap:6px"><a class="btn btn-gold btn-sm" href="'+wa+'" target="_blank" rel="noopener">WhatsApp</a>'
+    +'<a class="btn btn-ghost btn-sm" href="'+sms+'">SMS</a>'
+    +'<a class="btn btn-ghost btn-sm" href="'+mail+'">'+_FL('E-mail','Email')+'</a></div>'
+    +'<div style="text-align:center;margin-top:14px"><div id="'+qid+'" style="display:inline-block;background:#fff;border:1px solid rgba(201,168,76,.4);border-radius:16px;padding:16px 16px 10px">'
+    +'<div style="width:168px;height:168px;margin:0 auto">'+repQR(link)+'</div>'
+    +'<div class="msub" style="margin-top:6px">'+cap+'</div>'
+    +'<div class="row-gap" style="justify-content:center;gap:6px;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="shareQRImg(\''+qid+'\',\''+slug+'\')">'+_FL('Partager le QR','Share the QR')+'</button>'
+    +'<button class="btn btn-ghost btn-sm" onclick="downloadQRImg(\''+qid+'\',\''+slug+'\')">'+_FL('Télécharger','Download')+'</button></div>'
+    +'</div></div></div>';
+}
+function _qrToBlob(qid){ return new Promise(function(resolve){
+  try{ var box=document.getElementById(qid); var svg=box&&box.querySelector('svg'); if(!svg){resolve(null);return;}
+    var s=new XMLSerializer().serializeToString(svg); if(s.indexOf('width=')<0){ s=s.replace('<svg ','<svg width="640" height="640" '); }
+    var img=new Image(); img.onload=function(){ try{ var c=document.createElement('canvas'); c.width=640;c.height=640; var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,640,640); x.drawImage(img,0,0,640,640); c.toBlob(function(b){resolve(b);},'image/png'); }catch(e){resolve(null);} };
+    img.onerror=function(){resolve(null);}; img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+  }catch(e){resolve(null);}
+}); }
+function _dlBlob(blob,fname){ try{ var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url;a.download=fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},2000);}catch(e){alert(_FL('Impossible de partager ici — utilisez le lien.','Could not share here — use the link.'));} }
+async function shareQRImg(qid,slug){ var blob=await _qrToBlob(qid); if(!blob){alert(_FL('QR indisponible — envoyez le lien.','QR unavailable — send the link.'));return;} var fname='ubora-'+(slug||'qr')+'.png';
+  try{ var file=new File([blob],fname,{type:'image/png'}); if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'UBORA'}); return; } }catch(e){ if(e&&e.name==='AbortError')return; }
+  _dlBlob(blob,fname); }
+function downloadQRImg(qid,slug){ _qrToBlob(qid).then(function(blob){ if(!blob){alert(_FL('QR indisponible.','QR unavailable.'));return;} _dlBlob(blob,'ubora-'+(slug||'qr')+'.png'); }); }
 function repDur(from,to){try{var a=new Date(from);if(isNaN(a.getTime()))return '';var b=to?new Date(to):new Date();var mo=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());if(b.getDate()<a.getDate())mo--;if(mo<1)return _FL('moins d’un mois','less than a month');var L=(typeof state!=='undefined'&&state.lang==='en');var y=Math.floor(mo/12),m=mo%12,p=[];if(y>0)p.push(y+' '+(L?(y>1?'years':'year'):(y>1?'ans':'an')));if(m>0)p.push(m+' '+(L?(m>1?'months':'month'):'mois'));return p.join(L?' ':' et ');}catch(e){return '';}}
 function repNiceName(s){s=String(s||'').trim();if(!s)return '';var part={de:1,du:1,des:1,la:1,le:1,van:1,von:1,di:1,da:1,dos:1,das:1,del:1,della:1,bin:1,ben:1,al:1,el:1,und:1};function cap(w,first){if(!w)return w;if(/\p{Lu}/u.test(w))return w;var lw=w.toLowerCase();if(!first&&part[lw])return lw;return lw.replace(/(^|[-’'])(\p{L})/gu,function(m,sep,ch){return sep+ch.toUpperCase();});}return s.split(/\s+/).map(function(w,k){return cap(w,k===0);}).join(' ');}
 function repNiceDate(iso){try{var d=new Date(iso);if(isNaN(d.getTime()))return String(iso||'').slice(0,10);var L=(typeof state!=='undefined'&&state.lang==='en');var moFR=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];var moEN=['January','February','March','April','May','June','July','August','September','October','November','December'];var day=d.getUTCDate(),mo=d.getUTCMonth(),y=d.getUTCFullYear();return L?(moEN[mo]+' '+day+', '+y):(day+' '+moFR[mo]+' '+y);}catch(e){return String(iso||'').slice(0,10);}}
@@ -4976,14 +5011,8 @@ function dashInvite(t){
       <div class="field" style="margin-top:0"><label>${tr('di_link')}</label>
         <div class="linkbox"><input type="text" id="invlink" value="${link}" readonly>
           <button class="btn btn-gold" onclick="copyLink(event)">${tr('di_copy')}</button></div>
-        <div style="margin-top:10px"><a class="btn btn-ghost btn-sm" href="${mailtoHref}">✉ Inviter par email</a></div>
         <div class="hint" style="margin-top:8px">${tr('di_code_hint').replace('{c}',t.code).replace('{n}',t.places-filled(t))}</div>
-        <div style="margin-top:18px;text-align:center">
-          <div style="display:inline-block;background:#fff;border:1px solid rgba(201,168,76,.4);border-radius:16px;padding:16px 16px 12px">
-            <div style="width:170px;height:170px;margin:0 auto">${repQR(link)}</div>
-            <div class="msub" style="margin-top:8px">${_FL('Scanner pour rejoindre','Scan to join')} « ${esc(t.name)} »</div>
-          </div>
-        </div>
+        ${inviteShareBlock(link, t.name)}
       </div>
     </div></div>${grow}`;
 }
@@ -6821,6 +6850,7 @@ function pv2SaveReg(){ try{localStorage.setItem('ubora_pv2',JSON.stringify(PV2))
 function pv2Reg(id){ pv2LoadReg(); return PV2.find(function(x){return x&&x.id===id;}); }
 function pv2Remember(rec){ pv2LoadReg(); const i=PV2.findIndex(function(x){return x&&x.id===rec.id;}); if(i<0)PV2.unshift(rec); else PV2[i]=Object.assign({},PV2[i],rec); pv2SaveReg(); }
 function pv2Forget(id){ pv2LoadReg(); PV2=PV2.filter(function(x){return x&&x.id!==id;}); pv2SaveReg(); }
+function pv2ForgetCur(){ try{ if(pv2Cur&&pv2Cur.id)pv2Forget(pv2Cur.id); }catch(e){} pv2Cur=null; go('partages'); }
 function pv2Link(id,token){ return location.origin+location.pathname+'#p='+id+'~'+token; }
 
 async function pv2sb(){ if(typeof sb==='undefined'||!sb){ try{await initSB();}catch(e){} } return sb; }
@@ -7022,7 +7052,7 @@ function viewPartage(){
   if(!pv2Cur){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button><div class="panel"><div class="empty">'+_FL('Ouverture…','Opening…')+'</div></div>'+footer(); return; }
   if(pv2Cur.error){ app().innerHTML='<button class="backlink" onclick="go(\'partages\')">‹ '+_FL('Partage','Share')+'</button>'
       +'<div class="panel"><div style="padding:20px"><div class="mname" style="color:#8A2E16">'+_FL('Lien de partage invalide ou expiré','Invalid or expired share link')+'</div>'
-      +'<div class="msub" style="margin-top:6px">'+esc(pv2Cur.error)+'</div></div></div>'+footer(); return; }
+      +'<div class="msub" style="margin-top:6px">'+esc(pv2Cur.error)+'</div><div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="pv2ForgetCur()">'+_FL('Retirer de ma liste','Remove from my list')+'</button></div></div></div>'+footer(); return; }
   const P=pv2Cur.partage, me=pv2Me(), names=pv2Names();
   if(!me){ return pv2IdentityScreen(P,names); }
   const tab=pv2Tab||'dep';
@@ -7614,11 +7644,12 @@ function cpExpList(M){
   return rows||'<div class="panel"><div class="empty">'+_FL('Aucune dépense ce mois-ci.','No expense this month.')+'</div></div>';
 }
 async function cpDoDel(id){ if(!confirm(_FL('Supprimer cette dépense ?','Delete this expense?')))return; try{ await cpsb(); const r=await sb.from('couple_depenses').delete().eq('id',id); if(r.error)throw r.error; await cpRefresh(); }catch(e){ alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e)); } }
+function cpOther(m){ var act=cpActifs(); if(act.length===2){ for(var i=0;i<act.length;i++){ if(act[i].uid!==m.uid) return cpDisplayName(act[i]); } } return null; }
 function cpBalBlock(M){
   const gcur=cpCur.couple.devise||'CHF'; const act=cpActifs();
   if(act.length<2){ return '<div class="panel"><div style="padding:16px 20px"><div class="msub">'+_FL('En attente que votre partenaire accepte l’invitation pour calculer les soldes.','Waiting for your partner to accept the invitation to compute balances.')+'</div></div></div>'; }
   const bm=cpBalMonth(M); const bc=cpBalCumul();
-  const monthRows=act.map(function(m){ var v=Math.round(bm[m.uid]||0); var s=v>1?('<span class="pbal-pos">'+money(v,gcur)+' · '+_FL('on lui doit','is owed')+'</span>'):(v<-1?('<span class="pbal-neg">'+money(-v,gcur)+' · '+_FL('doit','owes')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>'); return '<div class="mrow">'+avatar(cpDisplayName(m))+'<div class="stack"><div class="mname">'+esc(cpDisplayName(m))+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
+  const monthRows=act.map(function(m){ var v=Math.round(bm[m.uid]||0); var o=cpOther(m); var s=v>1?('<span class="pbal-pos">'+money(v,gcur)+' · '+(o?(esc(o)+' '+_FL('lui doit','owes them')):_FL('à recevoir','to receive'))+'</span>'):(v<-1?('<span class="pbal-neg">'+money(-v,gcur)+' · '+_FL('doit','owes')+(o?(' '+_FL('à ','to ')+esc(o)):'')+'</span>'):'<span class="faint">'+_FL('à jour','settled')+'</span>'); return '<div class="mrow">'+avatar(cpDisplayName(m))+'<div class="stack"><div class="mname">'+esc(cpDisplayName(m))+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
   const credRows=act.map(function(m){ var v=Math.round(bc[m.uid]||0); var s=v>1?('<span class="pbal-pos"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(v,gcur)+'</span> · '+_FL('crédit','credit')+'</span>'):(v<-1?('<span class="pbal-neg"><span class="pv2roll" data-name="cc'+esc(m.uid)+'" data-to="'+v+'" data-cur="'+gcur+'">'+money(-v,gcur)+'</span> · '+_FL('à rembourser','to repay')+'</span>'):'<span class="faint">'+_FL('équilibré','balanced')+'</span>'); return '<div class="mrow">'+avatar(cpDisplayName(m))+'<div class="stack"><div class="mname">'+esc(cpDisplayName(m))+'</div></div><div class="right">'+s+'</div></div>'; }).join('');
   return '<div class="panel"><div class="panel-h"><h3>'+_FL('Solde du mois','This month’s balance')+' — '+esc(cpMonthLabel(M))+'</h3></div><div style="padding:4px 0">'+monthRows+'</div></div>'
     +'<div class="panel"><div class="panel-h"><h3>'+_FL('Crédit reporté (tous mois)','Carried-over credit (all months)')+'</h3></div><div style="padding:4px 0">'+credRows+'</div>'
@@ -7674,12 +7705,14 @@ async function cpDoInvite(){ var e=document.getElementById('cp-inv-email'); var 
 
 /* --- Cagnottes du foyer --- */
 function cpCagRaised(cid){ return (cpCur.cagContribs||[]).filter(function(c){return c.cagnotte_id===cid;}).reduce(function(s,c){return s+(Number(c.montant)||0);},0); }
+function cpCagByMember(cid){ var by={}; (cpCur.cagContribs||[]).forEach(function(c){ if(c.cagnotte_id===cid){ by[c.auteur]=(by[c.auteur]||0)+(Number(c.montant)||0); } }); return cpActifs().map(function(m){ return {name:cpDisplayName(m), amount:Math.round(by[m.uid]||0)}; }).filter(function(x){return x.amount>0;}); }
 function cpCagnotteBlock(){
   const gcur=cpCur.couple.devise||'CHF'; const list=(cpCur.cagnottes||[]);
   var cards=list.map(function(cg){ var raised=cpCagRaised(cg.id); var goal=Number(cg.objectif)||0; var pct=goal>0?Math.min(100,Math.round(raised/goal*100)):0;
     return '<div class="panel" style="margin-top:10px"><div style="padding:14px 18px"><div class="between"><div class="mname">🎯 '+esc(cg.titre||_FL('Objectif','Goal'))+'</div><button class="linkbtn" onclick="cpCagDelete(\''+cg.id+'\')">✕</button></div>'
       +'<div class="between" style="margin-top:6px"><span class="msub">'+money(Math.round(raised),cg.devise||gcur)+(goal>0?(' / '+money(Math.round(goal),cg.devise||gcur)):'')+'</span><span class="gold">'+(goal>0?pct+'%':'')+'</span></div>'
       +(goal>0?'<div style="height:10px;background:#EEE6D4;border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#C9A84C,#9A7230);border-radius:6px"></div></div>':'')
+      +(function(){ var bm=cpCagByMember(cg.id); if(!bm.length)return ''; return '<div class="msub" style="margin-top:7px">'+_FL('Ensemble','Together')+' : '+bm.map(function(x){return esc(x.name)+' '+money(x.amount,cg.devise||gcur);}).join(' · ')+'</div>'; })()
       +'<div class="row-gap" style="margin-top:10px"><span style="display:inline-flex;gap:6px;align-items:center"><input id="cgc-'+cg.id+'" type="number" placeholder="0" style="width:92px;padding:6px 8px;border:1px solid rgba(0,0,0,.18);border-radius:8px;font:inherit"><button class="btn btn-gold btn-sm" onclick="cpCagContribute(\''+cg.id+'\')">'+_FL('Contribuer','Contribute')+'</button></span>'
       +'<a class="btn btn-ghost btn-sm" href="https://ubora.caroletchatcho.com/#calculateurs" target="_blank" rel="noopener">'+_FL('Faire fructifier sur Invest','Grow it on Invest')+'</a></div>'
       +'</div></div>';
@@ -9871,7 +9904,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.41';
+const UBORA_BUILD='v9.42';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
