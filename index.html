@@ -9512,40 +9512,77 @@ function recolteCSV(){
   const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ubora-recolte-consentis.csv'; a.click(); URL.revokeObjectURL(a.href);
 }
-/* --- Pilotage (tableau de bord fondatrice \u2014 admin only) --- */
+/* --- Pilotage (tableau de bord fondatrice — admin only) --- */
 function founderBar(label,val,max){
-  var pct=(max>0)?Math.round(((val||0)/max)*100):0;
-  return '<div style="margin:7px 0"><div style="display:flex;justify-content:space-between;font-size:13px;color:#1E2128"><span>'+esc(label)+'</span><span style="color:#9c7c2a;font-weight:600">'+(val||0)+'</span></div>'
-    +'<div style="height:8px;background:#F1E7D2;border-radius:6px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#E6CF87,#C9A84C);border-radius:6px"></div></div></div>';
+  var pct=(max>0)?Math.max(4,Math.round(((val||0)/max)*100)):0;
+  return '<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:#4A4036"><span>'+esc(label)+'</span><span style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:19px;color:#1E2128">'+(val||0)+'</span></div>'
+    +'<div style="height:7px;background:#EFE4CC;border-radius:5px;margin-top:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#D9BE73,#9c7c2a);border-radius:5px"></div></div></div>';
+}
+function founderDelta(n){
+  if(!(n>0)) return '<span style="color:#A79E8C;font-size:12.5px">rien de nouveau ce mois</span>';
+  return '<span style="color:#2E7D5B;font-size:12.5px;font-weight:600">↑ '+n+' ce mois</span>';
+}
+function founderKpi(big,label,sub){
+  var n=((big===0||big)?big:'—');
+  return '<div style="flex:1;min-width:148px;background:#FFFDF8;border:1px solid rgba(201,168,76,.28);border-radius:16px;padding:18px 20px">'
+    +'<div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#9c7c2a">'+label+'</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:40px;line-height:1.02;color:#1E2128;margin-top:6px">'+n+'</div>'
+    +(sub?'<div style="margin-top:5px">'+sub+'</div>':'')+'</div>';
+}
+function founderSoon(label,hint){
+  return '<div style="flex:1;min-width:160px;background:transparent;border:1px dashed rgba(201,168,76,.45);border-radius:16px;padding:16px 18px">'
+    +'<div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:#B5A98C">'+label+'</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:26px;color:#C7BBA0;margin-top:4px">en préparation</div>'
+    +(hint?'<div class="msub" style="margin-top:3px">'+hint+'</div>':'')+'</div>';
 }
 function viewFounder(){
-  if(!isUboraAdmin()) return '<h1 class="page-title">Pilotage</h1><div class="asnote">R\u00E9serv\u00E9 \u00E0 l\u2019\u00E9quipe UBORA.</div>'+footer();
+  if(!isUboraAdmin()) return '<h1 class="page-title">Pilotage</h1><div class="asnote">Réservé à l’équipe UBORA.</div>'+footer();
   var f=(window._founder&&window._founder.stats)||{}; var err=(window._founder&&window._founder.err)||'';
-  var num=function(x){return (x===0||x)?x:'\u2014';};
-  var card=function(n,l){return '<div style="flex:1;min-width:148px;background:#FFFFFF;border:1px solid rgba(201,168,76,.4);border-radius:14px;padding:16px 18px;text-align:center"><div style="font-size:32px;font-family:\'Cormorant Garamond\',Georgia,serif;color:#1E2128">'+num(n)+'</div><div class="msub">'+l+'</div></div>';};
-  var types=[['Tontines',f.tontines],['Caisses',f.caisses],['R\u00E9unions',f.reunions],['Associations',f.associations],['F\u00E9d\u00E9rations',f.federations],['Partages',f.partages],['Couples',f.couples]].filter(function(x){return x[1]===0||x[1];}).sort(function(a,b){return (b[1]||0)-(a[1]||0);});
-  var maxT=types.reduce(function(m,x){return Math.max(m,x[1]||0);},0);
-  var barsT=types.map(function(x){return founderBar(x[0],x[1],maxT);}).join('')||'<div class="msub">\u2014</div>';
-  var ap=f.abo_par_palier||{}; var PN=[['kwen','Kw\u00E8n'],['fagot','Fagot'],['baobab','Baobab']];
-  var maxP=PN.reduce(function(m,x){return Math.max(m,ap[x[0]]||0);},0);
-  var barsP=PN.map(function(x){return founderBar(x[1],ap[x[0]]||0,maxP);}).join('');
+  var num=function(x){return (x===0||x)?x:'—';};
   var cercles=(f.tontines||0)+(f.caisses||0)+(f.reunions||0)+(f.associations||0)+(f.federations||0);
+  var types=[['Tontines',f.tontines],['Caisses',f.caisses],['Réunions',f.reunions],['Associations',f.associations],['Fédérations',f.federations],['Partages',f.partages],['Couples',f.couples]].filter(function(x){return x[1]===0||x[1];}).sort(function(a,b){return (b[1]||0)-(a[1]||0);});
+  var maxT=types.reduce(function(m,x){return Math.max(m,x[1]||0);},0);
+  var barsT=types.map(function(x){return founderBar(x[0],x[1],Math.max(1,maxT));}).join('')||'<div class="msub">Aucun cercle pour l’instant.</div>';
+  var ap=f.abo_par_palier||{}; var PN=[['kwen','Kwèn'],['fagot','Fagot'],['baobab','Baobab']];
+  var maxP=PN.reduce(function(m,x){return Math.max(m,ap[x[0]]||0);},0);
+  var barsP=PN.map(function(x){return founderBar(x[1],ap[x[0]]||0,Math.max(1,maxP));}).join('');
   var when=f.generated_at?new Date(f.generated_at).toLocaleString('fr-CH'):'';
-  return '<a class="backlink" href="#" onclick="go(\'home\');return false">\u2039 Retour</a>'
-   +'<div class="kicker">\u00C9QUIPE UBORA</div><h1 class="page-title">Pilotage</h1>'
-   +'<div class="asnote">Vue d\u2019ensemble de la sant\u00E9 d\u2019UBORA Trust \u2014 r\u00E9serv\u00E9e \u00E0 toi. Compl\u00E8te \u00AB R\u00E9colte \u00BB (contacts consentis).</div>'
-   +(err?'<div class="asnote" style="border-color:#B3402A">Erreur\u00A0: '+esc(err)+' \u2014 le script SQL \u00AB founder_stats \u00BB est-il ex\u00E9cut\u00E9\u00A0?</div>':'')
-   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">'
-     +card(f.comptes,'comptes')+card(f.adhesions,'adh\u00E9sions')+card(f.abo_actifs,'abonnements actifs')+card(cercles,'cercles (hors partage)')
+  var sstat=function(v,l){return '<div><div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:30px;color:#1E2128;line-height:1">'+num(v)+'</div><div style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#9c7c2a;margin-top:3px">'+l+'</div></div>';};
+
+  var hero='<div style="position:relative;overflow:hidden;background:linear-gradient(135deg,#FBF4E3,#F2E5C9);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:30px 30px 24px;margin:16px 0 18px">'
+    +'<div aria-hidden="true" style="position:absolute;right:-26px;top:-48px;font-size:210px;line-height:1;color:rgba(201,168,76,.10);font-family:\'Cormorant Garamond\',Georgia,serif;pointer-events:none">◆</div>'
+    +'<div style="position:relative">'
+    +'<div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#9c7c2a">Cercles vivants au registre</div>'
+    +'<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:72px;line-height:1;color:#1E2128;margin:2px 0 4px">'+num(cercles)+'</div>'
+    +'<div class="msub" style="max-width:540px">Tontines, caisses, associations et fédérations dont UBORA garde la mémoire vivante.</div>'
+    +'<div style="display:flex;gap:30px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid rgba(201,168,76,.25)">'
+      +sstat(f.comptes,'personnes')+sstat(f.adhesions,'adhésions')+sstat(f.abo_actifs,'abonnements actifs')+sstat(f.partages,'partages')
+    +'</div></div></div>';
+
+  return '<a class="backlink" href="#" onclick="go(\'home\');return false">‹ Retour</a>'
+   +'<div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">'
+     +'<div><div class="kicker">ÉQUIPE UBORA</div><h1 class="page-title" style="margin-bottom:2px">Pilotage</h1><p class="lead" style="margin:0">La santé d’UBORA Trust, en un coup d’œil.</p></div>'
+     +'<button class="btn btn-ghost btn-sm" onclick="go(\'founder\')">↻ Actualiser</button>'
    +'</div>'
-   +'<div class="panel"><div class="panel-h"><h3>Cercles par type</h3></div><div style="padding:12px 20px 16px">'+barsT+'</div></div>'
-   +'<div class="panel"><div class="panel-h"><h3>Abonnements actifs par palier</h3></div><div style="padding:12px 20px 16px">'+barsP+'</div></div>'
-   +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin:14px 0">'
-     +card(f.comptes_30j,'comptes (30\u00A0j)')+card(f.tontines_30j,'tontines (30\u00A0j)')+card(f.partages_30j,'partages (30\u00A0j)')+card(f.contrib_30j,'cotisations (30\u00A0j)')
+   +(err?'<div class="asnote" style="border-color:#B3402A;margin-top:12px">Le tableau de bord n’a pas pu charger : '+esc(err)+'. Exécutez le script SQL « founder_stats » dans Supabase, puis réessayez.</div>':'')
+   +hero
+   +'<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin:0 0 18px">'
+     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3>Répartition des cercles</h3></div><div style="padding:14px 20px 18px">'+barsT+'</div></div>'
+     +'<div class="panel" style="flex:1;min-width:280px;margin:0"><div class="panel-h"><h3>Abonnements actifs</h3></div><div style="padding:14px 20px 18px">'+barsP+'<div class="msub" style="margin-top:8px">Cercles au palier payant, en cours de validité.</div></div></div>'
    +'</div>'
-   +(f.fapshi_ok?('<div style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 14px">'+card(f.fapshi_ok,'paiements Fapshi r\u00E9ussis')+'</div>'):'')
-   +'<div class="row-gap" style="margin:6px 0 14px"><button class="btn btn-ghost btn-sm" onclick="go(\'founder\')">\u21BB Actualiser</button></div>'
-   +(when?'<div class="msub" style="text-align:center;opacity:.7">Donn\u00E9es au '+esc(when)+'</div>':'')
+   +'<div class="panel" style="margin:0 0 18px"><div class="panel-h"><h3>Croissance · 30 derniers jours</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
+     +founderKpi(f.comptes_30j,'Nouvelles personnes',founderDelta(f.comptes_30j))
+     +founderKpi(f.tontines_30j,'Nouvelles tontines',founderDelta(f.tontines_30j))
+     +founderKpi(f.partages_30j,'Nouveaux partages',founderDelta(f.partages_30j))
+     +founderKpi(f.contrib_30j,'Cotisations confirmées',founderDelta(f.contrib_30j))
+   +'</div></div>'
+   +'<div class="panel" style="margin:0 0 14px"><div class="panel-h"><h3>Bientôt dans le pilotage</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
+     +founderSoon('Paiements Mobile Money',(f.fapshi_ok?(f.fapshi_ok+' réussis à ce jour'):'dès l’ouverture Fapshi'))
+     +founderSoon('Remboursements IMANI','avec la caisse de prêt solidaire')
+     +founderSoon('Écarts de solde','attendu vs réel, alertes auto')
+     +founderSoon('Carte géographique','où vit la confiance UBORA')
+   +'</div></div>'
+   +(when?'<div class="msub" style="text-align:center;opacity:.7;margin-bottom:10px">Données au '+esc(when)+' · réservé à toi.</div>':'')
    +footer();
 }
 function viewAuth(){
@@ -9828,7 +9865,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.38';
+const UBORA_BUILD='v9.39';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
