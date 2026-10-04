@@ -1868,35 +1868,7 @@ function renderParcours(t,idx){
     </div></div>`;
 }
 
-let state_tontines=[
-  (function(){
-    const members=[
-      {name:'Carole T.',contact:'carole@…',role:'organisateur',mk:true},
-      {name:'Aïcha D.',contact:'+41 78 …',role:'membre',mk:true},
-      {name:'Mariam K.',contact:'mariam@…',role:'membre',mk:false},
-      {name:'Fanta S.',contact:'+41 79 …',role:'membre',mk:true},
-      {name:'Nadège B.',contact:'nadege@…',role:'membre',mk:false},
-      {name:'Awa N.',contact:'+33 6 …',role:'membre',mk:true},
-    ];
-    return {id:'t1',code:'GENEVE26',name:'Les Sœurs de Genève',amount:300,currency:'CHF',frequency:'mensuelle',
-      places:6,startMonth:5,currentRound:0,me:2,members,
-      rounds:buildRounds(6,5,0,['confirmed','declared','none','confirmed','none','declared'])};
-  })(),
-  (function(){
-    const members=[
-      {name:'Jean M.',contact:'+237 6 …',role:'organisateur',mk:true},
-      {name:'Estelle M.',contact:'estelle@…',role:'membre',mk:true},
-      {name:'Paul N.',contact:'+237 6 …',role:'membre',mk:false},
-      {name:'Rose M.',contact:'+1 514 …',role:'membre',mk:true},
-      {name:'Yvan M.',contact:'yvan@…',role:'membre',mk:false},
-      {name:'Sandra K.',contact:'+237 6 …',role:'membre',mk:false},
-      null,null
-    ];
-    return {id:'t2',code:'MBARGA26',name:'Tontine Famille Mbarga',amount:50000,currency:'XOF',frequency:'mensuelle',
-      places:8,startMonth:0,currentRound:4,me:0,members,
-      rounds:buildRounds(8,0,4,['confirmed','confirmed','confirmed','declared','none','none','none','none'])};
-  })(),
-];
+let state_tontines=[];
 
 let draft=null;
 
@@ -1916,72 +1888,7 @@ const TON_EVENT={sobre:{label:'sobre',ic:'◷'},joyeux:{label:'joyeux',ic:'✦'}
 const EVT_TYPE={gala:'Gala',tournoi:'Tournoi sportif',soiree:'Soirée',fete:'Fête',piquenique:'Pique-nique',formation:'Formation',teambuilding:'Team building',detente:'Détente',conf:'Conférence'};
 /* Réseau / fédération — un groupe déclare son appartenance en s'enregistrant ;
    l'annuaire se construit ainsi « par le bas ». RPN = Retour au Pays Natal. */
-let state_caisses=[
-  {
-    id:'c1', group:'Famille Mbarga', name:'Caisse de solidarité Mbarga', type:'deces', currency:'XOF',
-    cotisation:{montant:2000,frequence:'mensuelle'}, fonds:180000,
-    bureau:[
-      {name:'Jean M.',role:'president'},
-      {name:'Estelle M.',role:'tresorier'},
-      {name:'Rose M.',role:'commissaire'},
-    ],
-    passations:[
-      {role:'tresorier',from:'André M.',to:'Estelle M.',date:'12 janv. 2025',by:'Jean M.'},
-    ],
-    foyers:[
-      {name:'Foyer Jean M.',contact:'+237 6 …',aJour:true},
-      {name:'Foyer Estelle M.',contact:'estelle@…',aJour:true},
-      {name:'Foyer Paul N.',contact:'+237 6 …',aJour:true},
-      {name:'Foyer Rose M.',contact:'+1 514 …',aJour:true},
-      {name:'Foyer Yvan M.',contact:'yvan@…',aJour:false},
-      {name:'Foyer Sandra K.',contact:'+237 6 …',aJour:true},
-    ],
-    appels:[
-      {id:'a1',motif:'Décès de M. Pierre Mbarga',beneficiaire:'Famille de Pierre Mbarga',sousType:'Rapatriement',ton:'sobre',joursRestants:12,
-       montant:25000,ouvertLe:'12 juin 2026',echeance:'30 juin 2026',statut:'ouvert',remis:false,certifie:false,
-       versements:['confirmed','confirmed','none','confirmed','none','declared']},
-      {id:'a1b',motif:'Naissance chez Rose M.',beneficiaire:'Foyer de Rose M.',sousType:'Naissance',ton:'joyeux',joursRestants:18,
-       montant:5000,ouvertLe:'15 juin 2026',echeance:'6 juil. 2026',statut:'ouvert',remis:false,certifie:false,
-       versements:['confirmed','none','none','none','none','none']},
-    ],
-    seed:[{ts:'12 juin 2026',type:'a',what:'Estelle M. (trésorière) a ouvert un appel — Décès de M. Pierre Mbarga (rapatriement). 25 000 FCFA par foyer.'}],
-  },
-  {
-    id:'c2', group:'Association des Camerounais de Montréal', name:'Caisse de solidarité ACM', type:'deces', currency:'CAD',
-    cotisation:{montant:5,frequence:'mensuelle'}, fonds:2400,
-    bureau:[
-      {name:'Brigitte T.',role:'president'},
-      {name:'Hervé K.',role:'tresorier'},
-      {name:'Diane M.',role:'commissaire'},
-    ],
-    foyers:[
-      {name:'Foyer Brigitte T.',contact:'+1 514 …',aJour:true},
-      {name:'Foyer Hervé K.',contact:'+1 438 …',aJour:true},
-      {name:'Foyer Diane M.',contact:'+1 514 …',aJour:true},
-      {name:'Foyer Samuel O.',contact:'+1 438 …',aJour:true},
-      {name:'Foyer Estelle M.',contact:'estelle@…',aJour:true},
-    ],
-    appels:[
-      {id:'a2',motif:'Décès de Mme Agnès Foning',beneficiaire:'Rapatriement — partenaire funéraire',sousType:'Rapatriement',ton:'sobre',joursRestants:5,reseau:true,
-       montant:8,ouvertLe:'10 juin 2026',echeance:'23 juin 2026',statut:'ouvert',remis:false,certifie:false,
-       versements:['confirmed','confirmed','none','declared','none'],
-       contributors:[
-         {name:'Brigitte T.',assoc:'Camerounais de Montréal',named:true},
-         {name:'Hervé K.',assoc:'Camerounais de Montréal',named:true},
-         {name:'Diane M.',assoc:'Camerounais de Montréal',named:false},
-         {name:'Estelle M.',assoc:'Famille Mbarga',named:true},
-         {name:'Jean M.',assoc:'Famille Mbarga',named:true},
-         {name:'Rose M.',assoc:'Famille Mbarga',named:true},
-         {name:'Aïcha D.',assoc:'Binam Canada',named:true},
-         {name:'Samuel O.',assoc:'Binam Canada',named:false},
-         {name:'Pélagie N.',assoc:'Binam Canada',named:true},
-         {name:'Thomas F.',assoc:'Solidarité Sawa',named:true},
-         {name:'Marlène B.',assoc:'Solidarité Sawa',named:true},
-       ]},
-    ],
-    seed:[{ts:'10 juin 2026',type:'a',what:'Hervé K. (trésorier) a ouvert un appel — Décès de Mme Agnès Foning (rapatriement). 8 CAD par foyer.'}],
-  },
-];
+let state_caisses=[];
 
 /* Événements communautaires — galas, soirées, tournois. Billetterie via le même rail Stripe.
    L'association est le marchand ; UBORA ne détient rien ; application fee = revenu UBORA. */
@@ -2066,25 +1973,7 @@ let state_outbox=[];
 
 /* ---------- Lot D · Partage : dépenses partagées (sortie/voyage + maison/ménage) ----------
    Même primitif que la tontine : un registre d'obligations entre proches. Zéro fonds détenu. */
-let state_partages=[
-  {id:'pt1',title:'Week-end à Lisbonne',face:'sortie',cur:'EUR',me:0,
-   members:[{name:'Mariam K.',cur:'EUR'},{name:'Estelle M.',cur:'CAD'},{name:'Yvan M.',cur:'CHF'},{name:'Aïcha D.',cur:'EUR'}],
-   expenses:[
-     {id:'pe1',label:'Airbnb (3 nuits)',note:'',cat:'stay',payer:0,amount:480,cur:'EUR',split:{mode:'egal',with:[0,1,2,3]},month:'2026-06'},
-     {id:'pe2',label:'Dîner Time Out Market',note:'On a tout partagé',cat:'food',payer:1,amount:130,cur:'EUR',split:{mode:'egal',with:[0,1,2,3]},month:'2026-06'},
-     {id:'pe3',label:'Taxis aéroport',note:'',cat:'transport',payer:2,amount:60,cur:'EUR',split:{mode:'egal',with:[0,1,2,3]},month:'2026-06'},
-     {id:'pe4',label:'Tournée au bar',note:'C\u2019est ma tournée',cat:'fun',payer:0,amount:35,cur:'EUR',split:{mode:'offert'},month:'2026-06'}
-   ],
-   settlements:[]},
-  {id:'pt2',title:'Coloc Genève',face:'maison',cur:'CHF',me:0,
-   members:[{name:'Mariam K.',cur:'CHF'},{name:'Yvan M.',cur:'CHF'}],
-   expenses:[
-     {id:'pm1',label:'Loyer',note:'',cat:'bills',payer:0,amount:1800,cur:'CHF',split:{mode:'egal',with:[0,1]},month:'2026-06'},
-     {id:'pm2',label:'Courses du mois',note:'',cat:'grocery',payer:1,amount:420,cur:'CHF',split:{mode:'egal',with:[0,1]},month:'2026-06'},
-     {id:'pm3',label:'Internet + électricité',note:'',cat:'bills',payer:0,amount:180,cur:'CHF',split:{mode:'egal',with:[0,1]},month:'2026-06'}
-   ],
-   settlements:[]}
-];
+let state_partages=[];
 function uid(pre){return newId(pre);}  /* renforcé : voir newId ci-dessous */
 function ctTargetable(c){return !!c.announce && !c.bereavement;}             /* annonce : consentement requis, jamais les deuils */
 function ctEligibleNews(c){return !!c.news && !c.bereavement && !c.introSent;} /* newsletter : consenti, hors deuil, une seule fois */
@@ -4445,13 +4334,7 @@ function viewImport(){
 }
 
 /* ===================== Réunion à montants variables ===================== */
-let state_reunions=[{
-  id:'r1', code:'REUDLA', name:'Réunion des Amis (Douala)', currency:'XOF', me:0, tresorierIdx:0, commissaireIdx:1, ccAmount:1000,
-  members:[{name:'Julienne Kameni',contact:'+237 6\u2026',role:'organisateur'},{name:'Guy Bassiga',contact:'\u2014',role:'membre'},{name:'Edith Yassi',contact:'\u2014',role:'membre'}],
-  seances:[{id:'s1',date:'2026-04-12',label:'12/04/2026',open:true,beneficiaryIdx:0,
-    contribs:[{tontine:100000,cc:1000,status:'confirmed'},{tontine:20000,cc:1000,status:'declared'},{tontine:20000,cc:1000,status:'none'}],
-    caisseReturn:20000, debts:[{name:'Guy',amount:18200,note:''},{name:'Alix',amount:10000,note:''}]}]
-}];
+let state_reunions=[];
 function openReunion(id){state.activeReunion=id;go('reunion');}
 function reuPersist(r){ if(!r)return; if(BACKEND==='supabase'){db.saveReunion(r).catch(e=>console.warn('saveReunion',e));} else saveLocal(); }
 function delReunion(id){ if(!confirm(_FL('Supprimer cette réunion ? Cette action est définitive.','Delete this reunion? This action is permanent.')))return; const done=()=>{ state_reunions=state_reunions.filter(x=>x.id!==id); go('home'); }; if(BACKEND==='supabase'){ db.deleteReunion(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); saveLocal(); } }
@@ -6636,10 +6519,7 @@ function pPay(pid,from,to){const p=getP(pid);if(!p)return;const view=state.parta
   pSettleMarkSent(pid,from,to,inCur);}
 
 /* ---------- Ma Case : foyer des organisations ---------- */
-let state_cases=[
-  {id:'cs1',name:'MEDCAM Swiss',type:'pro',mission:'Réseau des médecins, pharmaciens et dentistes camerounais de Suisse \u2014 formation, missions humanitaires, entraide professionnelle.',country:'Suisse',city:'Genève'},
-  {id:'cs2',name:'Association des Bassa de Belgique',type:'originaires',mission:'Préserver la culture bassa et soutenir les originaires établis en Belgique.',country:'Belgique',city:'Bruxelles'}
-];
+let state_cases=[];
 const CASE_TYPES=['pro','entraide','originaires','ong','business','autre'];
 let caseDraft=null;
 function startCase(){caseDraft={name:'',type:'pro',mission:'',country:state.homeCountry||'',city:''};}
@@ -10066,7 +9946,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.50';
+const UBORA_BUILD='v9.51';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
