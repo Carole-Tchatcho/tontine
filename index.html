@@ -4659,17 +4659,17 @@ function viewCreate(){
       <div style="font-family:Georgia,serif;font-size:16px;color:#1E2128;margin-bottom:3px">${_FL('Que voulez-vous créer ?','What do you want to create?')}</div>
       <div style="color:#6b6960;font-size:13px;margin-bottom:14px">${_FL('Trois façons de vous organiser sur UBORA.','Three ways to organize on UBORA.')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+        <div onclick="var e=document.getElementById('f-name');if(e){e.scrollIntoView({behavior:'smooth',block:'center'});e.focus();}" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #C9A84C;border-radius:12px;padding:12px 14px;background:#fffdf7">
           <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">◇ ${_FL('UNE TONTINE','A TONTINE')}</div>
           <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('L\u2019épargne qui tourne','Rotating savings')}</div>
           <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Chacun cotise, chacun reçoit à son tour. Jusqu\u2019à 30 membres. C\u2019est l\u2019outil pour faire circuler l\u2019argent d\u2019un groupe ou entre proches.','Everyone contributes, everyone receives in turn. Up to 30 members. The tool to move a group\u2019s money — or money between close ones.')}</div>
         </div>
-        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+        <div onclick="go('casecreate')" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
           <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">△ ${_FL('UNE RÉUNION / ASSOCIATION','A GROUP / ASSOCIATION')}</div>
           <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Votre groupe — appelez-le comme chez vous','Your group — name it your way')}</div>
           <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Réunion, association, amicale, groupe d\u2019entraide\u2026 Le foyer qui rassemble vos membres et peut porter plusieurs tontines, une caisse, des événements.','Meeting, association, mutual-aid circle\u2026 The home that gathers your members and can hold several tontines, a fund, events.')}</div>
         </div>
-        <div style="flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
+        <div onclick="go('fedhome')" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
           <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">⬡ ${_FL('UNE FÉDÉRATION','A FEDERATION')}</div>
           <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Le réseau qui relie plusieurs groupes','The network linking several groups')}</div>
           <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Pour coordonner plusieurs réunions ou associations : chiffres agrégés du réseau, attestation commune, annuaire.','To coordinate several groups: aggregated network figures, a shared attestation, a directory.')}</div>
@@ -4678,6 +4678,11 @@ function viewCreate(){
       <div style="margin-top:12px;color:#8a8779;font-size:12px;font-style:italic;border-top:1px dashed #e6dcc0;padding-top:10px">${_FL('Un doute ? La tontine fait circuler l\u2019argent. La réunion/association rassemble les gens. La fédération relie les groupes.','Not sure? The tontine moves money. The group gathers people. The federation links groups.')}</div>
     </div></div>
 
+    <div class="panel" style="margin-bottom:16px;border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:16px 20px">
+      <div class="mname" style="color:#7A5C12">📥 ${_FL('D\u00e9j\u00e0 la liste de vos membres\u00a0?','Already have your member list?')}</div>
+      <div class="msub" style="margin-top:4px">${_FL('Importez-la (Excel, CSV, ou une photo du cahier) et tous les noms se chargent d\u2019un coup \u2014 pour une tontine, une r\u00e9union ou une caisse. Chacun recevra ensuite son invitation (lien, QR, e-mail).','Import it (Excel, CSV, or a photo of your notebook) and every name loads at once \u2014 for a tontine, a group or a fund. Everyone then gets their invitation (link, QR, email).')}</div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="go('importmembers')">${_FL('Importer la liste des membres','Import the member list')}</button> <span class="msub">${_FL('ou saisissez le cadre ci-dessous \u2014 les membres rejoindront par lien.','or fill the form below \u2014 members will join by link.')}</span></div>
+    </div></div>
     <div class="panel"><div style="padding:20px 22px">
       <div class="field name-field" style="margin-top:0">
         <label>${tr('cr_name')}</label>
@@ -5598,6 +5603,11 @@ function viewCaisseCreate(){
     <button class="backlink" onclick="cDraft=null;goBack()">‹ ${backLabel()}</button>
     <h1 class="page-title">${tr('cc_title')}</h1>
     <p class="lead">${tr('cc_lead')}</p>
+    <div class="panel" style="margin-bottom:14px;border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:16px 20px">
+      <div class="mname" style="color:#7A5C12">📥 ${_FL('D\u00e9j\u00e0 la liste de vos membres\u00a0?','Already have your member list?')}</div>
+      <div class="msub" style="margin-top:4px">${_FL('Importez-la (Excel, CSV ou photo) : on cr\u00e9e la caisse ET ses membres d\u2019un coup. Sinon, remplissez le cadre ci-dessous.','Import it (Excel, CSV or photo): the fund AND its members are created at once. Otherwise, fill the form below.')}</div>
+      <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="go('importmembers')">${_FL('Importer la liste des membres','Import the member list')}</button></div>
+    </div></div>
     <div class="panel"><div style="padding:18px 20px">
       <div class="field" style="margin-top:0"><label>${tr('cc_group')}</label><input id="c-group" placeholder="${tr('cc_group_ph')}" value="${c.group}"></div>
       <div class="field"><label>${tr('cc_name')}</label><input id="c-name" placeholder="${tr('cc_name_ph')}" value="${c.name}"></div>
@@ -9970,7 +9980,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.44';
+const UBORA_BUILD='v9.46';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
