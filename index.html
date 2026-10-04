@@ -844,6 +844,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
      n'est PAS déployé. À false, l'app NE PROMET PAS de rappel automatique (UBORA ne ment jamais) :
      elle décrit le rappel manuel réel. Passer à true une fois le cron déployé et testé. */
   window.UBORA_RAPPELS_AUTO  = false;
+  /* CONNEXION PAR TÉLÉPHONE (code SMS/WhatsApp) : false tant qu'aucun fournisseur SMS
+     n'est configuré dans Supabase (sinon « Unsupported phone provider »). On ne propose
+     que l'e-mail, qui marche. Passer à true une fois un fournisseur SMS branché. */
+  window.UBORA_PHONE_LOGIN   = false;
 </script>
 <!-- ===================================================================================== -->
 
@@ -1990,6 +1994,7 @@ const caisseRoleName=(c,role)=>{const b=c.bureau.find(x=>x.role===role);return b
 const SB_URL=window.UBORA_SUPABASE_URL, SB_ANON=window.UBORA_SUPABASE_ANON; window.UBORA_VISION_URL=window.UBORA_VISION_URL||'https://ilolqybkejcnvmjxlfdw.supabase.co/functions/v1/ubora-vision';
 const FAPSHI_LIVE=!!window.UBORA_FAPSHI_LIVE;   /* paiement Mobile Money Afrique (Fapshi) — voir bloc de config en tête */
 const RAPPELS_AUTO=!!window.UBORA_RAPPELS_AUTO; /* rappel e-mail automatique 48 h — true seulement si le cron Supabase est déployé */
+const PHONE_LOGIN=!!window.UBORA_PHONE_LOGIN;   /* connexion par code SMS/WhatsApp — true seulement si un fournisseur SMS est configuré dans Supabase */
 let BACKEND=(SB_URL&&SB_ANON)?'supabase':'memory';
 let sb=null;
 async function initSB(){ if(sb) return sb;
@@ -9670,7 +9675,7 @@ function viewAuth(){
   app().innerHTML=`
     <div class="eyebrow">${tr('au_eyebrow')}</div>
     <h1 class="page-title">${tr('au_title')}</h1>
-    <p class="lead">${tr('au_lead')}</p>
+    <p class="lead">${PHONE_LOGIN?tr('au_lead'):_FL('Sans mot de passe. Un lien de connexion vous est envoyé par e-mail.','No password. A sign-in link is sent to you by email.')}</p>
     <div class="panel"><div style="padding:20px 22px">
       <div class="field" style="margin-top:0"><label>${tr('au_email')}</label>
         <input type="text" id="au-email" placeholder="${tr('au_email_ph')}" oninput="authCheckDemo()"></div>
@@ -9686,13 +9691,13 @@ function viewAuth(){
         <input type="password" id="au-password" placeholder="Mot de passe" autocomplete="current-password">
         <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authDemoLogin()">Se connecter</button></div>
       </div>
-      <div class="field"><label>${tr('au_or_phone')}</label>
+      ${PHONE_LOGIN?`<div class="field"><label>${tr('au_or_phone')}</label>
         <input type="text" id="au-phone" placeholder="${tr('au_phone_ph')}"></div>
       <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="authPhone()">${tr('au_get_code')}</button></div>
       <div id="au-otp" style="display:none;margin-top:12px">
         <input type="text" id="au-token" placeholder="${tr('au_code_ph')}">
         <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="authVerify()">${tr('au_validate')}</button></div>
-      </div>
+      </div>`:''}
     </div></div>${footer()}`;
 }
 function authCheckDemo(){
@@ -9946,7 +9951,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.51';
+const UBORA_BUILD='v9.52';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
