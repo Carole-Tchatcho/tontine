@@ -2240,7 +2240,7 @@ const db={
     try{ const r=await sb.from('case_shares').select('case_id,tontine_id'); shr=r.data||[]; }catch(_e){}
     try{ const r=await sb.from('case_reunions').select('case_id,reunion_id'); rsh=r.data||[]; }catch(_e){}
     state_cases=(data||[]).map(r=>{ const c=r.data; if(!c)return null;
-      c.palier=r.palier||null; c.premium_until=r.premium_until||null; c.del_status=r.del_status||null; c.del_requested_by=r.del_requested_by||null; c.del_confirmed_by=r.del_confirmed_by||null; c.del_scheduled_at=r.del_scheduled_at||null; c.del_requested_at=r.del_requested_at||null;
+      c.palier=r.palier||null; c.premium_until=r.premium_until||null; c._creator=r.creator_id||null; c.del_status=r.del_status||null; c.del_requested_by=r.del_requested_by||null; c.del_confirmed_by=r.del_confirmed_by||null; c.del_scheduled_at=r.del_scheduled_at||null; c.del_requested_at=r.del_requested_at||null;
       c.shares=shr.filter(s=>s.case_id===r.id).map(s=>s.tontine_id);
       c.reunionShares=rsh.filter(s=>s.case_id===r.id).map(s=>s.reunion_id); if(isUboraAdmin()){ c.premium_until='2099-12-31T00:00:00.000Z'; c.palier='fagot'; } return c; }).filter(Boolean); },
   async saveCase(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue');
@@ -6592,6 +6592,8 @@ function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; cas
 function caseDelBlock(c){
   const mc=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
   const iAmBureau=!!(mc&&mc.bureau);
+  const iAmCreator=!!(state.uid&&c._creator&&String(c._creator)===String(state.uid));
+  const purgeBtn=iAmCreator?`<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="caseDeleteNow('${c.id}')">🗑 ${_FL('Supprimer définitivement','Delete permanently')}</button>`:'';
   const st=c.del_status||null;
   const iRequested = c.del_requested_by && state.uid && String(c.del_requested_by)===String(state.uid);
   var when='';
@@ -6611,10 +6613,12 @@ function caseDelBlock(c){
       + `<div class="mname" style="color:#8A2E16">${_FL('🗄 Association archivée','🗄 Association archived')}</div>`
       + `<div class="msub" style="margin-top:4px">${_FL('Suppression définitive prévue le <b>'+when+'</b>. Jusque-là, tout membre du bureau peut l’annuler et tout restaurer. Rien n’est perdu.','Permanent deletion scheduled for <b>'+when+'</b>. Until then, any board member can cancel and restore everything. Nothing is lost.')}</div>`
       + (iAmBureau?`<div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="caseCancelDel('${c.id}')">${_FL('Annuler · Restaurer l’association','Cancel · Restore the association')}</button></div>`:'')
+      + (purgeBtn?`<div class="row-gap" style="margin-top:8px">${purgeBtn}</div>`:'')
       + `</div></div>`;
   }
   return `<div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ ${_FL('Modifier','Edit')}</button>`
     + (iAmBureau?`<button class="btn btn-ghost btn-sm" onclick="caseReqDel('${c.id}')">🗑 ${_FL('Demander la suppression','Request deletion')}</button>`:'')
+    + purgeBtn
     + `</div>`;
 }
 async function caseReqDel(id){
@@ -6638,6 +6642,16 @@ async function caseCancelDel(id){
     await db.loadCases(); try{await repLoadMyCases();}catch(_e){}
     alert(_FL('Procédure annulée. L’association est restaurée.','Procedure cancelled. The association is restored.')); render();
   }catch(e){ alert(_FL('Action refusée : ','Action refused: ')+(e.message||e)); }
+}
+async function caseDeleteNow(id){
+  if(!confirm(_FL('Supprimer DÉFINITIVEMENT cette Case ? Vous en êtes le créateur. Cette action est immédiate et irréversible (membres, partages et liens de cette Case).','Permanently delete this Case? You are its creator. This is immediate and irreversible (members, shares and links of this Case).')))return;
+  try{
+    const r=await sb.rpc('case_delete_now',{p_case:id}); if(r.error)throw r.error;
+    state_cases=(state_cases||[]).filter(function(x){return String(x.id)!==String(id);});
+    try{ await db.loadCases(); }catch(_e){}
+    try{ await repLoadMyCases(); }catch(_e){}
+    go('case');
+  }catch(e){ alert(_FL('Suppression refusée : ','Deletion refused: ')+(e.message||e)); }
 }
 function delCase(id){ if(!confirm(_FL('Supprimer cette Case ? Cette action est définitive.','Delete this Case? This action is permanent.')))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); } }
 function openCaseMembers(id){ state.activeCase=id; go('casemembers'); }
