@@ -10023,7 +10023,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.57';
+const UBORA_BUILD='v9.58';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10379,7 +10379,7 @@ function palierNom(t){
 function aboSceau(palier, premium_until){
   if(!palier || !premium_until) return '';
   if(!(new Date(premium_until) > new Date())) return '';
-  var o={palier:palier};
+  var o={palier:palier, premium_until:premium_until};
   var svg=(typeof palierSVG==='function')?palierSVG(o,30):'';
   var nom=(typeof palierNom==='function')?palierNom(o):String(palier);
   var until='';
