@@ -4710,13 +4710,13 @@ function viewDash(){
   const head=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="between" style="flex-wrap:wrap;gap:14px">
-      <div><h1 class="page-title">${t.name}</h1>
+      <div><h1 class="page-title">${t.name}</h1>${aboSceau(t.palier,t.premium_until)}
         <div class="t-meta">${isPremium(t)?`<span style="vertical-align:-5px;margin-right:6px">${palierSVG(t,18)}</span>`:''}${money(t.amount,t.currency)} · ${freqLabel(t.frequency)} · ${filled(t)}/${t.places} ${tr('c_members')} · ${tr('db_code')} <span class="code">${t.code}</span>${(function(){const _o=t.members[orgIdx(t)];return _o?` · organis\u00E9\u00B7e par <b>${esc(_o.name)}</b>`:'';})()}</div>
-        ${isPremium(t)?`<div class="msub" style="margin-top:7px;display:flex;align-items:center;gap:8px">${palierSVG(t,22)}<span style="color:#C9A84C;letter-spacing:.08em;font-size:12px">CERCLE ${palierNom(t).toUpperCase()}</span>${(function(){
+        ${isPremium(t)?`<div class="msub" style="margin-top:4px">${(function(){
           const _me=t.members&&t.members[t.me];
           const _org=_me&&_me.role==='organisateur';
           const _propre=(t.premiumSource!=='groupe'&&t.premiumSource!=='admin');
-          return (_org&&_propre)?` <a href="#" onclick="gererAbonnement('cercle','${t.id}');return false" style="color:#C9A84C;text-decoration:underline;font-size:12px">${_FL('gérer','manage')}</a>`:'';
+          return (_org&&_propre)?`<a href="#" onclick="gererAbonnement('cercle','${t.id}');return false" style="color:#C9A84C;text-decoration:underline;font-size:12px">${_FL('gérer l’abonnement','manage subscription')}</a>`:'';
         })()}</div>${kwenBand()}`:''}
         ${t.jourEcheance?`<div class="msub" style="margin-top:7px">\u00C9ch\u00E9ance\u00A0: <b>le ${t.jourEcheance} de chaque mois</b>${RAPPELS_AUTO?' \u00B7 rappel e-mail automatique 48\u00A0h avant':''}</div>`:''}
         ${(function(){const _f={mensuelle:1,quinzaine:2.17,hebdo:4.33}[t.frequency]||1;const _m=Math.round((Number(t.amount)||0)*_f);if(!_m)return'';return `<div class="msub" style="margin-top:6px"><a href="https://ubora.caroletchatcho.com/thermometre?montant=${_m}&devise=${encodeURIComponent(t.currency||'CHF')}&src=tontine" target="_blank" rel="noopener" style="color:#C9A84C;text-decoration:underline">\uD83D\uDCC8 Et si ces ${_m} ${esc(t.currency||'CHF')}/mois \u00E9taient investis\u00A0? Projeter avec la m\u00E9thode UBORA \u2197</a></div>`;})()}
@@ -8300,7 +8300,7 @@ function viewFedAdmin(){
   app().innerHTML=`
     <button class="backlink" onclick="go('fedhome')">‹ ${_FL('Réseaux','Networks')}</button>
     <div class="eyebrow">${esc(f.libelle||_FL('fédération','federation'))}</div>
-    <h1 class="page-title">${esc(f.name)}</h1>
+    <h1 class="page-title">${esc(f.name)}</h1>${aboSceau(f.palier,f.premium_until)}
     <p class="lead">${esc(f.region||'')}</p>
     ${warn}
     <h2 class="section-h">${_FL('Le bureau','The board')} (${bur.length})</h2>
@@ -10023,7 +10023,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.58';
+const UBORA_BUILD='v9.59';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10373,23 +10373,35 @@ function palierNom(t){
   const p = palierDe(t);
   return p==='kwen'?'Kwèn':p==='fagot'?'Fagot':p==='baobab'?'Baobab':'Fekeng';
 }
-/* Sceau d'abonnement unifié — à poser en tête de CHAQUE page de groupe abonné
-   (tontine, réunion, caisse/mutuelle, association, fédération). DA premium :
-   losange ◆, or, sobre, pas de vert. Vide si le groupe n'est pas abonné. */
+/* Sceau de palier unifié — en tête de CHAQUE page de groupe, TOUJOURS visible :
+   gratuit = Fekeng, sinon le palier payé (Kwèn / Fagot / Baobab). Même rendu
+   partout. DA premium : losange ◆, or, sobre, pas de vert. */
 function aboSceau(palier, premium_until){
-  if(!palier || !premium_until) return '';
-  if(!(new Date(premium_until) > new Date())) return '';
-  var o={palier:palier, premium_until:premium_until};
-  var svg=(typeof palierSVG==='function')?palierSVG(o,30):'';
-  var nom=(typeof palierNom==='function')?palierNom(o):String(palier);
-  var until='';
-  try{ until=new Date(premium_until).toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'}); }catch(_e){ until=String(premium_until).slice(0,10); }
-  return '<div style="display:inline-flex;align-items:center;gap:12px;margin:10px 0 4px;padding:7px 16px 7px 12px;border:1px solid #C9A84C;border-radius:999px;background:linear-gradient(180deg,#fffdf7,#f8f1df)">'
+  var premium=!!(premium_until && new Date(premium_until) > new Date());
+  var pal;
+  if(premium){ var p=String(palier||'').toLowerCase(); pal=(p==='fagot'||p==='baobab'||p==='kwen')?p:'kwen'; }
+  else { pal='fekeng'; }
+  var SVGF={fekeng:fekengSVG,kwen:kwenSVG,fagot:fagotSVG,baobab:baobabSVG};
+  var NOMF={fekeng:'Fekeng',kwen:'Kwèn',fagot:'Fagot',baobab:'Baobab'};
+  var svg=(SVGF[pal]||fekengSVG)(30);
+  var nom=NOMF[pal]||'Fekeng';
+  var top, line3, border, bg;
+  if(premium){
+    top=_FL('Groupe abonné','Subscribed');
+    var until=''; try{ until=new Date(premium_until).toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'}); }catch(_e){ until=String(premium_until).slice(0,10); }
+    line3=_FL('actif jusqu’au','active until')+' '+esc(until);
+    border='#C9A84C'; bg='linear-gradient(180deg,#fffdf7,#f8f1df)';
+  } else {
+    top=_FL('Palier','Tier');
+    line3=_FL('gratuit','free');
+    border='#dcd2b8'; bg='linear-gradient(180deg,#fffdf9,#f4efe3)';
+  }
+  return '<div style="display:inline-flex;align-items:center;gap:12px;margin:10px 0 4px;padding:7px 16px 7px 12px;border:1px solid '+border+';border-radius:999px;background:'+bg+'">'
     +'<span style="flex:none;line-height:0">'+svg+'</span>'
     +'<span style="display:flex;flex-direction:column;line-height:1.3">'
-    +'<span style="font-size:10.5px;letter-spacing:.16em;color:#9c7c2a;text-transform:uppercase">'+_FL('Groupe abonné','Subscribed')+'</span>'
+    +'<span style="font-size:10.5px;letter-spacing:.16em;color:#9c7c2a;text-transform:uppercase">'+top+'</span>'
     +'<span style="font-family:Georgia,serif;font-size:15px;color:#1E2128">◆ '+esc(nom)+'</span>'
-    +'<span style="font-size:11px;color:#8a8475">'+_FL('actif jusqu’au','active until')+' '+esc(until)+'</span>'
+    +'<span style="font-size:11px;color:#8a8475">'+line3+'</span>'
     +'</span></div>';
 }
 /* Le gel est décidé par la BASE (garde_ecriture) : c'est elle qui fait foi.
