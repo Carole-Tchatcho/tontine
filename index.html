@@ -2103,7 +2103,11 @@ const db={
       if(ev&&ev.country)ev.country=canonCountry(ev.country); return ev; }); },
   async saveEvent(ev){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); ev.creator=uid; const row={id:ev.id,creator_id:uid,is_public:!!ev.openToAll,visibility:ev.visibility||'public',country:ev.country||null,city:ev.city||null,date_iso:ev.dateISO||null,title:ev.title||'',data:ev}; const{error}=await sb.from('events').upsert(row); if(error)throw error; },
   async deleteEvent(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('events').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
-  async loadCaisses(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').select('data').order('created_at',{ascending:false}); if(error)throw error; state_caisses=(data||[]).map(r=>r.data).filter(Boolean); },
+  async loadCaisses(){ if(BACKEND!=='supabase')return;
+    /* premium_until / palier = colonnes (FAPSHI-v3). Repli si pas encore ajoutées. */
+    let res=await sb.from('caisses').select('data,palier,premium_until').order('created_at',{ascending:false});
+    if(res.error){ res=await sb.from('caisses').select('data').order('created_at',{ascending:false}); if(res.error)throw res.error; }
+    state_caisses=(res.data||[]).map(r=>{ const c=r.data; if(!c)return null; c.palier=r.palier||null; c.premium_until=r.premium_until||null; if(isUboraAdmin()){ c.premium_until='2099-12-31T00:00:00.000Z'; c.palier='kwen'; } return c; }).filter(Boolean); },
   async saveCaisse(c){ if(BACKEND!=='supabase')return; const uid=await sbUid(); if(!uid)throw new Error('Session non reconnue'); const row={id:c.id,creator_id:uid,is_public:true,data:c}; const{error}=await sb.from('caisses').upsert(row); if(error)throw error; },
   async deleteCaisse(id){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('caisses').delete().eq('id',id).select('id'); if(error)throw error; if(!data||!data.length) throw new Error('La base a refus\u00E9 la suppression (r\u00E8gle DELETE manquante).'); },
   async loadPartages(){ if(BACKEND!=='supabase')return; const{data,error}=await sb.from('partages').select('data').order('created_at',{ascending:false}); if(error)throw error; state_partages=(data||[]).map(r=>r.data).filter(Boolean); },
@@ -4396,7 +4400,7 @@ function viewReunion(){
   const hist=closed.map(s=>`<div class="mrow"><div class="stack"><div class="mname">${esc(s.label)} \u00b7 ${esc(r.members[s.beneficiaryIdx]?r.members[s.beneficiaryIdx].name:'\u2014')}</div><div class="msub">${tr('re_pot')} ${money(reuPot(s),r.currency)} \u00b7 ${tr('re_caisse')} ${money(s.caisseReturn||0,r.currency)}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="openSeanceReleve('${r.id}','${s.id}')">${tr('re_releve')}</button> <span class="pill p-done">${tr('re_seance_closed')}</span></div></div>`).join('');
   const mems=r.members.map(m=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${esc(m.contact)} \u00b7 ${m.role==='organisateur'?tr('re_role_org'):tr('re_role_mem')}</div></div></div>`).join('');
   app().innerHTML=`<button class="backlink" onclick="go('home')">\u2039 ${tr('imp_back_home')}</button>
-    <div class="eyebrow">${tr('re_eyebrow')}</div><h1 class="page-title">${esc(r.name)}</h1>
+    <div class="eyebrow">${tr('re_eyebrow')}</div><h1 class="page-title">${esc(r.name)}</h1>${aboSceau(r.palier,r.premium_until)}
     <div class="t-meta">${r.currency} \u00b7 ${r.members.length} ${tr('c_members')} \u00b7 ${tr('db_code')} <span class="code">${r.code}</span></div>
     <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="delReunion('${r.id}')">🗑 Supprimer</button></div>
     <div>${trustSeal(tr('re_note_holds'))}</div>
@@ -5545,7 +5549,7 @@ function viewCaisse(){
   const head=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div><h1 class="page-title">${c.name}</h1>
-      <div class="t-meta">${c.group} · ${typeCaisseLabel(c.type)} · ${c.foyers.length} ${tr('ca_foyers')} · ${money(caisseSolde(c),c.currency)} ${tr('ca_in_fund')}</div></div>
+      <div class="t-meta">${c.group} · ${typeCaisseLabel(c.type)} · ${c.foyers.length} ${tr('ca_foyers')} · ${money(caisseSolde(c),c.currency)} ${tr('ca_in_fund')}</div>${aboSceau(c.palier,c.premium_until)}</div>
     <div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCaisse('${c.id}')">✎ Modifier</button><button class="btn btn-ghost btn-sm" onclick="delCaisse('${c.id}')">🗑 Supprimer</button></div>
     <div class="reassure">● ${tr('ca_reassure')}</div>
     <div>${trustSeal(tr('ca_seal'))}</div>
@@ -6091,10 +6095,22 @@ async function fapshiAbonner(palier, months){
     let fid; if(miens.length===1){ fid=miens[0].id; } else { const idx=await uboraChoisir(_FL('Quel groupe abonner au palier Baobab ?','Which group to subscribe to Baobab?'), miens.map(f=>({label:f.name, sub:f.libelle||''}))); if(idx==null)return; fid=miens[idx].id; }
     _tgt={entity:'federation', id:fid};
   } else {
-    const miens=(state_tontines||[]).filter(t=>{ const me=t.members&&t.members[t.me]; return me&&me.role==='organisateur'; });
-    if(miens.length===0){ alert(_FL('Créez d’abord un cercle : l’abonnement s’applique à un cercle que vous organisez.','Create a circle first: the subscription applies to a circle you organise.')); go(state.uid?'create':'auth'); return; }
-    let tid; if(miens.length===1){ tid=miens[0].id; } else { const idx=await uboraChoisir(_FL('Quel cercle abonner au palier Kwèn ?','Which circle to subscribe to Kwèn?'), miens.map(t=>({label:t.name}))); if(idx==null)return; tid=miens[idx].id; }
-    _tgt={entity:'tontine', id:tid};
+    /* Kwèn = UN groupe isolé : tontine, réunion OU mutuelle/caisse autonome. */
+    const opts=[];
+    (state_tontines||[]).filter(t=>{ const me=t.members&&t.members[t.me]; return me&&me.role==='organisateur'; }).forEach(t=>opts.push({entity:'tontine', id:t.id, label:t.name||_FL('Tontine','Tontine'), sub:_FL('tontine','tontine')}));
+    try{ if(!state_reunions||!state_reunions.length) await db.loadReunions(); }catch(_e){}
+    (state_reunions||[]).forEach(r=>opts.push({entity:'reunion', id:r.id, label:r.name||_FL('Réunion','Meeting'), sub:_FL('réunion','meeting')}));
+    try{ if(!state_caisses||!state_caisses.length) await db.loadCaisses(); }catch(_e){}
+    (state_caisses||[]).filter(c=>!c.caseId).forEach(c=>opts.push({entity:'caisse', id:c.id, label:c.name||c.group||_FL('Mutuelle','Fund'), sub:_FL('mutuelle / caisse','mutual fund')}));
+    if(opts.length===0){
+      if((state_cases||[]).length>0){
+        if(confirm(_FL('Kwèn s’abonne à UN groupe isolé (tontine, réunion ou mutuelle).\n\nVous avez une association qui abrite des cercles → c’est le palier Fagot.\n\nOK = voir Fagot.','Kwèn subscribes ONE standalone group (tontine, meeting or mutual fund).\n\nYou have an association that shelters circles → that is the Fagot tier.\n\nOK = go to Fagot.'))) return fapshiAbonner('fagot');
+        return;
+      }
+      alert(_FL('Créez d’abord un groupe (tontine, réunion ou mutuelle) : Kwèn s’abonne à un groupe que vous organisez.','Create a group first (tontine, meeting or mutual fund): Kwèn subscribes a group you organise.')); go(state.uid?'create':'auth'); return;
+    }
+    let _p; if(opts.length===1){ _p=opts[0]; } else { const idx=await uboraChoisir(_FL('Quel groupe abonner au palier Kwèn ?','Which group to subscribe to Kwèn?'), opts.map(o=>({label:o.label, sub:o.sub}))); if(idx==null)return; _p=opts[idx]; }
+    _tgt={entity:_p.entity, id:_p.id};
   }
   if(!_tgt) return;
   try{
@@ -6846,7 +6862,7 @@ function viewCaseDetail(){
   app().innerHTML=`
     <button class="backlink" onclick="go('case')">\u2039 ${tr('mc_title')}</button>
     <div style="display:flex;gap:16px;align-items:flex-start">${caseGlyph(56)}<div><div class="eyebrow">${tr('mct_'+(c.type||'autre'))}</div>
-    <h1 class="page-title" style="margin-top:2px">${esc(c.name)}</h1></div></div>
+    <h1 class="page-title" style="margin-top:2px">${esc(c.name)}</h1>${aboSceau(c.palier,c.premium_until)}</div></div>
     <p class="lead">${esc(c.mission)}</p>
     <div class="t-meta">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div>
     ${caseDelBlock(c)}
@@ -9986,7 +10002,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.54';
+const UBORA_BUILD='v9.56';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10335,6 +10351,25 @@ function palierSVG(t, size){
 function palierNom(t){
   const p = palierDe(t);
   return p==='kwen'?'Kwèn':p==='fagot'?'Fagot':p==='baobab'?'Baobab':'Fekeng';
+}
+/* Sceau d'abonnement unifié — à poser en tête de CHAQUE page de groupe abonné
+   (tontine, réunion, caisse/mutuelle, association, fédération). DA premium :
+   losange ◆, or, sobre, pas de vert. Vide si le groupe n'est pas abonné. */
+function aboSceau(palier, premium_until){
+  if(!palier || !premium_until) return '';
+  if(!(new Date(premium_until) > new Date())) return '';
+  var o={palier:palier};
+  var svg=(typeof palierSVG==='function')?palierSVG(o,30):'';
+  var nom=(typeof palierNom==='function')?palierNom(o):String(palier);
+  var until='';
+  try{ until=new Date(premium_until).toLocaleDateString(state.lang==='en'?'en-GB':'fr-CH',{day:'2-digit',month:'long',year:'numeric'}); }catch(_e){ until=String(premium_until).slice(0,10); }
+  return '<div style="display:inline-flex;align-items:center;gap:12px;margin:10px 0 4px;padding:7px 16px 7px 12px;border:1px solid #C9A84C;border-radius:999px;background:linear-gradient(180deg,#fffdf7,#f8f1df)">'
+    +'<span style="flex:none;line-height:0">'+svg+'</span>'
+    +'<span style="display:flex;flex-direction:column;line-height:1.3">'
+    +'<span style="font-size:10.5px;letter-spacing:.16em;color:#9c7c2a;text-transform:uppercase">'+_FL('Groupe abonné','Subscribed')+'</span>'
+    +'<span style="font-family:Georgia,serif;font-size:15px;color:#1E2128">◆ '+esc(nom)+'</span>'
+    +'<span style="font-size:11px;color:#8a8475">'+_FL('actif jusqu’au','active until')+' '+esc(until)+'</span>'
+    +'</span></div>';
 }
 /* Le gel est décidé par la BASE (garde_ecriture) : c'est elle qui fait foi.
    Ceci n'est qu'un MIROIR pour prévenir l'organisateur à l'écran avant qu'il
