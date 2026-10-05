@@ -839,7 +839,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Paiement Mobile Money (Afrique) par Fapshi. Laisser à false tant que le
      sandbox n'est pas validé : le bouton FCFA affiche alors « bientôt ».
      Passer à true une fois la fonction fapshi-pay déployée et testée. */
-  window.UBORA_FAPSHI_LIVE   = false;
+  window.UBORA_FAPSHI_LIVE   = true;
   /* RAPPELS AUTO 48 h : false tant que le cron Supabase (pg_cron + fonction « rappels »)
      n'est PAS déployé. À false, l'app NE PROMET PAS de rappel automatique (UBORA ne ment jamais) :
      elle décrit le rappel manuel réel. Passer à true une fois le cron déployé et testé. */
@@ -6210,7 +6210,7 @@ function viewTarifs(){
     const _priceTxt=p.prix?(repFmtNum(_val)+' '+(CUR_SYM[_cur]||_cur)):_FL('Gratuit','Free');
     const _annual=(p.prix&&_isAf)?`<div class="msub" style="margin-top:2px;font-size:11.5px">${_FL('ou '+repFmtNum(_val*10)+' FCFA/an \u00b7 2 mois offerts','or '+repFmtNum(_val*10)+' FCFA/yr \u00b7 2 months free')}</div>`:'';
     const _perM=(_isAf&&_CAPS[p.k])?`<div class="msub" style="margin-top:3px;font-size:11.5px;color:#9c7c2a">${_FL('d\u00e8s ~'+repFmtNum(Math.round(_val/_CAPS[p.k]))+' FCFA / membre \u00b7 pour '+_CAPS[p.k]+' membres','from ~'+repFmtNum(Math.round(_val/_CAPS[p.k]))+' FCFA / member \u00b7 for '+_CAPS[p.k]+' members')}</div>`:'';
-    const _cta=p.prix?(_isAf?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="${FAPSHI_LIVE?`fapshiAbonner('${p.k}')`:'momentMoMo()'}">${_FL('Payer par Mobile Money','Pay by Mobile Money')}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Orange Money \u00b7 MTN MoMo \u2014 branchement en pr\u00e9paration','Orange Money \u00b7 MTN MoMo \u2014 coming soon')}</div>`:`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} \u00b7 ${repFmtNum(_val)} ${CUR_SYM[_cur]||_cur}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement s\u00e9curis\u00e9 par Stripe \u00b7 sans engagement, r\u00e9siliable \u00e0 tout moment','Secure payment via Stripe \u00b7 no commitment, cancel anytime')}</div>`):`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`;
+    const _cta=p.prix?(_isAf?`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="${FAPSHI_LIVE?`fapshiAbonner('${p.k}')`:'momentMoMo()'}">${_FL('Payer par Mobile Money','Pay by Mobile Money')}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${FAPSHI_LIVE?_FL('Orange Money \u00b7 MTN MoMo','Orange Money \u00b7 MTN MoMo'):_FL('Orange Money \u00b7 MTN MoMo \u2014 branchement en pr\u00e9paration','Orange Money \u00b7 MTN MoMo \u2014 coming soon')}</div>`:`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="abonnerPalier('${p.k}')">${_FL('S’abonner','Subscribe')} \u00b7 ${repFmtNum(_val)} ${CUR_SYM[_cur]||_cur}</button><div class="msub" style="margin-top:6px;font-size:11px;opacity:.75">${_FL('Paiement s\u00e9curis\u00e9 par Stripe \u00b7 sans engagement, r\u00e9siliable \u00e0 tout moment','Secure payment via Stripe \u00b7 no commitment, cancel anytime')}</div>`):`<button class="btn btn-gold btn-sm" style="margin-top:16px;width:100%" onclick="go('${state.uid?'create':'auth'}')">${_FL('Commencer','Start')}</button>`;
     return `<div class="panel tarif-card" style="flex:1;min-width:230px">
     <div style="padding:20px 20px 22px;text-align:center">
       <div class="tc-sym">${p.svg()}</div>
@@ -9951,7 +9951,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.52';
+const UBORA_BUILD='v9.53';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
