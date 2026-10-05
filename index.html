@@ -5448,7 +5448,14 @@ function openCaisse(id){state.activeCaisse=id;state.view='caisse';state.caisseTa
 let cDraft=null;
 function startCaisse(caseId){const _c=caseId?(state_cases||[]).find(x=>x.id===caseId):null; const _cn=_c?(((_c.data&&_c.data.name)||_c.name||'')):''; cDraft={caseId:caseId||null,group:_cn,name:'',type:'deces',currency:'CAD',federation:'',pres:state.user,tres:'',comm:'',cot:'',freq:'mensuelle'};go('caissecreate');}
 function editCaisse(id){ const c=getC(id); if(!c)return; cDraft={editId:id,group:c.group||'',name:c.name||'',type:c.type||'deces',currency:c.currency||'CAD',federation:c.federation||'',pres:'',tres:'',comm:'',cot:(c.cotisation&&c.cotisation.montant)||'',freq:(c.cotisation&&c.cotisation.frequence)||'mensuelle'}; go('caissecreate'); }
-function delCaisse(id){ if(!confirm(_FL('Supprimer cette caisse ? Cette action est définitive.','Delete this fund? This action is permanent.')))return;
+function delCaisse(id){
+  const _c=(typeof getC==='function')?getC(id):((state_caisses||[]).find(x=>x.id===id));
+  const _nm=(_c&&(_c.name||''))||'';
+  const _empty=_c&&!((_c.foyers&&_c.foyers.length)||(_c.mouvements&&_c.mouvements.length));
+  const _msg=_empty
+    ? _FL('Supprimer la caisse « '+_nm+' » ?\n\nElle est vide — aucun membre, aucun mouvement. Rien ne sera perdu.','Delete the fund “'+_nm+'” ?\n\nIt is empty — no member, no movement. Nothing will be lost.')
+    : _FL('Supprimer DÉFINITIVEMENT la caisse « '+_nm+' » et tout son registre de mouvements ?\n\nCette action est irréversible.','Permanently delete the fund “'+_nm+'” and its whole movement registry?\n\nThis cannot be undone.');
+  if(!confirm(_msg))return;
   const done=()=>{ state_caisses=state_caisses.filter(c=>c.id!==id); go('entraide'); };
   if(BACKEND==='supabase'){ db.deleteCaisse(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); }
   else { done(); saveLocal(); } }
@@ -6540,6 +6547,10 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
     if(BACKEND==='supabase'){db.saveCase(state_cases.find(x=>x.id===eid)).then(()=>openCase(eid)).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
     openCase(eid);return;
   }
+  const _dup=(state_cases||[]).find(function(x){return x&&String((x.name||'')).trim().toLowerCase()===name.toLowerCase()&&(!x._creator||!state.uid||String(x._creator)===String(state.uid))&&!x.del_status;});
+  if(_dup){
+    if(!confirm(_FL('Vous avez déjà un groupe nommé « '+name+' ».\n\nOK = en créer quand même un second.\nAnnuler = ouvrir celui qui existe.','You already have a group named “'+name+'”.\n\nOK = create a second one anyway.\nCancel = open the existing one.'))){ caseDraft=null; openCase(_dup.id); return; }
+  }
   const nc={id:newId('cs'),name,type,mission,country,city};
   state_cases.unshift(nc);caseDraft=null;
   if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
@@ -6573,10 +6584,34 @@ function caseDelBlock(c){
       + (purgeBtn?`<div class="row-gap" style="margin-top:8px">${purgeBtn}</div>`:'')
       + `</div></div>`;
   }
+  if(iAmCreator && caseIsEmpty(c)){
+    return `<div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ ${_FL('Modifier','Edit')}</button>`
+      + `<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="caseDeleteEmpty('${c.id}')">🗑 ${_FL('Supprimer ce groupe vide','Delete this empty group')}</button></div>`
+      + `<div class="msub" style="margin-top:4px;opacity:.75">${_FL('Groupe vide (aucun membre, aucun cercle) — suppression immédiate, rien à conserver.','Empty group (no member, no circle) — immediate deletion, nothing to keep.')}</div>`;
+  }
   return `<div class="row-gap" style="margin:8px 0 4px"><button class="btn btn-ghost btn-sm" onclick="editCase('${c.id}')">✎ ${_FL('Modifier','Edit')}</button>`
     + (iAmBureau?`<button class="btn btn-ghost btn-sm" onclick="caseReqDel('${c.id}')">🗑 ${_FL('Demander la suppression','Request deletion')}</button>`:'')
     + purgeBtn
     + `</div>`;
+}
+function caseIsEmpty(c){
+  if(!c) return false;
+  var hasMembers=!!(c.members&&c.members.length);
+  var hasCircles=!!((c.shares&&c.shares.length)||(c.reunionShares&&c.reunionShares.length));
+  var isPrem=(typeof isPremium==='function')?isPremium(c):!!(c.premium_until&&new Date(c.premium_until)>new Date());
+  return !hasMembers && !hasCircles && !isPrem && !c.del_status;
+}
+async function caseDeleteEmpty(id){
+  var c=(state_cases||[]).find(function(x){return String(x.id)===String(id);});
+  var nm=(c&&(c.name||''))||'';
+  if(!confirm(_FL('Supprimer le groupe « '+nm+' » ?\n\nIl est vide — aucun membre, aucun cercle. Rien ne sera perdu.','Delete the group “'+nm+'” ?\n\nIt is empty — no member, no circle. Nothing will be lost.')))return;
+  try{
+    var r=await sb.rpc('case_delete_now',{p_case:id}); if(r.error)throw r.error;
+    state_cases=(state_cases||[]).filter(function(x){return String(x.id)!==String(id);});
+    try{ await db.loadCases(); }catch(_e){}
+    try{ await repLoadMyCases(); }catch(_e){}
+    go('case');
+  }catch(e){ alert(_FL('Suppression refusée : ','Deletion refused: ')+(e.message||e)); }
 }
 async function caseReqDel(id){
   if(!confirm(_FL('Demander la suppression de cette association ?\n\nElle devra être confirmée par un SECOND membre du bureau, puis une période de grâce de 30 jours s’applique avant toute suppression définitive.','Request deletion of this association?\n\nA SECOND board member must confirm, then a 30-day grace period applies before any permanent deletion.')))return;
@@ -9951,7 +9986,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.53';
+const UBORA_BUILD='v9.54';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
