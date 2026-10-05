@@ -6075,6 +6075,16 @@ function abonnementDevise(){
    l'Edge Function fapshi-pay, qui renvoie un lien de paiement hébergé (Orange Money
    / MTN MoMo). La clé API ne touche jamais le navigateur. L'activation de
    l'abonnement se fera par le webhook (Phase 2). */
+function groupPays(entity,id){
+  try{
+    if(entity==='tontine'){ var t=(state_tontines||[]).find(function(x){return x.id===id;}); return (t&&(t.oCountry||t.country))||''; }
+    if(entity==='reunion'){ var r=(state_reunions||[]).find(function(x){return x.id===id;}); return (r&&(r.country||r.pays))||''; }
+    if(entity==='caisse'){ var c=(state_caisses||[]).find(function(x){return x.id===id;}); return (c&&(c.country||c.pays))||''; }
+    if(entity==='case'){ var cs=(state_cases||[]).find(function(x){return x.id===id;}); return (cs&&cs.country)||''; }
+    if(entity==='federation'){ var f=(((typeof state_fed!=='undefined'&&state_fed&&state_fed.dir)||[])).find(function(x){return x.id===id;}); return (f&&(f.country||f.pays))||''; }
+  }catch(_e){}
+  return '';
+}
 async function fapshiAbonner(palier, months){
   if(!state.uid){ go('auth'); return; }
   const dev = abonnementDevise();          // réutilise exactement la sélection Stripe ci-dessous
@@ -6102,17 +6112,28 @@ async function fapshiAbonner(palier, months){
     (state_reunions||[]).forEach(r=>opts.push({entity:'reunion', id:r.id, label:r.name||_FL('Réunion','Meeting'), sub:_FL('réunion','meeting')}));
     try{ if(!state_caisses||!state_caisses.length) await db.loadCaisses(); }catch(_e){}
     (state_caisses||[]).filter(c=>!c.caseId).forEach(c=>opts.push({entity:'caisse', id:c.id, label:c.name||c.group||_FL('Mutuelle','Fund'), sub:_FL('mutuelle / caisse','mutual fund')}));
+    /* Une association ISOLÉE (0-1 cercle abrité) est un groupe isolé → éligible Kwèn. */
+    const _nbAbrites=function(c){ return (((c.shares&&c.shares.length)||0)+((c.reunionShares&&c.reunionShares.length)||0)); };
+    (state_cases||[]).filter(function(c){ return (!c._creator||!state.uid||String(c._creator)===String(state.uid)) && _nbAbrites(c)<=1 && !isPremium(c) && !c.del_status; }).forEach(c=>opts.push({entity:'case', id:c.id, label:c.name||_FL('Association','Association'), sub:_FL('association isolée','standalone association')}));
     if(opts.length===0){
-      if((state_cases||[]).length>0){
-        if(confirm(_FL('Kwèn s’abonne à UN groupe isolé (tontine, réunion ou mutuelle).\n\nVous avez une association qui abrite des cercles → c’est le palier Fagot.\n\nOK = voir Fagot.','Kwèn subscribes ONE standalone group (tontine, meeting or mutual fund).\n\nYou have an association that shelters circles → that is the Fagot tier.\n\nOK = go to Fagot.'))) return fapshiAbonner('fagot');
+      const _multi=(state_cases||[]).some(function(c){ return _nbAbrites(c)>=2; });
+      if(_multi){
+        if(confirm(_FL('Kwèn s’abonne à UN groupe isolé.\n\nVous avez une association qui abrite plusieurs cercles → c’est le palier Fagot.\n\nOK = voir Fagot.','Kwèn subscribes ONE standalone group.\n\nYou have an association sheltering several circles → that is the Fagot tier.\n\nOK = go to Fagot.'))) return fapshiAbonner('fagot');
         return;
       }
-      alert(_FL('Créez d’abord un groupe (tontine, réunion ou mutuelle) : Kwèn s’abonne à un groupe que vous organisez.','Create a group first (tontine, meeting or mutual fund): Kwèn subscribes a group you organise.')); go(state.uid?'create':'auth'); return;
+      alert(_FL('Créez d’abord un groupe (tontine, réunion, mutuelle ou association) : Kwèn s’abonne à un groupe que vous organisez.','Create a group first (tontine, meeting, mutual fund or association): Kwèn subscribes a group you organise.')); go(state.uid?'create':'auth'); return;
     }
     let _p; if(opts.length===1){ _p=opts[0]; } else { const idx=await uboraChoisir(_FL('Quel groupe abonner au palier Kwèn ?','Which group to subscribe to Kwèn?'), opts.map(o=>({label:o.label, sub:o.sub}))); if(idx==null)return; _p=opts[idx]; }
     _tgt={entity:_p.entity, id:_p.id};
   }
   if(!_tgt) return;
+  /* Géoloc : le Mobile Money (FCFA) est réservé aux GROUPES situés en Afrique —
+     empêche une asso hors Afrique de profiter des tarifs Afrique. */
+  const _pays=groupPays(_tgt.entity,_tgt.id);
+  if(_pays && typeof COUNTRY_CONT!=='undefined' && COUNTRY_CONT[_pays] && COUNTRY_CONT[_pays]!=='AF'){
+    alert(_FL('Le paiement Mobile Money (Orange / MTN) est réservé aux groupes situés en Afrique. Votre groupe est enregistré en « '+_pays+' » : l’abonnement se règle par carte (page Tarifs).','Mobile Money (Orange / MTN) is only for groups located in Africa. Your group is registered in “'+_pays+'”: subscribe by card (Pricing page).'));
+    return;
+  }
   try{
     const{data:{session:_s}}=await sb.auth.getSession();
     const _r=await fetch(SB_URL+'/functions/v1/fapshi-pay',{method:'POST',
@@ -10002,7 +10023,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.56';
+const UBORA_BUILD='v9.57';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
