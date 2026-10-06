@@ -6760,29 +6760,59 @@ function caseCotisAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); i
 function caseCotisDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.cotis)return; if(!confirm('Retirer cette cotisation ?'))return; c.cotis.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 /* --- \u00c9v\u00e9nements de la Case --- */
 function openCaseEvts(id){ state.activeCase=id; go('caseevts'); }
+function caseEnsureMemberIds(c){ (c&&c.members||[]).forEach(function(m){ if(m&&!m.id) m.id=newId('m'); }); }
 function viewCaseEvts(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
-  c.evts=c.evts||[];
-  const rows=c.evts.length?c.evts.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.title)}</div><div class="msub">${[x.date,x.lieu].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}${x.note?' \u00b7 '+esc(x.note):''}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">${tr('empty_org_events')}</div>`;
+  c.evts=c.evts||[]; c.members=c.members||[]; caseEnsureMemberIds(c);
+  const memName=function(mid){ var m=(c.members||[]).find(function(x){return x.id===mid;}); return m?m.name:''; };
+  const rows=c.evts.length?c.evts.map(function(x,i){
+    var vis=(x.visibility==='public')?'<span class="pill p-done">'+_FL('Public','Public')+'</span>':'<span class="pill">'+_FL('Privé','Private')+'</span>';
+    var cons=(x.contribs||[]);
+    var cur=(cons[0]&&cons[0].cur)||'EUR';
+    var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0);
+    var clist=cons.length?('<div class="msub" style="margin-top:6px">'+cons.map(function(k){return esc(k.name||memName(k.mid))+' · '+money(Number(k.amount)||0,k.cur||cur);}).join('<br>')+'</div>'):'';
+    var meta=[x.date,x.lieu].filter(Boolean).map(esc).join(' · ')+(x.note?(' · '+esc(x.note)):'')+(cons.length?(' · '+_FL('collecté','collected')+' '+money(tot,cur)+' · '+cons.length+' '+_FL('contributeur(s)','contributor(s)')):'');
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">\U0001F5D1</button></div></div>';
+  }).join(''):('<div class="empty">'+tr('empty_org_events')+'</div>');
+  const pick=c.members.length?c.members.map(function(m){return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer"><input type="checkbox" id="evc-'+m.id+'"> <span>'+esc(m.name)+'</span></label><input type="number" id="eva-'+m.id+'" placeholder="0" style="width:90px"></div>';}).join(''):('<div class="hint">'+_FL('Ajoutez d’abord des membres à l’annuaire pour pouvoir les sélectionner.','Add members to the directory first.')+'</div>');
   app().innerHTML=`
-    <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
+    <button class="backlink" onclick="openCase('${c.id}')">‹ ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_evt')}</div>
-    <h1 class="page-title">\u00c9v\u00e9nements \u00b7 ${esc(c.name)}</h1>
-    <p class="lead">Les \u00e9v\u00e9nements de cette organisation.</p>
+    <h1 class="page-title">Événements · ${esc(c.name)}</h1>
+    <p class="lead">${_FL('Créez un événement, choisissez qui le voit, et cochez dans l’annuaire les membres qui contribuent.','Create an event, choose who sees it, tick the directory members who contribute.')}</p>
     <div class="panel"><div style="padding:18px 20px">
-      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Titre</label><input id="cv-title" placeholder="Ex. Assembl\u00e9e g\u00e9n\u00e9rale"></div>
+      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Titre</label><input id="cv-title" placeholder="Ex. Naissance, Décès, Voyage"></div>
         <div class="field" style="flex:1;min-width:130px;margin-top:0"><label>Date</label><input id="cv-date" placeholder="Ex. 12 sept. 2026"></div>
-        <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Lieu</label><input id="cv-lieu" placeholder="Ex. Gen\u00e8ve"></div></div>
+        <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Lieu</label><input id="cv-lieu" placeholder="Ex. Genève"></div></div>
+      <div class="field"><label>${_FL('Qui peut voir cet événement ?','Who can see this event?')}</label>
+        <select id="cv-vis"><option value="private">${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public">${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
       <div class="field"><label>Note</label><input id="cv-note" placeholder="Optionnel"></div>
-      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseEvtAdd()">+ Ajouter l'\u00e9v\u00e9nement</button></div>
+      <div class="panel" style="margin-top:12px;background:#fbf7ec;border:1px solid #e6dcc0"><div style="padding:12px 16px">
+        <div class="mname" style="margin-bottom:4px">${_FL('Contributions des membres','Member contributions')}</div>
+        <div class="hint" style="margin-bottom:8px">${_FL('Cochez dans l’annuaire les membres qui contribuent et indiquez le montant de chacun.','Tick contributing members and enter each amount.')}</div>
+        <div class="field" style="margin-top:0;max-width:160px"><label>${_FL('Devise','Currency')}</label><select id="cv-cur">${caseCurOpts('EUR')}</select></div>
+        ${pick}
+      </div></div>
+      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseEvtAdd()">+ ${_FL('Enregistrer l’événement','Save the event')}</button></div>
     </div></div>
-    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>\u00c9v\u00e9nements (${c.evts.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Événements (${c.evts.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     ${footer()}`;
 }
-function caseEvtAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+function caseEvtAdd(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
+  caseEnsureMemberIds(c);
+  const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
   const title=g('cv-title'); if(!title){alert('Indiquez au moins le titre.');return;}
-  c.evts=c.evts||[]; c.evts.unshift({title,date:g('cv-date'),lieu:g('cv-lieu'),note:g('cv-note')});
-  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
+  const vis=(document.getElementById('cv-vis')||{}).value||'private';
+  const cur=(document.getElementById('cv-cur')||{}).value||'EUR';
+  const contribs=[];
+  (c.members||[]).forEach(function(m){
+    var chk=document.getElementById('evc-'+m.id);
+    if(chk&&chk.checked){ var amt=document.getElementById('eva-'+m.id); contribs.push({mid:m.id,name:m.name,amount:Number(amt&&amt.value)||0,cur:cur}); }
+  });
+  c.evts=c.evts||[]; c.evts.unshift({id:newId('ev'),title:title,date:g('cv-date'),lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:contribs});
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render();
+}
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 /* --- Cagnotte de projet --- */
 function openCaseCagnotte(id){ state.activeCase=id; go('casecagnotte'); }
@@ -10023,7 +10053,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.59';
+const UBORA_BUILD='v9.60';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
