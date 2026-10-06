@@ -6784,10 +6784,11 @@ function viewCaseEvts(){
     <p class="lead">${_FL('Créez un événement, choisissez qui le voit, et cochez dans l’annuaire les membres qui contribuent.','Create an event, choose who sees it, tick the directory members who contribute.')}</p>
     <div class="panel"><div style="padding:18px 20px">
       <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Titre</label><input id="cv-title" placeholder="Ex. Naissance, Décès, Voyage"></div>
-        <div class="field" style="flex:1;min-width:130px;margin-top:0"><label>Date</label><input id="cv-date" placeholder="Ex. 12 sept. 2026"></div>
+        <div class="field" style="flex:1;min-width:130px;margin-top:0"><label>Date</label><input id="cv-date" type="date"></div>
         <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Lieu</label><input id="cv-lieu" placeholder="Ex. Genève"></div></div>
       <div class="field"><label>${_FL('Qui peut voir cet événement ?','Who can see this event?')}</label>
         <select id="cv-vis"><option value="private">${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public">${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
+      <div class="field"><label>${_FL('Catégorie','Category')}</label><select id="cv-cat">${['culturel','cultuel','deuil','sport','networking','fetenat','integration','autre'].map(function(k){return '<option value="'+k+'">'+tr('cat_'+k)+'</option>';}).join('')}</select></div>
       <div class="field"><label>Note</label><input id="cv-note" placeholder="Optionnel"></div>
       <div class="panel" style="margin-top:12px;background:#fbf7ec;border:1px solid #e6dcc0"><div style="padding:12px 16px">
         <div class="mname" style="margin-bottom:4px">${_FL('Contributions des membres','Member contributions')}</div>
@@ -6807,15 +6808,26 @@ function caseEvtAdd(){
   const title=g('cv-title'); if(!title){alert('Indiquez au moins le titre.');return;}
   const vis=(document.getElementById('cv-vis')||{}).value||'private';
   const cur=(document.getElementById('cv-cur')||{}).value||'EUR';
+  const cat=(document.getElementById('cv-cat')||{}).value||'autre';
+  const diso=(document.getElementById('cv-date')||{}).value||'';
   const contribs=[];
   (c.members||[]).forEach(function(m){
     var chk=document.getElementById('evc-'+m.id);
     if(chk&&chk.checked){ var amt=document.getElementById('eva-'+m.id); contribs.push({mid:m.id,name:m.name,amount:Number(amt&&amt.value)||0,cur:cur}); }
   });
-  c.evts=c.evts||[]; c.evts.unshift({id:newId('ev'),title:title,date:g('cv-date'),lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:contribs});
-  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render();
+  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:contribs};
+  if(vis==='public') evt.pubId=newId('e');
+  c.evts=c.evts||[]; c.evts.unshift(evt);
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
+  if(vis==='public') caseEvtPublish(c,evt);
+  render();
 }
-function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
+function caseEvtPublish(c,evt){
+  if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:'EUR', objectif:0, desc:evt.note||'', source:'case', caseId:c.id, billets:[] };
+  try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
+}
+function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 /* --- Cagnotte de projet --- */
 function openCaseComptes(id){ state.activeCase=id; go('casecomptes'); }
 function viewCaseComptes(){
@@ -10085,7 +10097,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.61';
+const UBORA_BUILD='v9.62';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
