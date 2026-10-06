@@ -6774,7 +6774,7 @@ function viewCaseEvts(){
     var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0);
     var clist=cons.length?('<div class="msub" style="margin-top:6px">'+cons.map(function(k){return esc(k.name||memName(k.mid))+' · '+money(Number(k.amount)||0,k.cur||cur);}).join('<br>')+'</div>'):'';
     var meta=[x.date,x.lieu].filter(Boolean).map(esc).join(' · ')+(x.note?(' · '+esc(x.note)):'')+(cons.length?(' · '+_FL('collecté','collected')+' '+money(tot,cur)+' · '+cons.length+' '+_FL('contributeur(s)','contributor(s)')):'');
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">\U0001F5D1</button></div></div>';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">'+_FL('Retirer','Remove')+'</button></div></div>';
   }).join(''):('<div class="empty">'+tr('empty_org_events')+'</div>');
   const pick=c.members.length?c.members.map(function(m){return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer"><input type="checkbox" id="evc-'+m.id+'"> <span>'+esc(m.name)+'</span></label><input type="number" id="eva-'+m.id+'" placeholder="0" style="width:90px"></div>';}).join(''):('<div class="hint">'+_FL('Ajoutez d’abord des membres à l’annuaire pour pouvoir les sélectionner.','Add members to the directory first.')+'</div>');
   app().innerHTML=`
@@ -10148,7 +10148,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.63';
+const UBORA_BUILD='v9.64';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10619,17 +10619,46 @@ async function caseSubscribe(caseId, price_id){
   }catch(e){ alert('Abonnement indisponible\u00A0: '+(e.message||e)); }
 }
 /* Panneau d'abonnement d'une Case : état + bouton Fagot + tontines abritées. */
+async function subscribeCaseTier(caseId, palier){
+  if(!state.uid){ go('auth'); return; }
+  const c=(state_cases||[]).find(x=>x.id===caseId); if(!c)return;
+  const pays=groupPays('case',caseId)||c.country||'';
+  const cont=(pays&&typeof COUNTRY_CONT!=='undefined'&&COUNTRY_CONT[pays])?COUNTRY_CONT[pays]:null;
+  if(cont==='AF'){
+    try{
+      const{data:{session:_s}}=await sb.auth.getSession();
+      const _r=await fetch(SB_URL+'/functions/v1/fapshi-pay',{method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+        body:JSON.stringify({palier, scope:'case', targetId:caseId, months:1, return_url:location.origin+location.pathname})});
+      const _j=await _r.json().catch(()=>({}));
+      if(!_r.ok||!_j.ok||!_j.link) throw new Error(_j.error||('Erreur '+_r.status));
+      location.href=_j.link;
+    }catch(e){ alert(_FL('Paiement indisponible : ','Payment unavailable: ')+(e.message||e)); }
+    return;
+  }
+  const dev=abonnementDevise(); const price=(STRIPE_PRICES[palier]||{})[dev];
+  if(!price){ alert(_FL('Ce palier n\u2019est pas disponible dans votre devise.','This tier isn\u2019t available in your currency.')); return; }
+  return caseSubscribe(caseId, price);
+}
 function caseAbonnementPanel(c){
   if(!c) return '';
   const dev=abonnementDevise();
   const actif=!!(c.premium_until && new Date(c.premium_until)>new Date());
   const nb=((c.shares)||[]).length + ((c.reunionShares)||[]).length;
+  const _palA=(c.palier==='kwen')?'Kwèn':(c.palier==='baobab'?'Baobab':'Fagot');
+  const _svgA=(c.palier==='kwen')?kwenSVG(22):(c.palier==='baobab'?baobabSVG(22):fagotSVG(22));
+  const _isole=nb<=1;
+  const _payC=(groupPays('case',c.id)||c.country||'');
+  const _contC=(_payC&&typeof COUNTRY_CONT!=='undefined'&&COUNTRY_CONT[_payC])?COUNTRY_CONT[_payC]:null;
+  const _rail=_contC==='AF'?'Mobile Money (Orange / MTN)':(_FL('carte','card')+' · '+dev);
   const etat=actif
-    ? `<div class="mrow"><div class="stack"><div class="mname">${fagotSVG(22)} ${_FL('Case abonnée','Case subscribed')} · <b>Fagot</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(c.premium_until).toLocaleDateString()} · ${_FL('ses tontines abritées bénéficient de Kwèn','its hosted tontines get Kwèn')}</div></div></div>`
+    ? `<div class="mrow"><div class="stack"><div class="mname">${_svgA} ${_FL('Case abonnée','Case subscribed')} · <b>${_palA}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(c.premium_until).toLocaleDateString()} · ${_FL('ses tontines abritées bénéficient de Kwèn','its hosted tontines get Kwèn')}</div></div></div>`
     : `<div class="mrow"><span class="msub">${_FL('Cette Case n\'est pas abonnée. Ses tontines restent au palier gratuit.','This Case is not subscribed. Its tontines stay on the free tier.')}</span></div>`;
   const btn=actif
-    ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Fagot · ${_FL('palier actuel','current tier')}</button>`+btnGerer('case',c.id)
-    : `<button class="btn btn-gold btn-sm" onclick="caseSubscribe('${c.id}','${STRIPE_PRICES.fagot[dev]}')">${_FL('S\'abonner · Fagot','Subscribe · Fagot')} (${dev})</button>`;
+    ? `<div class="row-gap"><button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">${_palA} · ${_FL('palier actuel','current tier')}</button>`+btnGerer('case',c.id)+`</div>`
+    : `<div class="row-gap" style="flex-wrap:wrap">${_isole?`<button class="btn btn-gold btn-sm" onclick="subscribeCaseTier('${c.id}','kwen')">${_FL('S’abonner · Kwèn','Subscribe · Kwèn')}</button>`:''}<button class="btn ${_isole?'btn-ghost':'btn-gold'} btn-sm" onclick="subscribeCaseTier('${c.id}','fagot')">${_FL('S’abonner · Fagot','Subscribe · Fagot')}</button></div>
+      <div class="msub" style="margin-top:6px">${_FL('Paiement par','Payment by')} ${_rail}. ${_isole?_FL('Kwèn = cette association seule. Fagot = si elle abrite plusieurs cercles (jusqu’à 5).','Kwèn = this association alone. Fagot = if it hosts several circles (up to 5).'):_FL('Fagot couvre jusqu’à 5 cercles abrités.','Fagot covers up to 5 hosted circles.')}</div>
+      <div class="asnote" style="margin-top:8px">${_FL('Pour relier plusieurs groupes entre eux, c’est une <b>fédération</b> (Baobab).','To link several groups together, use a <b>federation</b> (Baobab).')} <a href="#" onclick="go('fedhome');return false" style="color:var(--gold)">${_FL('Voir les fédérations','See federations')}</a></div>`;
   const etatLigne = actif?_FL('bénéficie de Kwèn','gets Kwèn'):_FL('palier gratuit — la Case n\'est pas abonnée','free tier — the Case is not subscribed');
   const nomT=(id)=>{ const t=(state_tontines||[]).find(x=>x.id===id); return t?esc(t.name):'\u2014'; };
   const nomR=(id)=>{ const r=(state_reunions||[]).find(x=>x.id===id); return r?esc(r.name):'\u2014'; };
@@ -10649,7 +10678,7 @@ function caseAbonnementPanel(c){
     </div></div>`;
   return `<h2 class="section-h">${_FL('Abonnement de la Case','Case subscription')}</h2>
     <div class="panel"><div style="padding:8px 16px 14px">${etat}
-      <div class="row-gap" style="margin-top:10px">${btn}</div>
+      <div style="margin-top:10px">${btn}</div>
       <div class="msub" style="margin-top:8px">${((c.members)||[]).length} / ${actif?100:30} ${_FL('membres inscrits à la Case','members on the Case roster')} \u00b7 ${_FL('Fagot : 100 membres, 5 cercles abrités, entraide (caisses et événements) et billetterie. Sans abonnement : 30 membres.','Fagot: 100 members, 5 hosted circles, mutual aid (funds and events) and ticketing. Without subscription: 30 members.')}</div>
       <div class="asnote" style="margin-top:10px">${_FL('Une <b>tontine</b> fait circuler l\'argent. Une <b>Case</b> rassemble des personnes — et peut abriter ses tontines. Une <b>fédération</b> relie des groupes.','A <b>tontine</b> moves money. A <b>Case</b> gathers people — and can host its tontines. A <b>federation</b> links groups.')}</div>
     </div></div>${bloc}${(function(){var cs=(state_caisses||[]).filter(function(x){return x.caseId===c.id;}); if(!cs.length)return ''; return `<h2 class="section-h" style="margin-top:16px">${_FL('Caisses de cette Case','Funds of this Case')} (${cs.length})</h2><div class="panel"><div style="padding:8px 16px 14px">${cs.map(function(x){return `<div class="mrow" onclick="openCaisse('${x.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${esc(x.name||x.group||'')}</div><div class="msub">${esc(x.type||'')} · ${(x.foyers||[]).length} ${_FL('foyers','households')}</div></div></div>`;}).join('')}</div></div>`;})()}`;
