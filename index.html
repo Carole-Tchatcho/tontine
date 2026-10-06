@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -6813,39 +6813,71 @@ function viewCaseEvts(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   c.evts=c.evts||[]; c.members=c.members||[]; caseEnsureMemberIds(c);
   const memName=function(mid){ var m=(c.members||[]).find(function(x){return x.id===mid;}); return m?m.name:''; };
+  const editIdx=(typeof state.caseEvtEdit==='number'&&c.evts[state.caseEvtEdit])?state.caseEvtEdit:-1;
+  const ev0=editIdx>=0?c.evts[editIdx]:null;
+  const conById={}; var exts=[];
+  if(ev0){ (ev0.contribs||[]).forEach(function(k){ if(k.mid){conById[k.mid]=k;} else {exts.push(k);} }); }
+  const curSel=(ev0&&ev0.contribs&&ev0.contribs[0]&&ev0.contribs[0].cur)||'EUR';
   const rows=c.evts.length?c.evts.map(function(x,i){
     var vis=(x.visibility==='public')?'<span class="pill p-done">'+_FL('Public','Public')+'</span>':'<span class="pill">'+_FL('Privé','Private')+'</span>';
     var cons=(x.contribs||[]);
     var cur=(cons[0]&&cons[0].cur)||'EUR';
     var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0);
-    var clist=cons.length?('<div class="msub" style="margin-top:6px">'+cons.map(function(k){return esc(k.name||memName(k.mid))+' · '+money(Number(k.amount)||0,k.cur||cur);}).join('<br>')+'</div>'):'';
-    var meta=[x.date,x.lieu].filter(Boolean).map(esc).join(' · ')+(x.note?(' · '+esc(x.note)):'')+(cons.length?(' · '+_FL('collecté','collected')+' '+money(tot,cur)+' · '+cons.length+' '+_FL('contributeur(s)','contributor(s)')):'');
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">'+_FL('Retirer','Remove')+'</button></div></div>';
+    var clist=cons.length?('<div class="msub" style="margin-top:6px">'+cons.map(function(k){return esc(k.name||memName(k.mid))+(k.ext?(' <span class="faint">('+_FL('invité·e','guest')+')</span>'):'')+' · '+money(Number(k.amount)||0,k.cur||cur);}).join('<br>')+'</div>'):'';
+    var goalTxt=(Number(x.objectif)||0)>0?(' · '+_FL('objectif','goal')+' '+money(Number(x.objectif)||0,cur)):'';
+    var meta=[x.date,x.lieu].filter(Boolean).map(esc).join(' · ')+(x.note?(' · '+esc(x.note)):'')+goalTxt+(cons.length?(' · '+_FL('collecté','collected')+' '+money(tot,cur)+' · '+cons.length+' '+_FL('contributeur(s)','contributor(s)')):'');
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="caseEvtEditStart('+i+')">'+_FL('Modifier','Edit')+'</button><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">'+_FL('Retirer','Remove')+'</button></div></div>';
   }).join(''):('<div class="empty">'+tr('empty_org_events')+'</div>');
-  const pick=c.members.length?c.members.map(function(m){return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer"><input type="checkbox" id="evc-'+m.id+'"> <span>'+esc(m.name)+'</span></label><input type="number" id="eva-'+m.id+'" placeholder="0" style="width:90px"></div>';}).join(''):('<div class="hint">'+_FL('Ajoutez d’abord des membres à l’annuaire pour pouvoir les sélectionner.','Add members to the directory first.')+'</div>');
+  const pick=c.members.length?c.members.map(function(m){
+    var k=conById[m.id]; var chk=k?' checked':''; var amt=k?(Number(k.amount)||0):'';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer"><input type="checkbox" id="evc-'+m.id+'"'+chk+'> <span>'+esc(m.name)+'</span></label><input type="number" id="eva-'+m.id+'" value="'+amt+'" placeholder="0" style="width:90px"></div>';
+  }).join(''):('<div class="hint">'+_FL('Ajoutez d’abord des membres à l’annuaire pour pouvoir les sélectionner.','Add members to the directory first.')+'</div>');
+  var extRows=exts.map(function(k,j){ return '<div class="row-gap" style="gap:8px;margin-top:4px"><input id="exn-'+j+'" value="'+esc(k.name||'')+'" placeholder="'+_FL('Nom (hors annuaire)','Name (not in directory)')+'" style="flex:2;min-width:140px"><input id="exa-'+j+'" type="number" value="'+(Number(k.amount)||0)+'" placeholder="0" style="flex:1;min-width:90px"></div>'; }).join('');
+  const T=function(id){return (ev0&&ev0[id]!=null)?ev0[id]:'';};
+  const selVis=function(v){return (ev0?ev0.visibility:'private')===v?' selected':'';};
+  const selCat=function(k){return (ev0?(ev0.category||'autre'):'autre')===k?' selected':'';};
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">‹ ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_evt')}</div>
     <h1 class="page-title">Événements · ${esc(c.name)}</h1>
-    <p class="lead">${_FL('Créez un événement, choisissez qui le voit, et cochez dans l’annuaire les membres qui contribuent.','Create an event, choose who sees it, tick the directory members who contribute.')}</p>
-    <div class="panel"><div style="padding:18px 20px">
-      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Titre</label><input id="cv-title" placeholder="Ex. Naissance, Décès, Voyage"></div>
-        <div class="field" style="flex:1;min-width:130px;margin-top:0"><label>Date</label><input id="cv-date" type="date"></div>
-        <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Lieu</label><input id="cv-lieu" placeholder="Ex. Genève"></div></div>
-      <div class="field"><label>${_FL('Qui peut voir cet événement ?','Who can see this event?')}</label>
-        <select id="cv-vis"><option value="private">${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public">${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
-      <div class="field"><label>${_FL('Catégorie','Category')}</label><select id="cv-cat">${['culturel','cultuel','deuil','sport','networking','fetenat','integration','autre'].map(function(k){return '<option value="'+k+'">'+tr('cat_'+k)+'</option>';}).join('')}</select></div>
-      <div class="field"><label>Note</label><input id="cv-note" placeholder="Optionnel"></div>
+    <p class="lead">${ev0?_FL('Modifiez l’événement : visibilité, objectif, contributions — rien n’est figé.','Edit the event: visibility, goal, contributions — nothing is locked.'):_FL('Créez un événement, choisissez qui le voit, et cochez les membres qui contribuent.','Create an event, choose who sees it, tick contributing members.')}</p>
+    <div class="panel"${ev0?' style="border-left:3px solid var(--gold)"':''}><div style="padding:18px 20px">
+      ${ev0?`<div class="mname" style="margin-bottom:8px">${_FL('Modifier','Editing')} : ${esc(ev0.title)}</div>`:''}
+      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Titre</label><input id="cv-title" value="${esc(T('title'))}" placeholder="Ex. Naissance, Décès, Voyage"></div>
+        <div class="field" style="flex:1;min-width:130px;margin-top:0"><label>Date</label><input id="cv-date" type="date" value="${esc(T('dateISO'))}"></div>
+        <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Lieu</label><input id="cv-lieu" value="${esc(T('lieu'))}" placeholder="Ex. Genève"></div></div>
+      <div class="field"><label>${_FL('Qui peut voir cet événement ?','Who can see this event?')}</label>
+        <select id="cv-vis"><option value="private"${selVis('private')}>${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public"${selVis('public')}>${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
+      <div class="row-gap"><div class="field" style="flex:1;min-width:150px"><label>${_FL('Catégorie','Category')}</label><select id="cv-cat">${['culturel','cultuel','deuil','sport','networking','fetenat','integration','autre'].map(function(k){return '<option value="'+k+'"'+selCat(k)+'>'+tr('cat_'+k)+'</option>';}).join('')}</select></div>
+        <div class="field" style="flex:1;min-width:120px"><label>${_FL('Objectif (facultatif)','Goal (optional)')}</label><input id="cv-obj" type="number" value="${(Number(ev0&&ev0.objectif)||0)||''}" placeholder="0"></div></div>
+      <div class="field"><label>Note</label><input id="cv-note" value="${esc(T('note'))}" placeholder="Optionnel"></div>
       <div class="panel" style="margin-top:12px;background:#fbf7ec;border:1px solid #e6dcc0"><div style="padding:12px 16px">
         <div class="mname" style="margin-bottom:4px">${_FL('Contributions des membres','Member contributions')}</div>
-        <div class="hint" style="margin-bottom:8px">${_FL('Cochez dans l’annuaire les membres qui contribuent et indiquez le montant de chacun.','Tick contributing members and enter each amount.')}</div>
-        <div class="field" style="margin-top:0;max-width:160px"><label>${_FL('Devise','Currency')}</label><select id="cv-cur">${caseCurOpts('EUR')}</select></div>
+        <div class="hint" style="margin-bottom:8px">${_FL('Cochez les membres qui contribuent et indiquez le montant de chacun.','Tick contributing members and enter each amount.')}</div>
+        <div class="field" style="margin-top:0;max-width:160px"><label>${_FL('Devise','Currency')}</label><select id="cv-cur">${caseCurOpts(curSel)}</select></div>
         ${pick}
+        <div style="margin-top:10px"><div class="mname" style="margin-bottom:4px">${_FL('Participants hors annuaire (invité·e·s)','Guests (outside the directory)')}</div>
+          <div class="hint" style="margin-bottom:6px">${_FL('Des personnes extérieures au groupe peuvent contribuer : elles comptent dans le total, mais n’ont pas de compte membre. Videz le nom pour retirer.','People outside the group can contribute: they count in the total but have no member account. Clear the name to remove.')}</div>
+          ${extRows}
+          <div class="row-gap" style="gap:8px;margin-top:6px"><input id="exn-new" placeholder="${_FL('Ajouter un·e invité·e','Add a guest')}" style="flex:2;min-width:140px"><input id="exa-new" type="number" placeholder="0" style="flex:1;min-width:90px"></div>
+        </div>
       </div></div>
-      <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseEvtAdd()">+ ${_FL('Enregistrer l’événement','Save the event')}</button></div>
+      <div class="row-gap" style="margin-top:12px">${ev0
+        ? `<button class="btn btn-gold btn-sm" onclick="caseEvtSave()">${_FL('Enregistrer les modifications','Save changes')}</button><button class="btn btn-ghost btn-sm" onclick="caseEvtEditCancel()">${_FL('Annuler','Cancel')}</button>`
+        : `<button class="btn btn-gold btn-sm" onclick="caseEvtAdd()">+ ${_FL('Enregistrer l’événement','Save the event')}</button>`}</div>
     </div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Événements (${c.evts.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     ${footer()}`;
+}
+function caseEvtReadContribs(c,cur){
+  const contribs=[];
+  (c.members||[]).forEach(function(m){
+    var chk=document.getElementById('evc-'+m.id);
+    if(chk&&chk.checked){ var amt=document.getElementById('eva-'+m.id); contribs.push({mid:m.id,name:m.name,amount:Number(amt&&amt.value)||0,cur:cur}); }
+  });
+  for(var j=0;;j++){ var el=document.getElementById('exn-'+j); if(!el)break; var nm=String(el.value||'').trim(); if(!nm)continue; var am=document.getElementById('exa-'+j); contribs.push({name:nm,amount:Number(am&&am.value)||0,cur:cur,ext:true}); }
+  var nn=document.getElementById('exn-new'); if(nn&&String(nn.value||'').trim()){ var na=document.getElementById('exa-new'); contribs.push({name:String(nn.value).trim(),amount:Number(na&&na.value)||0,cur:cur,ext:true}); }
+  return contribs;
 }
 function caseEvtAdd(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
@@ -6856,21 +6888,37 @@ function caseEvtAdd(){
   const cur=(document.getElementById('cv-cur')||{}).value||'EUR';
   const cat=(document.getElementById('cv-cat')||{}).value||'autre';
   const diso=(document.getElementById('cv-date')||{}).value||'';
-  const contribs=[];
-  (c.members||[]).forEach(function(m){
-    var chk=document.getElementById('evc-'+m.id);
-    if(chk&&chk.checked){ var amt=document.getElementById('eva-'+m.id); contribs.push({mid:m.id,name:m.name,amount:Number(amt&&amt.value)||0,cur:cur}); }
-  });
-  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:contribs};
+  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,objectif:Number(g('cv-obj'))||0,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:caseEvtReadContribs(c,cur)};
   if(vis==='public') evt.pubId=newId('e');
   c.evts=c.evts||[]; c.evts.unshift(evt);
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
   if(vis==='public') caseEvtPublish(c,evt);
   render();
 }
+function caseEvtEditStart(i){ state.caseEvtEdit=i; render(); try{window.scrollTo(0,0);}catch(e){} }
+function caseEvtEditCancel(){ state.caseEvtEdit=null; render(); }
+function caseEvtSave(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
+  const editIdx=state.caseEvtEdit; const ev0=(typeof editIdx==='number')?c.evts[editIdx]:null;
+  if(!ev0){ state.caseEvtEdit=null; render(); return; }
+  const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const title=g('cv-title'); if(!title){alert('Indiquez au moins le titre.');return;}
+  const vis=(document.getElementById('cv-vis')||{}).value||'private';
+  const cur=(document.getElementById('cv-cur')||{}).value||'EUR';
+  const cat=(document.getElementById('cv-cat')||{}).value||'autre';
+  const diso=(document.getElementById('cv-date')||{}).value||'';
+  const wasPublic=(ev0.visibility==='public');
+  ev0.title=title; ev0.date=diso; ev0.dateISO=diso; ev0.category=cat; ev0.objectif=Number(g('cv-obj'))||0; ev0.lieu=g('cv-lieu'); ev0.note=g('cv-note'); ev0.visibility=vis; ev0.contribs=caseEvtReadContribs(c,cur);
+  if(vis==='public'){ if(!ev0.pubId) ev0.pubId=newId('e'); }
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
+  if(vis==='public'){ caseEvtPublish(c,ev0); }
+  else if(wasPublic && ev0.pubId){ if(BACKEND==='supabase'){ try{ db.deleteEvent(ev0.pubId).catch(function(){}); }catch(_e){} } ev0.pubId=null; }
+  state.caseEvtEdit=null; render();
+}
 function caseEvtPublish(c,evt){
   if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
-  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:'EUR', objectif:0, desc:evt.note||'', collecte:'dons', dons:[], source:'case', caseId:c.id, billets:[] };
+  var prev=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===evt.pubId;});
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, billets:[] };
   try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
@@ -6883,14 +6931,14 @@ function viewCaseComptes(){
   const sameName=function(a,b){ return a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase(); };
   const cotiseOf=function(m){ return c.cotis.filter(function(x){ return x.mid? x.mid===m.id : sameName(x.who,m.name); }).reduce(function(s,x){return s+(Number(x.amount)||0);},0); };
   const contribOf=function(m){ var t=0;
-    c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : sameName(k.name,m.name)) t+=(Number(k.amount)||0); }); });
+    c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : (!k.ext && sameName(k.name,m.name))) t+=(Number(k.amount)||0); }); });
     ((c.cagnotte&&c.cagnotte.contribs)||[]).forEach(function(k){ if(k.fromAccount && (k.mid? k.mid===m.id : sameName(k.who,m.name))) t+=(Number(k.amount)||0); });
     return t; };
   var totC=0, totD=0;
   const rows=c.members.length?c.members.map(function(m){
     var co=cotiseOf(m), de=contribOf(m), so=co-de; totC+=co; totD+=de;
     var col=so<0?'#8A2E16':'#1E2128';
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements + projets)','committed (events + projects)')+' '+money(de,cur)+'</div></div><div class="right"><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements + projets)','committed (events + projects)')+' '+money(de,cur)+'</div></div><div class="right" style="display:flex;align-items:center;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openCaseReleve(\''+c.id+'\',\''+m.id+'\')">'+_FL('Relev\u00e9','Statement')+'</button><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
   }).join(''):('<div class="empty">'+_FL('Ajoutez des membres \u00e0 l\u2019annuaire pour voir les comptes.','Add members to the directory to see accounts.')+'</div>');
   var solG=totC-totD;
   app().innerHTML=`
@@ -6904,7 +6952,79 @@ function viewCaseComptes(){
       <div><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div class="mname" style="font-size:18px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
     </div></div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Compte par membre','Per-member account')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    <div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openCaseRapport('${c.id}')">${_FL('Rapport annuel (imprimable)','Annual report (printable)')}</button></div>
     <div class="asnote" style="margin-top:12px">${_FL('UBORA ne d\u00e9tient aucun fonds \u2014 ces comptes sont le registre partag\u00e9 du groupe, visible par tous ses membres.','UBORA holds no funds \u2014 these accounts are the group\u2019s shared ledger, visible to all members.')}</div>
+    ${footer()}`;
+}
+/* ---- Consignation : relevé par membre + rapport annuel (registre interne de l'association) ---- */
+function caseSameName(a,b){ return a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase(); }
+function caseCotiseOf(c,m){ return (c.cotis||[]).filter(function(x){return x.mid?x.mid===m.id:caseSameName(x.who,m.name);}).reduce(function(s,x){return s+(Number(x.amount)||0);},0); }
+function caseEngageOf(c,m){ var t=0;
+  (c.evts||[]).forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid?k.mid===m.id:(!k.ext&&caseSameName(k.name,m.name))) t+=(Number(k.amount)||0); }); });
+  ((c.cagnotte&&c.cagnotte.contribs)||[]).forEach(function(k){ if(k.fromAccount&&(k.mid?k.mid===m.id:caseSameName(k.who,m.name))) t+=(Number(k.amount)||0); });
+  return t; }
+function caseCotisList(c,m){ return (c.cotis||[]).filter(function(x){return x.mid?x.mid===m.id:caseSameName(x.who,m.name);}); }
+function caseEngageList(c,m){ var out=[];
+  (c.evts||[]).forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid?k.mid===m.id:(!k.ext&&caseSameName(k.name,m.name))) out.push({label:(e.title||'\u00c9v\u00e9nement'),amount:Number(k.amount)||0,cur:k.cur,kind:'event'}); }); });
+  ((c.cagnotte&&c.cagnotte.contribs)||[]).forEach(function(k){ if(k.fromAccount&&(k.mid?k.mid===m.id:caseSameName(k.who,m.name))) out.push({label:((c.cagnotte&&c.cagnotte.title)||_FL('Projet','Project')),amount:Number(k.amount)||0,cur:k.cur,kind:'projet'}); });
+  return out; }
+function openCaseReleve(cid,mid){ state.activeCase=cid; state.releveMid=mid; go('casereleve'); }
+function viewCaseReleve(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  caseEnsureMemberIds(c);
+  const m=(c.members||[]).find(function(x){return x.id===state.releveMid;}); if(!m)return go('casecomptes');
+  const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  const co=caseCotiseOf(c,m), de=caseEngageOf(c,m), so=co-de;
+  const cl=caseCotisList(c,m), el=caseEngageList(c,m);
+  const year=new Date().getFullYear(); const today=new Date().toLocaleDateString('fr-CH');
+  const cotisRows=cl.length?cl.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+_FL('Cotisation','Due')+(x.note?(' \u2014 '+esc(x.note)):'')+'</div></div><div class="right">'+money(Number(x.amount)||0,x.cur||cur)+'</div></div>';}).join(''):('<div class="hint">'+_FL('Aucune cotisation.','No dues.')+'</div>');
+  const engRows=el.length?el.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.label)+' <span class="faint">('+(x.kind==='projet'?_FL('projet','project'):_FL('\u00e9v\u00e9nement','event'))+')</span></div></div><div class="right">'+money(x.amount,x.cur||cur)+'</div></div>';}).join(''):('<div class="hint">'+_FL('Aucun engagement.','No commitments.')+'</div>');
+  app().innerHTML=`
+    <button class="backlink" onclick="go('casecomptes')">\u2039 ${_FL('Comptes','Accounts')}</button>
+    <div class="row-gap" style="margin:6px 0"><button class="btn btn-gold btn-sm" onclick="window.print()">${_FL('Imprimer / PDF','Print / PDF')}</button></div>
+    <div class="panel"><div style="padding:20px 22px">
+      <div class="eyebrow">${esc(c.name)}</div>
+      <h1 class="page-title" style="margin-top:4px">${_FL('Relev\u00e9 de compte','Account statement')}</h1>
+      <div class="msub">${esc(m.name)}${m.role?(' \u00b7 '+esc(m.role)):''} \u00b7 ${_FL('exercice','period')} ${year} \u00b7 ${_FL('\u00e9mis le','issued')} ${today}</div>
+      <div class="between" style="flex-wrap:wrap;gap:16px;margin-top:16px">
+        <div><div class="msub">${_FL('Cotis\u00e9','Contributed')}</div><div class="mname" style="font-size:18px">${money(co,cur)}</div></div>
+        <div><div class="msub">${_FL('Engag\u00e9 (\u00e9v\u00e9nements + projets)','Committed (events + projects)')}</div><div class="mname" style="font-size:18px">${money(de,cur)}</div></div>
+        <div><div class="msub">${_FL('Solde','Balance')}</div><div class="mname" style="font-size:18px;color:${so<0?'#8A2E16':'#8A6A24'}">${money(so,cur)}</div></div>
+      </div>
+      ${so<0?`<div class="asnote" style="margin-top:10px;color:#8A2E16">${_FL('Solde n\u00e9gatif : ce membre a engag\u00e9 plus qu\u2019il n\u2019a cotis\u00e9 \u2014 \u00e0 r\u00e9gulariser.','Negative balance: committed more than contributed \u2014 to settle.')}</div>`:''}
+    </div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Cotisations','Dues')}</h3></div><div style="padding:6px 16px 12px">${cotisRows}</div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Engagements','Commitments')}</h3></div><div style="padding:6px 16px 12px">${engRows}</div></div>
+    <div class="asnote" style="margin-top:12px">${_FL('Registre interne de l\u2019association \u2014 UBORA ne d\u00e9tient aucun fonds. L\u2019attestation UBORA (activit\u00e9 tontine v\u00e9rifi\u00e9e) est un document distinct.','Association internal ledger \u2014 UBORA holds no funds. The UBORA attestation is a separate document.')}</div>
+    ${footer()}`;
+}
+function openCaseRapport(cid){ state.activeCase=cid; go('caserapport'); }
+function viewCaseRapport(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  caseEnsureMemberIds(c); c.members=c.members||[];
+  const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  var totC=0,totD=0;
+  const rows=c.members.length?c.members.map(function(m){ var co=caseCotiseOf(c,m),de=caseEngageOf(c,m),so=co-de; totC+=co;totD+=de;
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9','committed')+' '+money(de,cur)+'</div></div><div class="right"><span style="color:'+(so<0?'#8A2E16':'#1E2128')+'">'+money(so,cur)+'</span></div></div>';
+  }).join(''):('<div class="hint">'+_FL('Aucun membre.','No members.')+'</div>');
+  const evs=(c.evts||[]).map(function(e){ var cons=(e.contribs||[]); var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0); return '<div class="mrow"><div class="stack"><div class="mname">'+esc(e.title||'\u00c9v\u00e9nement')+'</div><div class="msub">'+(e.date?esc(e.date)+' \u00b7 ':'')+cons.length+' '+_FL('contributeur(s)','contributor(s)')+'</div></div><div class="right">'+money(tot,cur)+'</div></div>'; }).join('')||('<div class="hint">'+_FL('Aucun \u00e9v\u00e9nement.','No events.')+'</div>');
+  var solG=totC-totD; const year=new Date().getFullYear(); const today=new Date().toLocaleDateString('fr-CH');
+  app().innerHTML=`
+    <button class="backlink" onclick="go('casecomptes')">\u2039 ${_FL('Comptes','Accounts')}</button>
+    <div class="row-gap" style="margin:6px 0"><button class="btn btn-gold btn-sm" onclick="window.print()">${_FL('Imprimer / PDF','Print / PDF')}</button></div>
+    <div class="panel"><div style="padding:20px 22px">
+      <div class="eyebrow">${esc(c.name)}</div>
+      <h1 class="page-title" style="margin-top:4px">${_FL('Rapport annuel','Annual report')} ${year}</h1>
+      <div class="msub">${_FL('\u00e0 ce jour','as of today')} \u00b7 ${_FL('\u00e9mis le','issued')} ${today} \u00b7 ${c.members.length} ${_FL('membre(s)','member(s)')}</div>
+      <div class="between" style="flex-wrap:wrap;gap:16px;margin-top:16px">
+        <div><div class="msub">${_FL('Total cotis\u00e9','Total contributed')}</div><div class="mname" style="font-size:18px">${money(totC,cur)}</div></div>
+        <div><div class="msub">${_FL('Total engag\u00e9','Total committed')}</div><div class="mname" style="font-size:18px">${money(totD,cur)}</div></div>
+        <div><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div class="mname" style="font-size:18px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
+      </div>
+    </div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Comptes des membres','Member accounts')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('\u00c9v\u00e9nements de l\u2019exercice','Events of the period')}</h3></div><div style="padding:6px 16px 12px">${evs}</div></div>
+    <div class="asnote" style="margin-top:12px">${_FL('Registre interne de l\u2019association \u2014 UBORA ne d\u00e9tient aucun fonds. \u00c0 remettre aux membres (janvier).','Association internal ledger \u2014 UBORA holds no funds. To share with members (January).')}</div>
     ${footer()}`;
 }
 function openCaseCagnotte(id){ state.activeCase=id; go('casecagnotte'); }
@@ -10208,7 +10328,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.69';
+const UBORA_BUILD='v9.71';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
