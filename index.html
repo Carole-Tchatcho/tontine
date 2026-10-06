@@ -8593,6 +8593,24 @@ async function evDonSubmit(id){
   } else { ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString()}); saveLocal(); }
   state.donFor=null; render();
 }
+async function stripeDonate(id){
+  const ev=state_events.find(x=>x.id===id); if(!ev)return;
+  const nmEl=$('#don-name'), amEl=$('#don-amt');
+  const nm=(nmEl&&nmEl.value.trim())||_FL('Anonyme','Anonymous');
+  const amt=Number(String((amEl&&amEl.value)||'').replace(',','.'));
+  if(!amt||amt<=0){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  if(!ev.stripe_account){alert(_FL('L\u2019association n\u2019a pas encore raccord\u00e9 son compte carte.','The association has not connected its card account yet.'));return;}
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-donate',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({event_id:id,amount:amt,currency:(ev.currency||'EUR'),donor_name:nm,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00e9ponse inattendue.');
+  }catch(e){ alert(_FL('Paiement indisponible : ','Payment unavailable: ')+(e.message||e)); }
+}
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
@@ -9360,7 +9378,8 @@ function viewEvent(){
           ? `<div class="row-gap" style="align-items:flex-end;flex-wrap:wrap">
                <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="don-name" value="${esc(myName)}" placeholder="${_FL('Nom affiché','Shown name')}"></div>
                <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>${_FL('Montant','Amount')} (${ev.currency||'EUR'})</label><input id="don-amt" type="number" min="1" placeholder="0"></div>
-               <button class="btn btn-gold btn-sm" onclick="evDonSubmit('${ev.id}')">${_FL('Enregistrer mon don','Record my gift')}</button>
+               ${ev.stripe_account?`<button class="btn btn-gold btn-sm" onclick="stripeDonate('${ev.id}')">${_FL('Payer par carte','Pay by card')}</button>`:''}
+               <button class="btn ${ev.stripe_account?'btn-ghost':'btn-gold'} btn-sm" onclick="evDonSubmit('${ev.id}')">${ev.stripe_account?_FL('Inscrire un don réglé hors ligne','Record an offline gift'):_FL('Enregistrer mon don','Record my gift')}</button>
                <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;render()">${tr('cancel')}</button>
              </div>`
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
@@ -10328,7 +10347,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.71';
+const UBORA_BUILD='v9.72';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
