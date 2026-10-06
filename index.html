@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='groupehome'||v==='memberhome')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,groupehome:viewGroupHome,memberhome:viewMemberHome,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -4026,6 +4026,99 @@ function viewGroupLife(){
 /* ============================================================================
    ATTESTATIONS — générer (relevé vérifié) + vérifier (public, opposable)
    ============================================================================ */
+function openGroupHome(id){ state.activeCase=id; go('groupehome'); }
+function openMemberHome(id,mid){ state.activeCase=id; state.releveMid=mid; go('memberhome'); }
+function ghStyle(){ return `<style>
+  .gh-table{position:relative;width:300px;max-width:100%;height:300px;margin:10px auto 2px}
+  .gh-core{position:absolute;inset:78px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#2a2f52,#161B3D);border:1px solid rgba(201,168,76,.45);display:flex;align-items:center;justify-content:center;color:#C9A84C;box-shadow:0 10px 30px rgba(20,15,5,.25)}
+  .gh-seat{position:absolute;top:50%;left:50%}
+  .gh-seat-in{transform:translate(-50%,-50%);text-align:center;width:118px;cursor:pointer}
+  .gh-name{font-weight:600;font-size:13px;color:var(--ink);animation:ghPulse 7s ease-in-out infinite}
+  .gh-role{font-size:10px;color:var(--mid)}
+  @keyframes ghPulse{0%,16%,100%{transform:scale(1);color:var(--ink)}7%{transform:scale(1.2);color:#8a6a24}}
+  .gh-drawers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .gh-drawer{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold-bright);border-radius:12px;padding:14px 15px;cursor:pointer;transition:transform .15s,box-shadow .15s}
+  .gh-drawer:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(20,15,5,.1)}
+  .gh-draw-ic{color:#C9A84C;font-size:16px}
+  .gh-draw-t{font-weight:600;margin-top:6px}
+  .gh-draw-p{font-size:12.5px;color:var(--mid);margin-top:3px}
+  .gh-tl-item{display:flex;gap:12px;padding:7px 0}
+  .gh-tl-dot{width:10px;height:10px;border-radius:50%;background:#C9A84C;margin-top:5px;flex:0 0 auto;box-shadow:0 0 0 3px rgba(201,168,76,.16)}
+  .gh-tl-body{border-left:1px solid var(--line);margin-left:-6px;padding-left:16px;flex:1}
+  .gh-tl-label{font-weight:600}
+  @media(prefers-reduced-motion:reduce){.gh-name{animation:none}}
+</style>`; }
+function viewGroupHome(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  caseEnsureMemberIds(c); c.members=c.members||[]; c.evts=c.evts||[]; c.cotis=c.cotis||[];
+  const cur=(c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  var totC=0,totD=0; (c.members||[]).forEach(function(m){ totC+=caseCotiseOf(c,m); totD+=caseEngageOf(c,m); });
+  var solG=totC-totD;
+  var sceau=(typeof aboSceau==='function')?aboSceau(c.palier,c.premium_until):'';
+  var isBu=function(m){ return /bureau|pr[eé]sident|tr[eé]sori|secr[eé]tair|commissaire/i.test(String(m.role||'')); };
+  var bureau=(c.members||[]).filter(isBu);
+  var ring=(bureau.length?bureau:(c.members||[]).slice(0,8));
+  var N=ring.length;
+  var ringHtml=ring.map(function(m,i){
+    var ang=(360/N)*i, dl=(i*(7/Math.max(1,N))).toFixed(2);
+    return '<div class="gh-seat" style="transform:rotate('+ang+'deg) translate(120px) rotate('+(-ang)+'deg)"><div class="gh-seat-in" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\')"><div class="gh-name" style="animation-delay:'+dl+'s">'+esc(m.name)+'</div>'+(m.role?'<div class="gh-role">'+esc(m.role)+'</div>':'')+'</div></div>';
+  }).join('');
+  const cag=c.cagnotte||{}; const cagRaised=((cag.contribs)||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0); const cagGoal=Number(cag.goal)||0; const cagPct=cagGoal>0?Math.min(100,Math.round(cagRaised/cagGoal*100)):0;
+  const nextEv=(c.evts||[])[0];
+  function drawer(ic,title,preview,onclick){ return '<div class="gh-drawer" onclick="'+onclick+'"><div class="gh-draw-ic">'+ic+'</div><div class="gh-draw-t">'+title+'</div><div class="gh-draw-p">'+preview+'</div></div>'; }
+  var drawers=[
+    drawer('◆', _FL('Finances','Finances'), money(solG,cur)+' <span class="faint">'+_FL('solde','balance')+'</span>', "openCaseComptes('"+c.id+"')"),
+    drawer('✦', _FL('Activités','Activities'), (c.evts.length?(c.evts.length+' '+_FL('événement(s)','event(s)')+(nextEv?(' · '+esc(nextEv.title)):'')):_FL('Aucune encore','None yet')), "openCaseEvts('"+c.id+"')"),
+    drawer('❖', _FL('Projet','Project'), (cag.title?(esc(cag.title)+(cagGoal?(' · '+cagPct+'%'):'')):_FL('Pas de projet','No project')), "openCaseCagnotte('"+c.id+"')"),
+    drawer('▦', _FL('Annuaire','Directory'), (c.members.length+' '+_FL('membre(s)','member(s)')), "openCaseMembers('"+c.id+"')"),
+    drawer('✎', _FL('Cotisations','Dues'), money(totC,cur)+' '+_FL('cotisé','contributed'), "openCaseCotis('"+c.id+"')"),
+    drawer('✉', _FL('Bibliothèque','Library'), _FL('Relevés & rapport','Statements & report'), "openCaseRapport('"+c.id+"')")
+  ].join('');
+  var acts=(c.evts||[]).map(function(e){ var cons=(e.contribs||[]); var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0); return {d:e.dateISO||'', label:e.title||_FL('Événement','Event'), sub:_FL('événement','event')+(cons.length?(' · '+money(tot,cur)):''), vis:e.visibility}; });
+  acts.sort(function(a,b){return String(b.d).localeCompare(String(a.d));});
+  acts=acts.slice(0,8);
+  var timeline=acts.length?acts.map(function(a){return '<div class="gh-tl-item"><div class="gh-tl-dot"></div><div class="gh-tl-body"><div class="gh-tl-label">'+esc(a.label)+(a.vis==='public'?' <span class="pill" style="font-size:9px;background:#efe7d4;color:#8a6a24">'+_FL('public','public')+'</span>':'')+'</div><div class="msub">'+(a.d?esc(a.d)+' · ':'')+a.sub+'</div></div></div>';}).join(''):('<div class="msub">'+_FL('Le fil se remplira avec vos activités.','The thread fills as you add activities.')+'</div>');
+  app().innerHTML=ghStyle()+`
+    <button class="backlink" onclick="openCase('${c.id}')">‹ ${tr('mc_title')}</button>
+    <div class="eyebrow">${_FL('vie du groupe','group life')}</div>
+    <h1 class="page-title">${esc(c.name)}</h1>
+    <p class="lead">${esc(c.mission||_FL('Le foyer du groupe — tout ce qui le fait vivre, réuni ici.','The group’s home — everything that makes it live, gathered here.'))}</p>
+    <div class="row-gap" style="align-items:center;gap:12px;margin:2px 0 6px">${sceau}<span class="msub">${c.members.length} ${_FL('membre(s)','member(s)')}${c.country?(' · '+esc(c.country)):''}</span></div>
+    ${N?`<div class="panel"><div class="panel-h"><h3>${_FL('Le bureau — autour de la table','The board — around the table')}</h3></div>
+      <div style="padding:4px 16px 12px"><div class="gh-table"><div class="gh-core"><div style="text-align:center"><div style="font-family:'Cormorant Garamond',serif;font-size:18px;line-height:1.1">${esc(c.name)}</div><div style="font-size:9px;letter-spacing:.18em;opacity:.75;margin-top:2px">UBORA</div></div></div>${ringHtml}</div>
+      ${bureau.length?'':`<div class="hint" style="text-align:center">${_FL('Donnez un rôle (président, trésorier…) à vos membres dans l’annuaire pour nommer le bureau.','Give roles in the directory to name the board.')}</div>`}</div></div>`:''}
+    <div class="panel"><div class="panel-h"><h3>${_FL('Les tiroirs du groupe','The group’s drawers')}</h3></div>
+      <div style="padding:14px 16px"><div class="gh-drawers">${drawers}</div></div></div>
+    <div class="panel"><div class="panel-h"><h3>${_FL('Le fil du groupe','The group’s thread')}</h3></div>
+      <div style="padding:10px 18px 14px">${timeline}</div></div>
+    <div class="asnote" style="margin-top:12px">${_FL('UBORA ne détient aucun fonds — cette page rassemble ce que le groupe a lui-même consigné.','UBORA holds no funds — this page gathers what the group itself recorded.')}</div>
+    ${footer()}`;
+}
+function viewMemberHome(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  caseEnsureMemberIds(c);
+  const m=(c.members||[]).find(function(x){return x.id===state.releveMid;}); if(!m)return go('groupehome');
+  const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  const co=caseCotiseOf(c,m), de=caseEngageOf(c,m), so=co-de; var neg=so<0;
+  const cl=caseCotisList(c,m), el=caseEngageList(c,m);
+  var items=[];
+  cl.forEach(function(x){ items.push({label:_FL('Cotisation','Due')+(x.note?(' — '+esc(x.note)):''), amt:Number(x.amount)||0, cur:x.cur, pos:true}); });
+  el.forEach(function(x){ items.push({label:esc(x.label)+' ('+(x.kind==='projet'?_FL('projet','project'):_FL('événement','event'))+')', amt:Number(x.amount)||0, cur:x.cur, pos:false}); });
+  var tl=items.length?items.map(function(it){return '<div class="gh-tl-item"><div class="gh-tl-dot" style="background:'+(it.pos?'#C9A84C':'#8A2E16')+';box-shadow:0 0 0 3px '+(it.pos?'rgba(201,168,76,.16)':'rgba(138,46,22,.14)')+'"></div><div class="gh-tl-body"><div class="gh-tl-label">'+it.label+'</div><div class="msub">'+(it.pos?'+ ':'− ')+money(it.amt,it.cur||cur)+'</div></div></div>';}).join(''):('<div class="msub">'+_FL('Son histoire commencera avec sa première cotisation.','Their story starts with their first due.')+'</div>');
+  app().innerHTML=ghStyle()+`
+    <button class="backlink" onclick="openGroupHome('${c.id}')">‹ ${_FL('Vie du groupe','Group life')}</button>
+    <div class="eyebrow">${_FL('mon histoire','my story')} · ${esc(c.name)}</div>
+    <h1 class="page-title">${esc(m.name)}</h1>
+    <p class="lead">${m.role?esc(m.role)+' · ':''}${_FL('Votre place et votre histoire dans le groupe.','Your place and your story in the group.')}</p>
+    <div class="panel"><div style="padding:18px 22px"><div class="between" style="flex-wrap:wrap;gap:20px;align-items:flex-end">
+      <div><div class="msub">${_FL('Cotisé','Contributed')}</div><div style="font-size:19px;font-weight:600">${money(co,cur)}</div></div>
+      <div><div class="msub">${_FL('Engagé','Committed')}</div><div style="font-size:19px;font-weight:600">${money(de,cur)}</div></div>
+      <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde','Balance')}</div><div style="font-size:28px;font-weight:600;color:${neg?'#8A2E16':'#8A6A24'}">${money(so,cur)}</div></div>
+    </div>${neg?`<div class="asnote" style="margin-top:8px;color:#8A2E16">${_FL('Solde négatif — à régulariser.','Negative balance — to settle.')}</div>`:''}</div></div>
+    <div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-ghost btn-sm" onclick="openCaseReleve('${c.id}','${m.id}')">${_FL('Relevé imprimable','Printable statement')}</button></div>
+    <div class="panel"><div class="panel-h"><h3>${_FL('Mon fil','My thread')}</h3></div><div style="padding:10px 18px 14px">${tl}</div></div>
+    ${footer()}`;
+}
 function repOpenAttestation(){state.att=state.att||{};go('attmembre');if(state.uid)repLoadAttestations();}
 async function repLoadAttestations(){
   if(!state.uid||typeof sb==='undefined'||!sb)return;
@@ -6934,7 +7027,7 @@ function viewCaseComptes(){
     var pct=co>0?Math.min(100,Math.round(de/co*100)):(de>0?100:0);
     var bar='<div style="height:4px;background:#ece4d2;border-radius:3px;margin-top:7px;max-width:240px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(neg?'#8A2E16':'#C9A84C')+'"></div></div>';
     var tag=neg?' <span class="pill" style="background:#F4D9D0;color:#8A2E16;font-size:10px;letter-spacing:.04em">'+_FL('à régulariser','to settle')+'</span>':'';
-    return '<div class="mrow"><div class="stack" style="flex:1;min-width:0"><div class="mname">'+esc(m.name)+tag+'</div>'
+    return '<div class="mrow"><div class="stack" style="flex:1;min-width:0"><div class="mname" style="cursor:pointer" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\')">'+esc(m.name)+tag+'</div>'
       +'<div class="msub">'+_FL('cotisé','contributed')+' '+money(co,cur)+' · '+_FL('engagé','committed')+' '+money(de,cur)+'</div>'+bar+'</div>'
       +'<div class="right" style="display:flex;align-items:center;gap:14px"><div style="font-size:22px;font-weight:600;line-height:1;color:'+col+'">'+money(so,cur)+'</div>'
       +'<button class="btn btn-ghost btn-sm" onclick="openCaseReleve(\''+c.id+'\',\''+m.id+'\')">'+_FL('Relevé','Statement')+'</button></div></div>';
@@ -7138,6 +7231,7 @@ function viewCaseDetail(){
     <div class="t-meta">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div>
     ${caseDelBlock(c)}
     <div style="margin-top:6px">${trustSeal(tr('mc_seal'))}</div>
+    <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="openGroupHome('${c.id}')">${_FL('Vie du groupe','Group life')}</button></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${tr('mc_tools_h')}</h3></div>
       <div style="padding:8px 16px">${tools}<div class="msub" style="padding:8px 4px">${tr('mc_tools_note')}</div></div></div>
     ${caseAbonnementPanel(c)}
@@ -10362,7 +10456,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.77';
+const UBORA_BUILD='v9.78';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
