@@ -3808,10 +3808,10 @@ function repAccessPanel(c){
       }
       let actions='';
       if(!ok){
-        actions=`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}')">${_FL('Copier','Copy')}</button>`;
+        actions=`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}')">${_FL('Copier','Copy')}</button><button class="btn btn-ghost btn-sm" onclick="repShareInvite('${esc(m.join_code||'')}')">${_FL('Lien + QR','Link + QR')}</button>`;
         if(email)actions+=` <button class="btn btn-ghost btn-sm" onclick="repEmailInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}','${esc(email)}')">${_FL('Email','Email')}</button>`;
       }
-      return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`;
+      return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`+((state.repShareFor&&state.repShareFor===m.join_code)?inviteShareBlock(location.origin+location.pathname+'?cj='+encodeURIComponent(m.join_code), c.name, {caption:_FL('Scanner pour rejoindre','Scan to join')}):'');
     }).join('');
     const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
     inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Nommez le bureau, et invitez par email (ou copiez le code pour SMS/WhatsApp).','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
@@ -3901,6 +3901,7 @@ function repCopyInvite(caseId,member,code){
   try{alert(_FL('Invitation copiée — collez-la dans un email, un SMS ou WhatsApp.','Invitation copied — paste it into an email, SMS or WhatsApp.'));}catch(e){}
 }
 function repJoinSet(v){state.repJoinCode=v;}
+function repShareInvite(code){ state.repShareFor=(state.repShareFor===code?null:code); render(); }
 async function repJoinSubmit(){
   const code=((state.repJoinCode||'')+'').trim();if(!code)return;
   state.repJoinMsg='';state.repJoinBusy=true;state.repJoinOk=false;render();
@@ -6700,6 +6701,17 @@ function viewCaseMembers(){
         <div class="field" style="flex:1;min-width:120px;margin-top:0"><label>R\u00f4le</label><input id="cm-role" placeholder="Ex. Tr\u00e9sorier"></div></div>
       <div style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="caseMemberAdd()">+ Ajouter le membre</button></div>
     </div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Importer une liste','Import a list')}</h3></div>
+      <div style="padding:14px 20px">
+        <div class="hint" style="margin-bottom:8px">${_FL('Collez votre liste depuis Excel/Word (une personne par ligne) ou importez un CSV. Colonnes reconnues : Nom, Contact, Rôle — dans cet ordre, ou avec une ligne d’en-tête.','Paste from Excel/Word (one person per line) or import a CSV. Columns: Name, Contact, Role.')}</div>
+        <textarea id="cm-bulk" rows="5" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:10px;border:1px solid var(--line);border-radius:10px" placeholder="${_FL('Awa Diallo, awa@mail.com, Trésorière','Awa Diallo, awa@mail.com, Treasurer')}"></textarea>
+        <div class="row-gap" style="margin-top:10px">
+          <label class="filebtn">📎 ${_FL('Importer un CSV','Import CSV')}<input type="file" accept=".csv,.txt,.tsv" style="display:none" onchange="caseMembersFile(event)"></label>
+          <button class="btn btn-gold btn-sm" onclick="caseMembersImport()">${_FL('Ajouter ces personnes','Add these people')}</button>
+        </div>
+        <div class="hint" style="margin-top:6px">${_FL('Astuce : copiez directement depuis un tableau Excel (colonnes séparées par des tabulations) — c’est reconnu automatiquement.','Tip: copy straight from an Excel table — tab-separated columns are auto-detected.')}</div>
+        <div class="hint" style="margin-top:6px;color:var(--gold)">${_FL('Photo d’une liste manuscrite ou fichier Word : via l’IA — bientôt.','Photo of a handwritten/Word list via AI — coming soon.')}</div>
+      </div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Membres (${c.members.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     ${footer()}`;
 }
@@ -6727,6 +6739,40 @@ function caseMemberDel(i){
   c.members.splice(i,1);
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
   render();
+}
+function caseMembersFile(ev){ const f=ev&&ev.target&&ev.target.files&&ev.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const ta=document.getElementById('cm-bulk'); if(ta){ ta.value=String((e.target&&e.target.result)||''); } }; r.readAsText(f); ev.target.value=''; }
+function caseParseLine(line){ var d = line.indexOf('\t')>=0 ? '\t' : (line.indexOf(';')>=0 ? ';' : (line.indexOf(',')>=0 ? ',' : null)); return d ? line.split(d).map(function(x){return x.trim();}) : [line.trim()]; }
+function caseMembersImport(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
+  const ta=document.getElementById('cm-bulk'); const raw=ta?String(ta.value||''):'';
+  const lines=raw.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
+  if(!lines.length){alert(_FL('Collez une liste ou importez un fichier.','Paste a list or import a file.'));return;}
+  var startIdx=0, map={name:0,contact:1,role:2};
+  var first=caseParseLine(lines[0]).map(function(h){return h.toLowerCase();});
+  var looksHeader=first.some(function(h){return /nom|name|contact|email|mail|t[eé]l|phone|r[oô]le|role|fonction|poste/.test(h);});
+  if(looksHeader){
+    startIdx=1; map={name:-1,contact:-1,role:-1};
+    first.forEach(function(h,idx){ if(map.name<0&&/nom|name|pr[eé]nom/.test(h))map.name=idx; else if(map.contact<0&&/contact|email|mail|t[eé]l|phone|num/.test(h))map.contact=idx; else if(map.role<0&&/r[oô]le|role|fonction|poste/.test(h))map.role=idx; });
+    if(map.name<0)map.name=0; if(map.contact<0)map.contact=1; if(map.role<0)map.role=2;
+  }
+  c.members=c.members||[]; caseEnsureMemberIds(c);
+  const _actif=!!(c.premium_until && new Date(c.premium_until)>new Date()); const _max=_actif?100:30;
+  const exist={}; c.members.forEach(function(m){ exist[String(m.name||'').trim().toLowerCase()]=1; });
+  var added=0, dup=0, full=false;
+  for(var i=startIdx;i<lines.length;i++){
+    var cols=caseParseLine(lines[i]);
+    var nm=(cols[map.name]||cols[0]||'').trim(); if(!nm)continue;
+    if(exist[nm.toLowerCase()]){dup++;continue;}
+    if(c.members.length>=_max){full=true;break;}
+    c.members.push({id:newId('m'),name:nm,contact:(cols[map.contact]||'').trim(),role:(cols[map.role]||'').trim()});
+    exist[nm.toLowerCase()]=1; added++;
+  }
+  if(BACKEND==='supabase'){db.saveCase(c).catch(function(e){console.warn(e);});}
+  var msg=added+' '+_FL('personne(s) ajoutée(s).','person(s) added.');
+  if(dup)msg+=' '+dup+' '+_FL('déjà présente(s), ignorée(s).','already there, skipped.');
+  if(full)msg+=' '+_FL('Limite du palier atteinte — le reste n’a pas été ajouté.','Tier limit reached — the rest was not added.');
+  if(ta)ta.value='';
+  alert(msg); render();
 }
 const CASE_CUR=['EUR','CHF','USD','GBP','CAD','XOF','XAF','MAD','NGN','ZAR'];
 function caseCurOpts(sel){return CASE_CUR.map(x=>`<option value="${x}" ${sel===x?'selected':''}>${x}</option>`).join('');}
@@ -6836,12 +6882,15 @@ function viewCaseComptes(){
   const cur=(c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
   const sameName=function(a,b){ return a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase(); };
   const cotiseOf=function(m){ return c.cotis.filter(function(x){ return x.mid? x.mid===m.id : sameName(x.who,m.name); }).reduce(function(s,x){return s+(Number(x.amount)||0);},0); };
-  const contribOf=function(m){ var t=0; c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : sameName(k.name,m.name)) t+=(Number(k.amount)||0); }); }); return t; };
+  const contribOf=function(m){ var t=0;
+    c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : sameName(k.name,m.name)) t+=(Number(k.amount)||0); }); });
+    ((c.cagnotte&&c.cagnotte.contribs)||[]).forEach(function(k){ if(k.fromAccount && (k.mid? k.mid===m.id : sameName(k.who,m.name))) t+=(Number(k.amount)||0); });
+    return t; };
   var totC=0, totD=0;
   const rows=c.members.length?c.members.map(function(m){
     var co=cotiseOf(m), de=contribOf(m), so=co-de; totC+=co; totD+=de;
     var col=so<0?'#8A2E16':'#1E2128';
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements)','committed (events)')+' '+money(de,cur)+'</div></div><div class="right"><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements + projets)','committed (events + projects)')+' '+money(de,cur)+'</div></div><div class="right"><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
   }).join(''):('<div class="empty">'+_FL('Ajoutez des membres \u00e0 l\u2019annuaire pour voir les comptes.','Add members to the directory to see accounts.')+'</div>');
   var solG=totC-totD;
   app().innerHTML=`
@@ -6851,7 +6900,7 @@ function viewCaseComptes(){
     <p class="lead">${_FL('Le compte de chaque membre et celui du groupe. Chaque cotisation augmente le solde ; chaque contribution \u00e0 un \u00e9v\u00e9nement le diminue \u2014 automatiquement.','Each member\u2019s account and the group\u2019s. Each due raises the balance; each event contribution lowers it \u2014 automatically.')}</p>
     <div class="panel"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:16px">
       <div><div class="msub">${_FL('Total cotis\u00e9','Total contributed')}</div><div class="mname" style="font-size:18px">${money(totC,cur)}</div></div>
-      <div><div class="msub">${_FL('Total engag\u00e9 (\u00e9v\u00e9nements)','Total committed (events)')}</div><div class="mname" style="font-size:18px">${money(totD,cur)}</div></div>
+      <div><div class="msub">${_FL('Total engag\u00e9 (\u00e9v\u00e9nements + projets)','Total committed (events + projects)')}</div><div class="mname" style="font-size:18px">${money(totD,cur)}</div></div>
       <div><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div class="mname" style="font-size:18px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
     </div></div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Compte par membre','Per-member account')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
@@ -6881,8 +6930,12 @@ function viewCaseCagnotte(){
       ${goal>0?`<div style="height:8px;background:#e8e0cf;border-radius:6px;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#C9A84C"></div></div>`:''}
     </div></div>
     <div class="panel" style="margin-top:14px"><div style="padding:16px 20px">
-      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Contributeur</label><input id="cgc-who" placeholder="Nom"></div>
+      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Contributeur</label>
+          <select id="cgc-mid">${(c.members||[]).map(function(m){return '<option value="'+m.id+'">'+esc(m.name)+'</option>';}).join('')}<option value="__ext">${_FL('Autre (hors annuaire)','Other (not in directory)')}</option></select></div>
         <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>Montant</label><input id="cgc-amount" type="number" placeholder="0"></div></div>
+      <label style="display:block;margin-top:8px"><input type="checkbox" id="cgc-fromacc" checked> ${_FL('Prélever sur le compte du membre','Take from the member’s account')}</label>
+      <div class="hint" style="margin-top:2px">${_FL('Coché : le montant est débité de son solde (ce qu’il a cotisé). Décoché ou « Autre » : apport externe, aucun compte n’est touché.','Checked: deducted from their balance. Unchecked or “Other”: external, no account touched.')}</div>
+      <div class="field" style="margin-top:6px"><label>${_FL('Si « Autre » : nom','If “Other”: name')}</label><input id="cgc-extname" placeholder="${_FL('Nom','Name')}"></div>
       <div style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="caseCagAdd()">+ Ajouter la contribution</button></div>
     </div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Contributions (${cg.contribs.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
@@ -6891,9 +6944,13 @@ function viewCaseCagnotte(){
 function caseCagSave(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
   c.cagnotte=c.cagnotte||{contribs:[]}; c.cagnotte.title=g('cg-title'); c.cagnotte.goal=Number(g('cg-goal'))||0; c.cagnotte.cur=g('cg-cur')||'EUR'; c.cagnotte.contribs=c.cagnotte.contribs||[];
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
-function caseCagAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
-  const who=g('cgc-who'), amount=g('cgc-amount'); if(!who||!amount){alert('Indiquez le contributeur et le montant.');return;}
-  c.cagnotte=c.cagnotte||{contribs:[]}; c.cagnotte.contribs=c.cagnotte.contribs||[]; c.cagnotte.contribs.unshift({who,amount:Number(amount)||0});
+function caseCagAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; caseEnsureMemberIds(c); const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const mid=g('cgc-mid'); const amount=Number(g('cgc-amount'))||0; if(!amount){alert('Indiquez le montant.');return;}
+  var who='', useMid=null, fromAcc=false;
+  if(mid && mid!=='__ext'){ var m=(c.members||[]).find(x=>x.id===mid); who=m?m.name:''; useMid=mid; var fa=document.getElementById('cgc-fromacc'); fromAcc=fa?!!fa.checked:false; }
+  else { who=g('cgc-extname')||'Externe'; fromAcc=false; }
+  if(!who){alert('Choisissez un membre ou indiquez un nom.');return;}
+  c.cagnotte=c.cagnotte||{contribs:[]}; c.cagnotte.contribs=c.cagnotte.contribs||[]; c.cagnotte.contribs.unshift({mid:useMid,who:who,amount:amount,fromAccount:fromAcc});
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 function caseCagDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.cagnotte||!c.cagnotte.contribs)return; if(!confirm('Retirer cette contribution ?'))return; c.cagnotte.contribs.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 function caseGlyph(s){s=s||64;return `<svg width="${s}" height="${s}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex:0 0 auto">
@@ -8419,12 +8476,12 @@ async function evDonSubmit(id){
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
-function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',visual:'',collecte:'billets',dons:[],billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
+function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',settle:'',visual:'',collecte:'billets',dons:[],billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
 function eRead(){ if(!eDraft)return;
   const g=(id,d)=>{const el=$('#'+id);return el?el.value:d;};
   eDraft.title=g('e-title',eDraft.title);eDraft.type=g('e-type',eDraft.type);eDraft.date=g('e-date',eDraft.date);
   eDraft.lieu=g('e-lieu',eDraft.lieu);eDraft.group=g('e-group',eDraft.group);eDraft.currency=g('e-cur',eDraft.currency);
-  eDraft.objectif=g('e-obj',eDraft.objectif);eDraft.desc=g('e-desc',eDraft.desc);
+  eDraft.objectif=g('e-obj',eDraft.objectif);eDraft.desc=g('e-desc',eDraft.desc);eDraft.settle=g('e-settle',eDraft.settle);
   eDraft.category=g('e-cat',eDraft.category);eDraft.country=g('e-country',eDraft.country);eDraft.city=g('e-city',eDraft.city);eDraft.dateISO=g('e-dateiso',eDraft.dateISO);
   eDraft.visibility=g('e-visibility',eDraft.visibility);eDraft.audience=g('e-audience',eDraft.audience);eDraft.collecte=g('e-collecte',eDraft.collecte)||'billets';
   {const oc=$('#e-open');if(oc)eDraft.openToAll=oc.checked;}
@@ -8462,14 +8519,14 @@ async function eSave(){eRead();
   const editors=[{nom:eDraft.ed1n,contact:eDraft.ed1c},{nom:eDraft.ed2n,contact:eDraft.ed2c}]
     .filter(x=>String(x.nom).trim()).map(x=>({nom:String(x.nom).trim(),contact:String(x.contact).trim()}));
   const _dispDate=eDraft.dateISO?evDateLabel(eDraft.dateISO):((eDraft.date&&eDraft.date.trim())||'à venir');
-  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[],collecte:(eDraft.collecte||'billets')};
+  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[],collecte:(eDraft.collecte||'billets'),settle:(eDraft.settle||'').trim()};
   if(eDraft.editId){
     const ev=state_events.find(x=>x.id===eDraft.editId);
     /* calculé AVANT Object.assign (qui écrase ev.city/ev.country) et HORS du bloc, où il est relu */
     const _geoStale=!!ev&&((String(ev.city||'').trim()!==_extra.city)||(String(ev.country||'').trim()!==_extra.country)||!isFinite(Number(ev.lat)));
     if(ev){ tiers.forEach(t=>{const old=ev.billets.find(b=>b.nom===t.nom);if(old)t.vendus=old.vendus;});
       Object.assign(ev,{category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,dateISO:_extra.dateISO,title:eDraft.title.trim(),type:eDraft.type,date:_dispDate,lieu:eDraft.lieu.trim()||'—',
-        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,collecte:_extra.collecte,editors}); }
+        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,collecte:_extra.collecte,settle:_extra.settle,editors}); }
     if(ev&&_geoStale){ const _g=await evGeocode(_extra.city,_extra.country);
       if(_g){ev.lat=_g.lat;ev.lng=_g.lng;} else {delete ev.lat;delete ev.lng;} }
     const id=eDraft.editId; eDraft=null;
@@ -8478,7 +8535,7 @@ async function eSave(){eRead();
   }
   const _newEv={id:newId('e'),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
     date:_dispDate,lieu:eDraft.lieu.trim()||'—',currency:eDraft.currency,
-    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',collecte:_extra.collecte,dons:[],billets:tiers};
+    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',collecte:_extra.collecte,settle:_extra.settle,dons:[],billets:tiers};
   const _g=await evGeocode(_extra.city,_extra.country);
   if(_g){_newEv.lat=_g.lat;_newEv.lng=_g.lng;}
   state_events.unshift(_newEv);
@@ -8749,7 +8806,7 @@ function editEvent(id){
     if(!code)return;
   }
   eDraft={editId:ev.id,title:ev.title,type:ev.type,category:ev.category||'culturel',country:ev.country||'',city:ev.city||'',openToAll:!!ev.openToAll,visibility:ev.visibility||'public',audience:(Array.isArray(ev.audience)?ev.audience.join(', '):(ev.audience||'')),dateISO:ev.dateISO||'',date:ev.date,lieu:ev.lieu,group:ev.group,currency:ev.currency,
-    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',collecte:ev.collecte||'billets',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
+    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',collecte:ev.collecte||'billets',settle:ev.settle||'',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
     ed1n:(ev.editors&&ev.editors[0]&&ev.editors[0].nom)||'',ed1c:(ev.editors&&ev.editors[0]&&ev.editors[0].contact)||'',
     ed2n:(ev.editors&&ev.editors[1]&&ev.editors[1].nom)||'',ed2c:(ev.editors&&ev.editors[1]&&ev.editors[1].contact)||''};
   go('eventcreate');
@@ -8801,6 +8858,7 @@ function viewEventCreate(){
         <div class="field" style="flex:1;min-width:130px"><label>${tr('ec_obj')}</label><input id="e-obj" type="number" placeholder="0" value="${e.objectif}"></div>
       </div>
       <div class="field"><label>${tr('ec_desc')}</label><input id="e-desc" placeholder="${tr('ec_ph_desc')}" value="${e.desc}"></div>
+      ${(e.collecte||'billets')==='dons'?`<div class="field"><label>${_FL('Comment régler le don (facultatif)','How to settle the gift (optional)')}</label><input id="e-settle" value="${esc(e.settle||'')}" placeholder="${_FL('Ex. Orange Money +237…, IBAN, ou sur place','e.g. Mobile Money, IBAN, or in person')}"></div>`:''}
       <div class="field"><label>${tr('ec_visual')}</label>
         <div class="hint">${tr('ec_visual_hint')}</div>
         ${e.visual?`<div class="ev-visual-edit"><img src="${e.visual}" alt=""><button class="btn btn-ghost btn-sm" onclick="eVisualRemove()">${tr('ec_visual_remove')}</button></div>`:`<label class="filebtn">📎 ${tr('ec_visual_add')}<input type="file" accept="image/*" style="display:none" onchange="eVisual(event)"></label>`}
@@ -9187,7 +9245,7 @@ function viewEvent(){
              </div>`
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
         ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
-        <div class="msub" style="margin-top:10px">${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur. Paiement en ligne bientôt.','UBORA holds no funds: settle directly with the organizer. Online payment coming soon.')}</div>
+        <div class="msub" style="margin-top:10px">${ev.settle?`<div class="msub" style="margin-top:8px"><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}</div>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur. Paiement en ligne bientôt.','UBORA holds no funds: settle directly with the organizer. Online payment coming soon.')}</div>
       </div></div>`;
   } else {
     collectPanel=`${ev.objectif?`<div class="panel"><div style="padding:16px 20px"><div class="between"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span><span style="font-weight:600">${pct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span></div><div class="progress"><i style="width:${pct}%"></i></div></div></div>`:''}
@@ -9215,6 +9273,8 @@ function viewEvent(){
              <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">\uD83D\uDD17 Raccorder le compte de l\u2019association</button></div>`}
       </div></div>`:''}
     <p class="msub" style="margin-top:14px">${BACKEND==='supabase'?`Paiement g\u00E9r\u00E9 par Stripe \u00B7 l\u2019argent va directement au compte de l\u2019association \u00B7 commission UBORA ${feePct}\u00A0% pr\u00E9lev\u00E9e par Stripe.`:tr('ev_pay_note').replace('{p}',feePct)}</p>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Partager / Inviter','Share / Invite')}</h3></div>
+      <div style="padding:6px 16px 14px">${inviteShareBlock(location.origin+location.pathname+'?ev='+ev.id, ev.title, {msg:_FL('Rejoignez « ','Join “')+ev.title+_FL(' » sur UBORA : ','” on UBORA: ')+location.origin+location.pathname+'?ev='+ev.id, caption:_FL('Scanner pour voir l’événement','Scan to view the event')})}</div></div>
     ${reportCtl}
     ${footer()}`;
 }
@@ -10148,7 +10208,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.64';
+const UBORA_BUILD='v9.69';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -10902,12 +10962,20 @@ async function boot(){
 
   /* 1) Mémorise un éventuel code d'invitation présent dans le lien (#join=XXX) */
   let _pendingJoin=null;
+  let _pendingEvent=null;
+  let _pendingCaseJoin=null;
   try{
     const _v=((location.hash||'')+' '+(location.search||'')).match(/[?&\s]v=([A-Z0-9-]{8,20})/i);
     if(_v){ _pendingVerify=_v[1].toUpperCase(); }
     const _m=((location.hash||'')+' '+(location.search||'')).match(/join=([A-Za-z0-9]+)/i);
     if(_m){ _pendingJoin=_m[1].toUpperCase(); try{localStorage.setItem('ubora_join',_pendingJoin);}catch(e){} }
     else { try{_pendingJoin=localStorage.getItem('ubora_join');}catch(e){} }
+    const _evm=((location.hash||'')+' '+(location.search||'')).match(/[?&#]ev=([A-Za-z0-9_-]{4,})/i);
+    if(_evm){ _pendingEvent=_evm[1]; try{localStorage.setItem('ubora_ev',_pendingEvent);}catch(e){} }
+    else { try{_pendingEvent=localStorage.getItem('ubora_ev');}catch(e){} }
+    const _cjm=((location.hash||'')+' '+(location.search||'')).match(/[?&#]cj=([A-Za-z0-9]{4,})/i);
+    if(_cjm){ _pendingCaseJoin=_cjm[1].toUpperCase(); try{localStorage.setItem('ubora_cj',_pendingCaseJoin);}catch(e){} }
+    else { try{_pendingCaseJoin=localStorage.getItem('ubora_cj');}catch(e){} }
   }catch(e){}
 
   /* Lien direct vers une page publique : #privacy / #confidentialite (politique)
@@ -10969,6 +11037,15 @@ async function boot(){
       state.joinCode=_pendingJoin;
       try{ const p=await db.preview(_pendingJoin); if(p&&p.places_libres>0){ state.joinPreview=p; state.view='joinform'; render(); showBackendBadge(); return; } }catch(e){}
       state.view='join'; render(); showBackendBadge(); return;
+    }
+    if(_pendingEvent){
+      try{localStorage.removeItem('ubora_ev');}catch(e){}
+      try{ await db.loadEvents(); }catch(e){}
+      state.activeEvent=_pendingEvent; state.view='event'; render(); showBackendBadge(); return;
+    }
+    if(_pendingCaseJoin){
+      try{localStorage.removeItem('ubora_cj');}catch(e){}
+      state.repJoinCode=_pendingCaseJoin; state.view='casejoin'; render(); showBackendBadge(); return;
     }
     try{await db.loadContacts();}catch(e){}
     await cgvCheck();          /* la barrière ne s'ouvre qu'après cette réponse */
