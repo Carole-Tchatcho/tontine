@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -6734,7 +6734,7 @@ function caseCurOpts(sel){return CASE_CUR.map(x=>`<option value="${x}" ${sel===x
 function openCaseCotis(id){ state.activeCase=id; go('casecotis'); }
 function viewCaseCotis(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
-  c.cotis=c.cotis||[];
+  c.cotis=c.cotis||[]; c.members=c.members||[]; caseEnsureMemberIds(c);
   const cur=(c.cotis[0]&&c.cotis[0].cur)||'EUR';
   const total=c.cotis.reduce((s,x)=>s+(Number(x.amount)||0),0);
   const rows=c.cotis.length?c.cotis.map((x,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||'')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseCotisDel(${i})">\uD83D\uDDD1</button></div></div>`).join(''):`<div class="empty">${tr('empty_cotis')}</div>`;
@@ -6744,7 +6744,7 @@ function viewCaseCotis(){
     <h1 class="page-title">Cotisations \u00b7 ${esc(c.name)}</h1>
     <p class="lead">Enregistrez les cotisations re\u00e7ues \u2014 UBORA garde la trace, l'argent circule entre vous.</p>
     <div class="panel"><div style="padding:18px 20px">
-      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Membre</label><input id="ct-who" placeholder="Nom"></div>
+      <div class="row-gap"><div class="field" style="flex:2;min-width:150px;margin-top:0"><label>Membre</label>${c.members.length?`<select id="ct-mid">`+c.members.map(function(m){return '<option value="'+m.id+'">'+esc(m.name)+'</option>';}).join('')+`</select>`:`<input id="ct-who" placeholder="Ajoutez d\u2019abord des membres \u00e0 l\u2019annuaire">`}</div>
         <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>Montant</label><input id="ct-amount" type="number" placeholder="0"></div>
         <div class="field" style="flex:0;min-width:90px;margin-top:0"><label>Devise</label><select id="ct-cur">${caseCurOpts(cur)}</select></div>
         <div class="field" style="flex:2;min-width:140px;margin-top:0"><label>Note</label><input id="ct-note" placeholder="Ex. janvier"></div></div>
@@ -6753,9 +6753,11 @@ function viewCaseCotis(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Cotisations (${c.cotis.length})</h3><span class="pill p-done">Total ${money(total,cur)}</span></div><div style="padding:6px 16px 12px">${rows}</div></div>${(c.cotisReprise&&c.cotisReprise.length)?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Historique repris \u00b7 non v\u00e9rifi\u00e9 (${c.cotisReprise.length})</h3></div><div style="padding:6px 16px 12px"><div class="hint" style="margin-bottom:8px">Charg\u00e9 depuis un fichier, non v\u00e9rifi\u00e9 par UBORA \u2014 m\u00e9moire de l\u2019association, exclu de la r\u00e9putation et des attestations certifi\u00e9es.</div>${c.cotisReprise.map(x=>`<div class="mrow"><div class="stack"><div class="mname">${esc(x.who)} \u2014 ${money(Number(x.amount)||0,x.cur||'EUR')}</div><div class="msub">${esc(x.note||'')}</div></div></div>`).join('')}</div></div>`:''}
     ${footer()}`;
 }
-function caseCotisAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
-  const who=g('ct-who'), amount=g('ct-amount'); if(!who||!amount){alert('Indiquez le membre et le montant.');return;}
-  c.cotis=c.cotis||[]; c.cotis.unshift({who,amount:Number(amount)||0,cur:g('ct-cur')||'EUR',note:g('ct-note')});
+function caseCotisAdd(){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return; caseEnsureMemberIds(c); const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+  var mid='', who=''; var sel=document.getElementById('ct-mid');
+  if(sel){ mid=sel.value; var mm=(c.members||[]).find(function(x){return x.id===mid;}); who=mm?mm.name:''; } else { who=g('ct-who'); }
+  const amount=g('ct-amount'); if(!who||!amount){alert('Indiquez le membre et le montant.');return;}
+  c.cotis=c.cotis||[]; c.cotis.unshift({mid:mid||null,who:who,amount:Number(amount)||0,cur:g('ct-cur')||'EUR',note:g('ct-note')});
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 function caseCotisDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.cotis)return; if(!confirm('Retirer cette cotisation ?'))return; c.cotis.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 /* --- \u00c9v\u00e9nements de la Case --- */
@@ -6815,6 +6817,35 @@ function caseEvtAdd(){
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
 /* --- Cagnotte de projet --- */
+function openCaseComptes(id){ state.activeCase=id; go('casecomptes'); }
+function viewCaseComptes(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  c.members=c.members||[]; c.cotis=c.cotis||[]; c.evts=c.evts||[]; caseEnsureMemberIds(c);
+  const cur=(c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  const sameName=function(a,b){ return a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase(); };
+  const cotiseOf=function(m){ return c.cotis.filter(function(x){ return x.mid? x.mid===m.id : sameName(x.who,m.name); }).reduce(function(s,x){return s+(Number(x.amount)||0);},0); };
+  const contribOf=function(m){ var t=0; c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : sameName(k.name,m.name)) t+=(Number(k.amount)||0); }); }); return t; };
+  var totC=0, totD=0;
+  const rows=c.members.length?c.members.map(function(m){
+    var co=cotiseOf(m), de=contribOf(m), so=co-de; totC+=co; totD+=de;
+    var col=so<0?'#8A2E16':'#1E2128';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements)','committed (events)')+' '+money(de,cur)+'</div></div><div class="right"><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
+  }).join(''):('<div class="empty">'+_FL('Ajoutez des membres \u00e0 l\u2019annuaire pour voir les comptes.','Add members to the directory to see accounts.')+'</div>');
+  var solG=totC-totD;
+  app().innerHTML=`
+    <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
+    <div class="eyebrow">${_FL('comptes','accounts')}</div>
+    <h1 class="page-title">Comptes \u00b7 ${esc(c.name)}</h1>
+    <p class="lead">${_FL('Le compte de chaque membre et celui du groupe. Chaque cotisation augmente le solde ; chaque contribution \u00e0 un \u00e9v\u00e9nement le diminue \u2014 automatiquement.','Each member\u2019s account and the group\u2019s. Each due raises the balance; each event contribution lowers it \u2014 automatically.')}</p>
+    <div class="panel"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:16px">
+      <div><div class="msub">${_FL('Total cotis\u00e9','Total contributed')}</div><div class="mname" style="font-size:18px">${money(totC,cur)}</div></div>
+      <div><div class="msub">${_FL('Total engag\u00e9 (\u00e9v\u00e9nements)','Total committed (events)')}</div><div class="mname" style="font-size:18px">${money(totD,cur)}</div></div>
+      <div><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div class="mname" style="font-size:18px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
+    </div></div></div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Compte par membre','Per-member account')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
+    <div class="asnote" style="margin-top:12px">${_FL('UBORA ne d\u00e9tient aucun fonds \u2014 ces comptes sont le registre partag\u00e9 du groupe, visible par tous ses membres.','UBORA holds no funds \u2014 these accounts are the group\u2019s shared ledger, visible to all members.')}</div>
+    ${footer()}`;
+}
 function openCaseCagnotte(id){ state.activeCase=id; go('casecagnotte'); }
 function viewCaseCagnotte(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
@@ -6908,6 +6939,7 @@ function viewCaseDetail(){
     `<div class="mrow" onclick="openCaseMembers('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_dir')}</div><div class="msub">${(c.members||[]).length} membre(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseCotis('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_cot')}</div><div class="msub">${(c.cotis||[]).length} cotisation(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseEvts('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_evt')}</div><div class="msub">${(c.evts||[]).length} \u00e9v\u00e9nement(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
+    `<div class="mrow" onclick="openCaseComptes('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Comptes','Accounts')}</div><div class="msub">${_FL('solde par membre + groupe','per-member + group balance')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseCagnotte('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_pot')}</div><div class="msub">${((c.cagnotte&&c.cagnotte.contribs)||[]).length} contribution(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`
   ].join('');
   app().innerHTML=`
@@ -10053,7 +10085,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.60';
+const UBORA_BUILD='v9.61';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
