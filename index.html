@@ -6824,7 +6824,7 @@ function caseEvtAdd(){
 }
 function caseEvtPublish(c,evt){
   if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
-  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:'EUR', objectif:0, desc:evt.note||'', source:'case', caseId:c.id, billets:[] };
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:'EUR', objectif:0, desc:evt.note||'', collecte:'dons', dons:[], source:'case', caseId:c.id, billets:[] };
   try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
@@ -8393,23 +8393,40 @@ function viewFedAdmin(){
 
 /* ---------- événements communautaires (galas, tournois, soirées) ---------- */
 function eventStats(ev){
-  const tickets=ev.billets.reduce((s,b)=>s+b.vendus,0);
-  const collected=ev.billets.reduce((s,b)=>s+b.vendus*b.prix,0);
-  return {tickets,collected};
+  const tickets=(ev.billets||[]).reduce((s,b)=>s+(b.vendus||0),0);
+  const billetSum=(ev.billets||[]).reduce((s,b)=>s+(b.vendus||0)*(b.prix||0),0);
+  const donSum=(ev.dons||[]).reduce((s,d)=>s+(Number(d.montant)||0),0);
+  const dons=(ev.dons||[]).length;
+  const collected=ev.collecte==='dons'?donSum:billetSum;
+  return {tickets,collected,donSum,dons,billetSum};
 }
 function openEvent(id){state.activeEvent=id;state.reportFor=null;state.reportDone=null;go('event');}
 function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;if(BACKEND==='supabase'){db.saveEvent(ev).catch(e=>console.warn('event',e));}if(BACKEND==='supabase'){db.saveEvent(ev).catch(()=>{});}else saveLocal();render();}
+async function evDonSubmit(id){
+  const ev=state_events.find(x=>x.id===id); if(!ev)return;
+  const nmEl=$('#don-name'), amEl=$('#don-amt');
+  const nm=(nmEl&&nmEl.value.trim())||_FL('Anonyme','Anonymous');
+  const amt=Number(String((amEl&&amEl.value)||'').replace(',','.'));
+  if(!amt||amt<=0){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  ev.dons=ev.dons||[];
+  if(BACKEND==='supabase'){
+    try{ const{data,error}=await sb.rpc('event_don_add',{p_event:id,p_name:nm,p_amount:amt,p_cur:ev.currency||null}); if(error)throw error;
+      if(data&&data.don){ev.dons.push(data.don);} else {ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString()});}
+    }catch(e){ alert(_FL('Don non enregistré : ','Could not record gift: ')+(e.message||e)); return; }
+  } else { ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString()}); saveLocal(); }
+  state.donFor=null; render();
+}
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
-function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',visual:'',billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
+function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',visual:'',collecte:'billets',dons:[],billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
 function eRead(){ if(!eDraft)return;
   const g=(id,d)=>{const el=$('#'+id);return el?el.value:d;};
   eDraft.title=g('e-title',eDraft.title);eDraft.type=g('e-type',eDraft.type);eDraft.date=g('e-date',eDraft.date);
   eDraft.lieu=g('e-lieu',eDraft.lieu);eDraft.group=g('e-group',eDraft.group);eDraft.currency=g('e-cur',eDraft.currency);
   eDraft.objectif=g('e-obj',eDraft.objectif);eDraft.desc=g('e-desc',eDraft.desc);
   eDraft.category=g('e-cat',eDraft.category);eDraft.country=g('e-country',eDraft.country);eDraft.city=g('e-city',eDraft.city);eDraft.dateISO=g('e-dateiso',eDraft.dateISO);
-  eDraft.visibility=g('e-visibility',eDraft.visibility);eDraft.audience=g('e-audience',eDraft.audience);
+  eDraft.visibility=g('e-visibility',eDraft.visibility);eDraft.audience=g('e-audience',eDraft.audience);eDraft.collecte=g('e-collecte',eDraft.collecte)||'billets';
   {const oc=$('#e-open');if(oc)eDraft.openToAll=oc.checked;}
   eDraft.ed1n=g('e-ed1n',eDraft.ed1n);eDraft.ed1c=g('e-ed1c',eDraft.ed1c);eDraft.ed2n=g('e-ed2n',eDraft.ed2n);eDraft.ed2c=g('e-ed2c',eDraft.ed2c);
   eDraft.billets=eDraft.billets.map((b,i)=>{
@@ -8422,7 +8439,7 @@ function eRead(){ if(!eDraft)return;
   });
 }
 function eAddTier(){eRead();eDraft.billets.push({nom:'',prix:''});render();}
-function eRemoveTier(i){eRead();eDraft.billets.splice(i,1);if(!eDraft.billets.length)eDraft.billets.push({nom:'',prix:''});render();}
+function eRemoveTier(i){eRead();eDraft.billets.splice(i,1);render();}
 function eVisual(input){
   const f=input&&input.target&&input.target.files&&input.target.files[0]; if(!f)return;
   if(f.size>4*1024*1024){alert(tr('al_visual_big'));input.target.value='';return;}
@@ -8441,18 +8458,18 @@ function eVisualRemove(){eRead();eDraft.visual='';render();}
 async function eSave(){eRead();
   if(!eDraft.title.trim()){alert(tr('al_need_title'));return;}
   const tiers=eDraft.billets.filter(b=>String(b.nom).trim()&&b.prix!=='').map(b=>({nom:String(b.nom).trim(),prix:Number(b.prix)||0,vendus:0}));
-  if(!tiers.length){alert(tr('al_need_ticket'));return;}
+  if((eDraft.collecte||'billets')!=='dons' && !tiers.length){alert(tr('al_need_ticket'));return;}
   const editors=[{nom:eDraft.ed1n,contact:eDraft.ed1c},{nom:eDraft.ed2n,contact:eDraft.ed2c}]
     .filter(x=>String(x.nom).trim()).map(x=>({nom:String(x.nom).trim(),contact:String(x.contact).trim()}));
   const _dispDate=eDraft.dateISO?evDateLabel(eDraft.dateISO):((eDraft.date&&eDraft.date.trim())||'à venir');
-  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[]};
+  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[],collecte:(eDraft.collecte||'billets')};
   if(eDraft.editId){
     const ev=state_events.find(x=>x.id===eDraft.editId);
     /* calculé AVANT Object.assign (qui écrase ev.city/ev.country) et HORS du bloc, où il est relu */
     const _geoStale=!!ev&&((String(ev.city||'').trim()!==_extra.city)||(String(ev.country||'').trim()!==_extra.country)||!isFinite(Number(ev.lat)));
     if(ev){ tiers.forEach(t=>{const old=ev.billets.find(b=>b.nom===t.nom);if(old)t.vendus=old.vendus;});
       Object.assign(ev,{category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,dateISO:_extra.dateISO,title:eDraft.title.trim(),type:eDraft.type,date:_dispDate,lieu:eDraft.lieu.trim()||'—',
-        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,editors}); }
+        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,collecte:_extra.collecte,editors}); }
     if(ev&&_geoStale){ const _g=await evGeocode(_extra.city,_extra.country);
       if(_g){ev.lat=_g.lat;ev.lng=_g.lng;} else {delete ev.lat;delete ev.lng;} }
     const id=eDraft.editId; eDraft=null;
@@ -8461,7 +8478,7 @@ async function eSave(){eRead();
   }
   const _newEv={id:newId('e'),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
     date:_dispDate,lieu:eDraft.lieu.trim()||'—',currency:eDraft.currency,
-    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',billets:tiers};
+    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',collecte:_extra.collecte,dons:[],billets:tiers};
   const _g=await evGeocode(_extra.city,_extra.country);
   if(_g){_newEv.lat=_g.lat;_newEv.lng=_g.lng;}
   state_events.unshift(_newEv);
@@ -8732,7 +8749,7 @@ function editEvent(id){
     if(!code)return;
   }
   eDraft={editId:ev.id,title:ev.title,type:ev.type,category:ev.category||'culturel',country:ev.country||'',city:ev.city||'',openToAll:!!ev.openToAll,visibility:ev.visibility||'public',audience:(Array.isArray(ev.audience)?ev.audience.join(', '):(ev.audience||'')),dateISO:ev.dateISO||'',date:ev.date,lieu:ev.lieu,group:ev.group,currency:ev.currency,
-    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
+    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',collecte:ev.collecte||'billets',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
     ed1n:(ev.editors&&ev.editors[0]&&ev.editors[0].nom)||'',ed1c:(ev.editors&&ev.editors[0]&&ev.editors[0].contact)||'',
     ed2n:(ev.editors&&ev.editors[1]&&ev.editors[1].nom)||'',ed2c:(ev.editors&&ev.editors[1]&&ev.editors[1].contact)||''};
   go('eventcreate');
@@ -8789,11 +8806,20 @@ function viewEventCreate(){
         ${e.visual?`<div class="ev-visual-edit"><img src="${e.visual}" alt=""><button class="btn btn-ghost btn-sm" onclick="eVisualRemove()">${tr('ec_visual_remove')}</button></div>`:`<label class="filebtn">📎 ${tr('ec_visual_add')}<input type="file" accept="image/*" style="display:none" onchange="eVisual(event)"></label>`}
       </div>
     </div></div>
-    <div class="panel"><div class="panel-h"><h3>${tr('ec_tickets')}</h3><button class="btn btn-ghost btn-sm" onclick="eAddTier()">${tr('ec_addticket')}</button></div>
+    <div class="panel"><div class="panel-h"><h3>${_FL('Comment les gens contribuent','How people contribute')}</h3></div>
+      <div style="padding:14px 20px">
+        <div class="field" style="margin-top:0"><select id="e-collecte" onchange="eRead();render()">
+          <option value="billets" ${(e.collecte||'billets')==='billets'?'selected':''}>${_FL('Billetterie — prix fixes (gala, tournoi…)','Ticketing — fixed prices')}</option>
+          <option value="dons" ${e.collecte==='dons'?'selected':''}>${_FL('Cagnotte — dons libres (solidarité, obsèques, collecte…)','Fund — free gifts (solidarity…)')}</option>
+        </select>
+        <div class="hint" style="margin-top:4px">${e.collecte==='dons'?_FL('Chacun donnera le montant qu’il veut. Pas de billet à définir — une cagnotte dédiée à cet événement sera ouverte, séparée du compte du groupe.','Each gives any amount. No tickets — a fund dedicated to this event opens, separate from the group account.'):_FL('Définissez un ou plusieurs types de billets à prix fixe.','Define one or more fixed-price tickets.')}</div>
+        </div>
+      </div></div>
+    ${(e.collecte||'billets')==='billets'?`<div class="panel"><div class="panel-h"><h3>${tr('ec_tickets')}</h3><button class="btn btn-ghost btn-sm" onclick="eAddTier()">${tr('ec_addticket')}</button></div>
       <div style="padding:14px 20px">${tiers}
         <div class="msub" style="margin-top:8px">${tr('ec_fee_note').replace('{p}',feePct)}</div>
         <div class="msub" style="margin-top:6px;color:var(--gold)">${tr('ec_visual_auto')}</div>
-      </div></div>
+      </div></div>`:''}
     <div class="panel"><div class="panel-h"><h3>${tr('ec_whoedit')}</h3><span class="pill p-soon">${tr('ec_security')}</span></div>
       <div style="padding:14px 20px">
         <div class="msub" style="margin-bottom:12px">${tr('ec_whoedit_note')}</div>
@@ -8834,7 +8860,7 @@ function viewEvents(){
   if(f.city)list=list.filter(e=>e.city===f.city);
   if(f.cat)list=list.filter(e=>(e.category||'autre')===f.cat);
   if(f.q){const q=f.q.toLowerCase();list=list.filter(e=>((e.title+' '+e.group+' '+(e.city||'')+' '+(e.country||'')+' '+(e.desc||'')).toLowerCase().includes(q)));}
-  const sortMode=state.evSort||(scope==='discover'?'near':'soon');
+  const sortMode=state.evSort||'new';
   const byDate=(a,b)=>String(a.dateISO||'9999-12-31').localeCompare(String(b.dateISO||'9999-12-31'));
   if(sortMode==='new'){ list.sort((a,b)=>String(b.postedISO||b.dateISO||'').localeCompare(String(a.postedISO||a.dateISO||''))||byDate(a,b)); }
   else if(sortMode==='near'){ const home=state.homeCountry||'', hc=contOf(home); const rk=e=>(e.country===home?0:(evCont(e)===hc?1:2)); list.sort((a,b)=>{const r=rk(a)-rk(b); return r||byDate(a,b);}); }
@@ -8873,7 +8899,7 @@ function viewEvents(){
       <div class="between"><div class="t-name">${esc(ev.title)}</div><span class="pill p-now">${ev.dateISO?evDateLabel(ev.dateISO):esc(ev.date)}</span></div>
       <div class="ev-badges">${badges}</div>
       <div class="t-meta">${esc(ev.group)}${fedTag(ev.federation)}${loc?` · ${esc(loc)}`:''}</div>
-      <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${pct}%</span>`:''}</div>
+      <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${ev.collecte==='dons'?(((ev.dons||[]).length)+' '+_FL('don(s)','gift(s)')):(tickets+' '+tr('ev_tickets'))} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${pct}%</span>`:''}</div>
       ${ev.objectif?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}
       <div class="reg-cta"><span class="reg-count">${flag||(ev.openToAll?tr('ev_open_all'):tr('ev_ticketed'))}</span>
         <div class="row-gap">${canEditEvent(ev)?`<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">✎</button><button class="btn btn-ghost btn-sm" onclick="delEvent('${ev.id}')">🗑</button>`:''}<button class="btn btn-gold btn-sm" onclick="openEvent('${ev.id}')">${tr('ev_view_take')}</button></div></div>
@@ -9141,6 +9167,33 @@ function viewEvent(){
     }
   }
 
+  let collectPanel='';
+  if(ev.collecte==='dons'){
+    const donTotal=(ev.dons||[]).reduce((s,d)=>s+(Number(d.montant)||0),0);
+    const donsList=(ev.dons||[]).slice().reverse();
+    const dpct=ev.objectif?Math.min(100,Math.round(donTotal/ev.objectif*100)):0;
+    const myName=(state.user&&!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?state.user:'';
+    collectPanel=`<div class="panel"><div class="panel-h"><h3>${_FL('Cagnotte de solidarité','Solidarity fund')}</h3><span class="pill p-paid">${_FL('dons libres','free gifts')}</span></div>
+      <div style="padding:14px 20px">
+        <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · ${money(donTotal,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
+        ${ev.objectif?`<div class="progress"><i style="width:${dpct}%"></i></div>`:''}
+        <div class="msub" style="margin:8px 0">${_FL('Chacun donne ce qu’il peut. Chaque don est inscrit dans la cagnotte propre à cet événement — jamais mêlé au compte du groupe.','Each gives what they can. Every gift is recorded in this event’s own fund — never mixed with the group account.')}</div>
+        ${state.donFor===ev.id
+          ? `<div class="row-gap" style="align-items:flex-end;flex-wrap:wrap">
+               <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="don-name" value="${esc(myName)}" placeholder="${_FL('Nom affiché','Shown name')}"></div>
+               <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>${_FL('Montant','Amount')} (${ev.currency||'EUR'})</label><input id="don-amt" type="number" min="1" placeholder="0"></div>
+               <button class="btn btn-gold btn-sm" onclick="evDonSubmit('${ev.id}')">${_FL('Enregistrer mon don','Record my gift')}</button>
+               <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;render()">${tr('cancel')}</button>
+             </div>`
+          : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
+        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
+        <div class="msub" style="margin-top:10px">${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur. Paiement en ligne bientôt.','UBORA holds no funds: settle directly with the organizer. Online payment coming soon.')}</div>
+      </div></div>`;
+  } else {
+    collectPanel=`${ev.objectif?`<div class="panel"><div style="padding:16px 20px"><div class="between"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span><span style="font-weight:600">${pct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span></div><div class="progress"><i style="width:${pct}%"></i></div></div></div>`:''}
+    <div class="panel"><div class="panel-h"><h3>${tr('ev_tickets_panel')}</h3><span class="pill p-soon">${tr('ev_mockup')}</span></div>
+      <div style="padding:4px 16px 12px">${rows}</div></div>`;
+  }
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
     <div class="eyebrow">${evtTypeLabel(ev.type)}</div>
@@ -9150,9 +9203,7 @@ function viewEvent(){
     <div class="asnote">${ev.desc}</div>
     <div>${trustSeal(tr('ev_seal'))}</div>
     ${modPanel}
-    ${ev.objectif?`<div class="panel"><div style="padding:16px 20px"><div class="between"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span><span style="font-weight:600">${pct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span></div><div class="progress"><i style="width:${pct}%"></i></div></div></div>`:''}
-    <div class="panel"><div class="panel-h"><h3>${tr('ev_tickets_panel')}</h3><span class="pill p-soon">${tr('ev_mockup')}</span></div>
-      <div style="padding:4px 16px 12px">${rows}</div></div>
+    ${collectPanel}
     <div class="reg-cta"><span class="reg-count">🔒 ${whoEdit}</span>${editBtn}</div>
     ${manage?`<div style="text-align:center;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openDiffuse('${ev.id}')">${tr('ev_announce')}</button></div>`:''}
     <div class="ev-nudge click" onclick="go('apex')">${tr("ev_nudge")}</div>
@@ -10097,7 +10148,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.62';
+const UBORA_BUILD='v9.63';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
