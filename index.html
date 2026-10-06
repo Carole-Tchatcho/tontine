@@ -3808,15 +3808,14 @@ function repAccessPanel(c){
       }
       let actions='';
       if(!ok){
-        actions=`<button class="btn btn-ghost btn-sm" onclick="repCopyInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}')">${_FL('Copier','Copy')}</button><button class="btn btn-ghost btn-sm" onclick="repShareInvite('${esc(m.join_code||'')}')">${_FL('Lien + QR','Link + QR')}</button>`;
-        if(email)actions+=` <button class="btn btn-ghost btn-sm" onclick="repEmailInvite('${esc(c.id)}','${memJs}','${esc(m.join_code||'')}','${esc(email)}')">${_FL('Email','Email')}</button>`;
+        actions=`<button class="btn ${state.repShareFor===m.join_code?'btn-gold':'btn-ghost'} btn-sm" onclick="repShareInvite('${esc(m.join_code||'')}')">${state.repShareFor===m.join_code?_FL('Fermer','Close'):_FL('Inviter','Invite')}</button>`;
       }
       return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`+((state.repShareFor&&state.repShareFor===m.join_code)?inviteShareBlock(location.origin+location.pathname+'?cj='+encodeURIComponent(m.join_code), c.name, {caption:_FL('Scanner pour rejoindre','Scan to join')}):'');
     }).join('');
     const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
-    inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. Nommez le bureau, et invitez par email (ou copiez le code pour SMS/WhatsApp).','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
+    inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. « Inviter » ouvre le lien, le QR et l’envoi par WhatsApp, SMS ou e-mail.','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
   }
-  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Accès des membres','Member access')}</h3></div><div style="padding:10px 16px 14px"><div class="row" style="margin-bottom:12px"><button class="btn btn-gold btn-sm" onclick="repOpenGroupLife('${esc(c.id)}','${esc(String(c.name||'').replace(/'/g,"\\'"))}')">${_FL('Vue groupe · tiroirs par membre','Group view · per-member drawers')}</button></div>${inner}</div></div>`;
+  return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Accès des membres','Member access')}</h3></div><div style="padding:10px 16px 14px"><div class="row" style="margin-bottom:12px"><button class="btn btn-ghost btn-sm" onclick="repOpenGroupLife('${esc(c.id)}','${esc(String(c.name||'').replace(/'/g,"\\'"))}')">${_FL('Vue groupe · tiroirs par membre','Group view · per-member drawers')}</button></div>${inner}</div></div>`;
 }
 async function repLoadAccess(id){
   if(typeof sb==='undefined'||!sb){return;}
@@ -6928,32 +6927,32 @@ function viewCaseComptes(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   c.members=c.members||[]; c.cotis=c.cotis||[]; c.evts=c.evts||[]; caseEnsureMemberIds(c);
   const cur=(c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
-  const sameName=function(a,b){ return a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase(); };
-  const cotiseOf=function(m){ return c.cotis.filter(function(x){ return x.mid? x.mid===m.id : sameName(x.who,m.name); }).reduce(function(s,x){return s+(Number(x.amount)||0);},0); };
-  const contribOf=function(m){ var t=0;
-    c.evts.forEach(function(e){ (e.contribs||[]).forEach(function(k){ if(k.mid? k.mid===m.id : (!k.ext && sameName(k.name,m.name))) t+=(Number(k.amount)||0); }); });
-    ((c.cagnotte&&c.cagnotte.contribs)||[]).forEach(function(k){ if(k.fromAccount && (k.mid? k.mid===m.id : sameName(k.who,m.name))) t+=(Number(k.amount)||0); });
-    return t; };
   var totC=0, totD=0;
   const rows=c.members.length?c.members.map(function(m){
-    var co=cotiseOf(m), de=contribOf(m), so=co-de; totC+=co; totD+=de;
-    var col=so<0?'#8A2E16':'#1E2128';
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+_FL('cotis\u00e9','contributed')+' '+money(co,cur)+' \u00b7 '+_FL('engag\u00e9 (\u00e9v\u00e9nements + projets)','committed (events + projects)')+' '+money(de,cur)+'</div></div><div class="right" style="display:flex;align-items:center;gap:8px"><button class="btn btn-ghost btn-sm" onclick="openCaseReleve(\''+c.id+'\',\''+m.id+'\')">'+_FL('Relev\u00e9','Statement')+'</button><span class="p-amt" style="color:'+col+'">'+money(so,cur)+'</span></div></div>';
-  }).join(''):('<div class="empty">'+_FL('Ajoutez des membres \u00e0 l\u2019annuaire pour voir les comptes.','Add members to the directory to see accounts.')+'</div>');
+    var co=caseCotiseOf(c,m), de=caseEngageOf(c,m), so=co-de; totC+=co; totD+=de;
+    var neg=so<0, col=neg?'#8A2E16':'#8A6A24';
+    var pct=co>0?Math.min(100,Math.round(de/co*100)):(de>0?100:0);
+    var bar='<div style="height:4px;background:#ece4d2;border-radius:3px;margin-top:7px;max-width:240px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(neg?'#8A2E16':'#C9A84C')+'"></div></div>';
+    var tag=neg?' <span class="pill" style="background:#F4D9D0;color:#8A2E16;font-size:10px;letter-spacing:.04em">'+_FL('à régulariser','to settle')+'</span>':'';
+    return '<div class="mrow"><div class="stack" style="flex:1;min-width:0"><div class="mname">'+esc(m.name)+tag+'</div>'
+      +'<div class="msub">'+_FL('cotisé','contributed')+' '+money(co,cur)+' · '+_FL('engagé','committed')+' '+money(de,cur)+'</div>'+bar+'</div>'
+      +'<div class="right" style="display:flex;align-items:center;gap:14px"><div style="font-size:22px;font-weight:600;line-height:1;color:'+col+'">'+money(so,cur)+'</div>'
+      +'<button class="btn btn-ghost btn-sm" onclick="openCaseReleve(\''+c.id+'\',\''+m.id+'\')">'+_FL('Relevé','Statement')+'</button></div></div>';
+  }).join(''):('<div class="empty">'+_FL('Ajoutez des membres à l’annuaire pour voir les comptes.','Add members to the directory to see accounts.')+'</div>');
   var solG=totC-totD;
   app().innerHTML=`
-    <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
+    <button class="backlink" onclick="openCase('${c.id}')">‹ ${esc(c.name)}</button>
     <div class="eyebrow">${_FL('comptes','accounts')}</div>
-    <h1 class="page-title">Comptes \u00b7 ${esc(c.name)}</h1>
-    <p class="lead">${_FL('Le compte de chaque membre et celui du groupe. Chaque cotisation augmente le solde ; chaque contribution \u00e0 un \u00e9v\u00e9nement le diminue \u2014 automatiquement.','Each member\u2019s account and the group\u2019s. Each due raises the balance; each event contribution lowers it \u2014 automatically.')}</p>
-    <div class="panel"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:16px">
-      <div><div class="msub">${_FL('Total cotis\u00e9','Total contributed')}</div><div class="mname" style="font-size:18px">${money(totC,cur)}</div></div>
-      <div><div class="msub">${_FL('Total engag\u00e9 (\u00e9v\u00e9nements + projets)','Total committed (events + projects)')}</div><div class="mname" style="font-size:18px">${money(totD,cur)}</div></div>
-      <div><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div class="mname" style="font-size:18px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
+    <h1 class="page-title">Comptes · ${esc(c.name)}</h1>
+    <p class="lead">${_FL('Le compte de chaque membre et celui du groupe. Chaque cotisation augmente le solde\u00a0; chaque engagement le diminue — automatiquement.','Each member’s account and the group’s. Each due raises the balance; each commitment lowers it — automatically.')}</p>
+    <div class="panel"><div style="padding:18px 22px"><div class="between" style="flex-wrap:wrap;gap:20px;align-items:flex-end">
+      <div><div class="msub">${_FL('Total cotisé','Total contributed')}</div><div style="font-size:19px;font-weight:600;margin-top:2px">${money(totC,cur)}</div></div>
+      <div><div class="msub">${_FL('Total engagé','Total committed')}</div><div style="font-size:19px;font-weight:600;margin-top:2px">${money(totD,cur)}</div></div>
+      <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div style="font-size:28px;font-weight:600;line-height:1.05;margin-top:2px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
     </div></div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Compte par membre','Per-member account')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     <div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openCaseRapport('${c.id}')">${_FL('Rapport annuel (imprimable)','Annual report (printable)')}</button></div>
-    <div class="asnote" style="margin-top:12px">${_FL('UBORA ne d\u00e9tient aucun fonds \u2014 ces comptes sont le registre partag\u00e9 du groupe, visible par tous ses membres.','UBORA holds no funds \u2014 these accounts are the group\u2019s shared ledger, visible to all members.')}</div>
+    <div class="asnote" style="margin-top:12px">${_FL('UBORA ne détient aucun fonds — ces comptes sont le registre partagé du groupe, visible par tous ses membres.','UBORA holds no funds — these accounts are the group’s shared ledger, visible to all members.')}</div>
     ${footer()}`;
 }
 /* ---- Consignation : relevé par membre + rapport annuel (registre interne de l'association) ---- */
@@ -8614,12 +8613,12 @@ async function stripeDonate(id){
 
 /* ---------- création d'événement (self-service, billets composables) ---------- */
 let eDraft=null;
-function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',settle:'',visual:'',collecte:'billets',dons:[],billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
+function startEvent(){eDraft={editId:null,title:'',type:'gala',category:'culturel',country:'',city:'',openToAll:true,visibility:'public',audience:'',dateISO:'',date:'',lieu:'',group:'',currency:'CAD',objectif:'',desc:'',settle:'',contact:'',visual:'',collecte:'billets',dons:[],billets:[{nom:'Entrée standard',prix:''}],ed1n:'',ed1c:'',ed2n:'',ed2c:''};go('eventcreate');}
 function eRead(){ if(!eDraft)return;
   const g=(id,d)=>{const el=$('#'+id);return el?el.value:d;};
   eDraft.title=g('e-title',eDraft.title);eDraft.type=g('e-type',eDraft.type);eDraft.date=g('e-date',eDraft.date);
   eDraft.lieu=g('e-lieu',eDraft.lieu);eDraft.group=g('e-group',eDraft.group);eDraft.currency=g('e-cur',eDraft.currency);
-  eDraft.objectif=g('e-obj',eDraft.objectif);eDraft.desc=g('e-desc',eDraft.desc);eDraft.settle=g('e-settle',eDraft.settle);
+  eDraft.objectif=g('e-obj',eDraft.objectif);eDraft.desc=g('e-desc',eDraft.desc);eDraft.settle=g('e-settle',eDraft.settle);eDraft.contact=g('e-contact',eDraft.contact);
   eDraft.category=g('e-cat',eDraft.category);eDraft.country=g('e-country',eDraft.country);eDraft.city=g('e-city',eDraft.city);eDraft.dateISO=g('e-dateiso',eDraft.dateISO);
   eDraft.visibility=g('e-visibility',eDraft.visibility);eDraft.audience=g('e-audience',eDraft.audience);eDraft.collecte=g('e-collecte',eDraft.collecte)||'billets';
   {const oc=$('#e-open');if(oc)eDraft.openToAll=oc.checked;}
@@ -8657,14 +8656,14 @@ async function eSave(){eRead();
   const editors=[{nom:eDraft.ed1n,contact:eDraft.ed1c},{nom:eDraft.ed2n,contact:eDraft.ed2c}]
     .filter(x=>String(x.nom).trim()).map(x=>({nom:String(x.nom).trim(),contact:String(x.contact).trim()}));
   const _dispDate=eDraft.dateISO?evDateLabel(eDraft.dateISO):((eDraft.date&&eDraft.date.trim())||'à venir');
-  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[],collecte:(eDraft.collecte||'billets'),settle:(eDraft.settle||'').trim()};
+  const _extra={category:eDraft.category||'autre',country:canonCountry(eDraft.country),city:(eDraft.city||'').trim(),openToAll:!!eDraft.openToAll,dateISO:eDraft.dateISO||'',visibility:eDraft.visibility||'public',audience:(eDraft.visibility==='private'&&eDraft.audience)?String(eDraft.audience).split(',').map(s=>s.trim()).filter(Boolean):[],collecte:(eDraft.collecte||'billets'),settle:(eDraft.settle||'').trim(),contact:(eDraft.contact||'').trim()};
   if(eDraft.editId){
     const ev=state_events.find(x=>x.id===eDraft.editId);
     /* calculé AVANT Object.assign (qui écrase ev.city/ev.country) et HORS du bloc, où il est relu */
     const _geoStale=!!ev&&((String(ev.city||'').trim()!==_extra.city)||(String(ev.country||'').trim()!==_extra.country)||!isFinite(Number(ev.lat)));
     if(ev){ tiers.forEach(t=>{const old=ev.billets.find(b=>b.nom===t.nom);if(old)t.vendus=old.vendus;});
       Object.assign(ev,{category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,dateISO:_extra.dateISO,title:eDraft.title.trim(),type:eDraft.type,date:_dispDate,lieu:eDraft.lieu.trim()||'—',
-        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,collecte:_extra.collecte,settle:_extra.settle,editors}); }
+        currency:eDraft.currency,objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),group:eDraft.group.trim()||ev.group,visual:eDraft.visual||'',billets:tiers,collecte:_extra.collecte,settle:_extra.settle,contact:_extra.contact,editors}); }
     if(ev&&_geoStale){ const _g=await evGeocode(_extra.city,_extra.country);
       if(_g){ev.lat=_g.lat;ev.lng=_g.lng;} else {delete ev.lat;delete ev.lng;} }
     const id=eDraft.editId; eDraft=null;
@@ -8673,7 +8672,7 @@ async function eSave(){eRead();
   }
   const _newEv={id:newId('e'),creator:state.user,editors,group:eDraft.group.trim()||'Mon groupe',type:eDraft.type,category:_extra.category,country:_extra.country,city:_extra.city,openToAll:_extra.openToAll,visibility:_extra.visibility,audience:_extra.audience,dateISO:_extra.dateISO,postedISO:EV_TODAY,title:eDraft.title.trim(),
     date:_dispDate,lieu:eDraft.lieu.trim()||'—',currency:eDraft.currency,
-    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',collecte:_extra.collecte,settle:_extra.settle,dons:[],billets:tiers};
+    objectif:Number(eDraft.objectif)||0,desc:eDraft.desc.trim(),visual:eDraft.visual||'',collecte:_extra.collecte,settle:_extra.settle,contact:_extra.contact,dons:[],billets:tiers};
   const _g=await evGeocode(_extra.city,_extra.country);
   if(_g){_newEv.lat=_g.lat;_newEv.lng=_g.lng;}
   state_events.unshift(_newEv);
@@ -8944,7 +8943,7 @@ function editEvent(id){
     if(!code)return;
   }
   eDraft={editId:ev.id,title:ev.title,type:ev.type,category:ev.category||'culturel',country:ev.country||'',city:ev.city||'',openToAll:!!ev.openToAll,visibility:ev.visibility||'public',audience:(Array.isArray(ev.audience)?ev.audience.join(', '):(ev.audience||'')),dateISO:ev.dateISO||'',date:ev.date,lieu:ev.lieu,group:ev.group,currency:ev.currency,
-    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',collecte:ev.collecte||'billets',settle:ev.settle||'',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
+    objectif:ev.objectif||'',desc:ev.desc||'',visual:ev.visual||'',collecte:ev.collecte||'billets',settle:ev.settle||'',contact:ev.contact||'',billets:ev.billets.map(b=>({nom:b.nom,prix:b.prix})),
     ed1n:(ev.editors&&ev.editors[0]&&ev.editors[0].nom)||'',ed1c:(ev.editors&&ev.editors[0]&&ev.editors[0].contact)||'',
     ed2n:(ev.editors&&ev.editors[1]&&ev.editors[1].nom)||'',ed2c:(ev.editors&&ev.editors[1]&&ev.editors[1].contact)||''};
   go('eventcreate');
@@ -8995,7 +8994,8 @@ function viewEventCreate(){
         <div class="field" style="flex:0 0 110px"><label>${tr('ec_cur')}</label><select id="e-cur">${CUR_ORDER.map(x=>`<option value="${x}" ${x===e.currency?'selected':''}>${CUR_LABEL[x]}</option>`).join('')}</select></div>
         <div class="field" style="flex:1;min-width:130px"><label>${tr('ec_obj')}</label><input id="e-obj" type="number" placeholder="0" value="${e.objectif}"></div>
       </div>
-      <div class="field"><label>${tr('ec_desc')}</label><input id="e-desc" placeholder="${tr('ec_ph_desc')}" value="${e.desc}"></div>
+      <div class="field"><label>${_FL('Présentation — de quoi s’agit-il, pourquoi, ce qui est demandé','Presentation — what it is, why, what’s asked')}</label><textarea id="e-desc" rows="4" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical" placeholder="${_FL('Ex. Soutien aux frais de rapatriement de notre membre. Chaque contribution compte.','e.g. Support for our member’s repatriation costs. Every contribution counts.')}">${esc(e.desc||'')}</textarea></div>
+      <div class="field"><label>${_FL('Contact de l’organisation (facultatif)','Organizer contact (optional)')}</label><input id="e-contact" value="${esc(e.contact||'')}" placeholder="${_FL('Nom, téléphone ou e-mail à afficher','Name, phone or email to show')}"></div>
       ${(e.collecte||'billets')==='dons'?`<div class="field"><label>${_FL('Comment régler le don (facultatif)','How to settle the gift (optional)')}</label><input id="e-settle" value="${esc(e.settle||'')}" placeholder="${_FL('Ex. Orange Money +237…, IBAN, ou sur place','e.g. Mobile Money, IBAN, or in person')}"></div>`:''}
       <div class="field"><label>${tr('ec_visual')}</label>
         <div class="hint">${tr('ec_visual_hint')}</div>
@@ -9090,15 +9090,20 @@ function viewEvents(){
     const flag=hidden?`<span class="pill p-late">${ev.removed?tr('mod_card_removed'):tr('mod_card_masked')}</span>`:'';
     const badges=`${evIsNew(ev)?`<span class="pill ev-new">${tr('ev_new_badge')}</span>`:''}<span class="pill cat-pill">${tr('cat_'+(ev.category||'autre'))}</span>${ev.openToAll?`<span class="pill open-pill">${tr('ev_open_all')}</span>`:''}${ev.visibility==='private'?`<span class="pill priv-pill">${tr('ev_private_badge')}</span>`:''}`;
     const loc=(ev.city||'')+(ev.country?((ev.city?', ':'')+ev.country):'');
-    return `<div class="card caisse-card" style="border-left-color:${hidden?'var(--pending)':'var(--gold-bright)'};${hidden?'opacity:.7':''}">
+    const isDon=ev.collecte==='dons';
+    const collPill=`<span class="pill" style="background:#efe7d4;color:#8a6a24">${isDon?_FL('Cagnotte','Fund'):_FL('Billetterie','Tickets')}</span>`;
+    const metric=isDon
+      ? (collected>0?`${money(collected,ev.currency)} ${_FL('réunis','raised')} · ${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')}`:_FL('Cagnotte ouverte — soyez le premier à soutenir','Fund open — be the first to give'))
+      : (tickets>0?`${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}`:_FL('Billetterie ouverte','Tickets on sale'));
+    return `<div class="card caisse-card" onclick="openEvent('${ev.id}')" style="border-left-color:${hidden?'var(--pending)':'var(--gold-bright)'};${hidden?'opacity:.7':''};cursor:pointer">
       ${ev.visual?`<img class="ev-thumb" src="${ev.visual}" alt="">`:''}
       <div class="between"><div class="t-name">${esc(ev.title)}</div><span class="pill p-now">${ev.dateISO?evDateLabel(ev.dateISO):esc(ev.date)}</span></div>
-      <div class="ev-badges">${badges}</div>
+      <div class="ev-badges">${badges}${collPill}</div>
       <div class="t-meta">${esc(ev.group)}${fedTag(ev.federation)}${loc?` · ${esc(loc)}`:''}</div>
-      <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${ev.collecte==='dons'?(((ev.dons||[]).length)+' '+_FL('don(s)','gift(s)')):(tickets+' '+tr('ev_tickets'))} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${pct}%</span>`:''}</div>
-      ${ev.objectif?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}
-      <div class="reg-cta"><span class="reg-count">${flag||(ev.openToAll?tr('ev_open_all'):tr('ev_ticketed'))}</span>
-        <div class="row-gap">${canEditEvent(ev)?`<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">✎</button><button class="btn btn-ghost btn-sm" onclick="delEvent('${ev.id}')">🗑</button>`:''}<button class="btn btn-gold btn-sm" onclick="openEvent('${ev.id}')">${tr('ev_view_take')}</button></div></div>
+      <div class="between" style="margin-top:10px"><span class="mid" style="font-size:13px">${metric}</span>${(ev.objectif&&collected>0)?`<span style="font-weight:600;color:#8a6a24">${pct}%</span>`:''}</div>
+      ${(ev.objectif&&collected>0)?`<div class="progress"><i style="width:${pct}%"></i></div>`:''}
+      <div class="reg-cta"><span class="reg-count">${flag||''}</span>
+        <div class="row-gap">${canEditEvent(ev)?`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editEvent('${ev.id}')">✎</button><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();delEvent('${ev.id}')">🗑</button>`:''}<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEvent('${ev.id}')">${_FL('Voir les détails','View details')}</button></div></div>
     </div>`;
   }).join('');
   app().innerHTML=`
@@ -9300,7 +9305,6 @@ function viewEvent(){
   if(!ev){go('events');return;}
   const manage=canEditEvent(ev), hidden=evHidden(ev);
 
-  /* public : événement masqué/retiré → écran de modération, pas de contenu */
   if(hidden&&!manage){
     app().innerHTML=`
       <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
@@ -9315,7 +9319,7 @@ function viewEvent(){
   const {tickets,collected}=eventStats(ev), feePct=(UBORA_FEE_RATE*100).toFixed(1).replace('.0','');
   const pct=ev.objectif?Math.min(100,Math.round(collected/ev.objectif*100)):0;
   const rows=ev.billets.map((b,i)=>`<div class="evt-ticket">
-      <div><div class="mname">${b.nom}</div><div class="msub">${money(b.prix,ev.currency)} <span class="faint">+ ${tr('ev_plusfees')} ${money(uboraFee(b.prix),ev.currency)}</span> · ${b.vendus} ${tr('ev_taken')}</div></div>
+      <div><div class="mname">${esc(b.nom)}</div><div class="msub">${money(b.prix,ev.currency)} <span class="faint">+ ${tr('ev_plusfees')} ${money(uboraFee(b.prix),ev.currency)}</span> · ${b.vendus} ${tr('ev_taken')}</div></div>
       <button class="btn btn-gold btn-sm" onclick="${BACKEND==='supabase'?`stripeBuy('${ev.id}',${i})`:`buyTicket('${ev.id}',${i})`}">${tr('ev_take')}</button>
     </div>`).join('');
   const eds=(ev.editors||[]).map(e=>e.nom).filter(Boolean);
@@ -9327,7 +9331,6 @@ function viewEvent(){
     ? `<button class="btn btn-ghost btn-sm" onclick="editEvent('${ev.id}')">${icon('doc')}${tr('ev_modify')}</button> <button class="btn btn-ghost btn-sm" onclick="delEvent('${ev.id}')">🗑 Supprimer</button>`
     : `<span class="msub">${tr('ev_reserved')}</span>`;
 
-  /* gestionnaire : panneau de modération si signalements ou retrait */
   let modPanel='';
   if(manage&&(evReportCount(ev)>0||ev.removed)){
     const banner = ev.removed ? `<div class="reassure" style="background:#fdeaea;color:#8a2b2b">● ${tr('mod_removed_note')}</div>`
@@ -9344,7 +9347,6 @@ function viewEvent(){
       </div></div>`;
   }
 
-  /* public : contrôle de signalement (le gestionnaire ne se signale pas lui-même) */
   let reportCtl='';
   if(!manage){
     if(state.reportFor===ev.id){
@@ -9363,6 +9365,11 @@ function viewEvent(){
     }
   }
 
+  const prix0=(ev.billets||[]).map(b=>Number(b.prix)||0).filter(x=>x>0);
+  const askLine=(ev.collecte==='dons')
+    ? (_FL('Dons libres','Free gifts')+(ev.objectif?(' · '+_FL('objectif','goal')+' '+money(ev.objectif,ev.currency)):''))
+    : (prix0.length?(_FL('Billets à partir de','Tickets from')+' '+money(Math.min.apply(null,prix0),ev.currency)):_FL('Participation libre','Free entry'));
+
   let collectPanel='';
   if(ev.collecte==='dons'){
     const donTotal=(ev.dons||[]).reduce((s,d)=>s+(Number(d.montant)||0),0);
@@ -9371,7 +9378,7 @@ function viewEvent(){
     const myName=(state.user&&!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?state.user:'';
     collectPanel=`<div class="panel"><div class="panel-h"><h3>${_FL('Cagnotte de solidarité','Solidarity fund')}</h3><span class="pill p-paid">${_FL('dons libres','free gifts')}</span></div>
       <div style="padding:14px 20px">
-        <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · ${money(donTotal,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
+        <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · ${money(donTotal,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600;color:#8a6a24">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
         ${ev.objectif?`<div class="progress"><i style="width:${dpct}%"></i></div>`:''}
         <div class="msub" style="margin:8px 0">${_FL('Chacun donne ce qu’il peut. Chaque don est inscrit dans la cagnotte propre à cet événement — jamais mêlé au compte du groupe.','Each gives what they can. Every gift is recorded in this event’s own fund — never mixed with the group account.')}</div>
         ${state.donFor===ev.id
@@ -9383,37 +9390,45 @@ function viewEvent(){
                <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;render()">${tr('cancel')}</button>
              </div>`
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
-        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
-        <div class="msub" style="margin-top:10px">${ev.settle?`<div class="msub" style="margin-top:8px"><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}</div>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur. Paiement en ligne bientôt.','UBORA holds no funds: settle directly with the organizer. Online payment coming soon.')}</div>
+        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))}${d.via==='carte'?` <span class="faint">(${_FL('carte','card')})</span>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
+        <div class="msub" style="margin-top:10px">${ev.settle?`<span><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}<br></span>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur.','UBORA holds no funds: settle directly with the organizer.')}</div>
       </div></div>`;
   } else {
-    collectPanel=`${ev.objectif?`<div class="panel"><div style="padding:16px 20px"><div class="between"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span><span style="font-weight:600">${pct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span></div><div class="progress"><i style="width:${pct}%"></i></div></div></div>`:''}
-    <div class="panel"><div class="panel-h"><h3>${tr('ev_tickets_panel')}</h3><span class="pill p-soon">${tr('ev_mockup')}</span></div>
-      <div style="padding:4px 16px 12px">${rows}</div></div>`;
+    collectPanel=`${ev.objectif?`<div class="panel"><div style="padding:16px 20px"><div class="between"><span class="mid" style="font-size:13px">${tickets} ${tr('ev_tickets')} · ${money(collected,ev.currency)} ${tr('ev_raised')}</span><span style="font-weight:600;color:#8a6a24">${pct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span></div><div class="progress"><i style="width:${pct}%"></i></div></div></div>`:''}
+    <div class="panel"><div class="panel-h"><h3>${tr('ev_tickets_panel')}</h3>${ev.stripe_account?`<span class="pill p-paid">${_FL('paiement par carte','pay by card')}</span>`:`<span class="pill p-due">${_FL('compte non raccordé','account not linked')}</span>`}</div>
+      <div style="padding:4px 16px 12px">${rows||('<div class="empty">'+_FL('Aucun billet défini.','No tickets yet.')+'</div>')}</div></div>`;
   }
+
+  const adminBlock = manage ? `
+    <div class="reg-cta" style="margin-top:14px"><span class="reg-count">🔒 ${whoEdit}</span>${editBtn}</div>
+    <div style="text-align:center;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openDiffuse('${ev.id}')">${tr('ev_announce')}</button></div>
+    ${BACKEND==='supabase'?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Encaissement par carte','Card settlement')}</h3>${ev.stripe_account?`<span class="pill p-paid">${_FL('compte raccordé','account linked')} ✓</span>`:`<span class="pill p-due">${_FL('non raccordé','not linked')}</span>`}</div>
+      <div style="padding:14px 20px">
+        ${ev.stripe_account
+          ? `<p class="msub">${_FL('Les règlements carte (billets et dons) vont directement sur le compte Stripe de l’association. UBORA ne détient jamais les fonds ; seule la commission de','Card payments (tickets and gifts) go directly to the association’s Stripe account. UBORA never holds the funds; only the')} ${feePct} % ${_FL('est prélevée au passage.','fee is taken.')}</p>`
+          : `<p class="msub">${_FL('Pour encaisser par carte, l’association raccorde son propre compte Stripe. L’argent ira directement chez elle : UBORA ne détient aucun fonds.','To accept card payments, the association connects its own Stripe account. Money goes straight to it: UBORA holds no funds.')}</p>
+             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">${_FL('Raccorder le compte de l’association','Connect the association’s account')}</button></div>`}
+      </div></div>`:''}` : '';
+
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
-    <div class="eyebrow">${evtTypeLabel(ev.type)}</div>
-    <h1 class="page-title">${ev.title}</h1>
-    <p class="lead">${ev.group}${fedTxt(ev.federation)} · ${ev.date} · ${ev.lieu}</p>
+    <div class="eyebrow">${evtTypeLabel(ev.type)} · ${tr('cat_'+(ev.category||'autre'))}</div>
+    <h1 class="page-title">${esc(ev.title)}</h1>
+    <p class="lead">${_FL('Organisé par','Organized by')} <b>${esc(ev.group||'—')}</b>${fedTxt(ev.federation)} · ${esc(ev.date||'')}${ev.lieu?(' · '+esc(ev.lieu)):''}</p>
     ${ev.visual?`<img class="ev-visual" src="${ev.visual}" alt="">`:''}
-    <div class="asnote">${ev.desc}</div>
+    <div class="panel"><div class="panel-h"><h3>${_FL('À propos','About')}</h3></div>
+      <div style="padding:14px 20px">
+        ${ev.desc?`<p style="margin:0 0 12px;line-height:1.65;white-space:pre-line">${esc(ev.desc)}</p>`:(manage?`<p class="msub" style="margin:0 0 12px">${_FL('Ajoutez une présentation avec le bouton Modifier : de quoi s’agit-il, pourquoi, et ce qui est demandé.','Add a presentation with Edit: what it is, why, and what’s asked.')}</p>`:'')}
+        <div class="msub"><b>${_FL('Ce qui est demandé','What’s asked')}</b> · ${askLine}</div>
+        ${ev.contact?`<div class="msub" style="margin-top:4px"><b>${_FL('Contact','Contact')}</b> · ${esc(ev.contact)}</div>`:''}
+      </div></div>
     <div>${trustSeal(tr('ev_seal'))}</div>
     ${modPanel}
     ${collectPanel}
-    <div class="reg-cta"><span class="reg-count">🔒 ${whoEdit}</span>${editBtn}</div>
-    ${manage?`<div style="text-align:center;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openDiffuse('${ev.id}')">${tr('ev_announce')}</button></div>`:''}
-    <div class="ev-nudge click" onclick="go('apex')">${tr("ev_nudge")}</div>
-    ${(BACKEND==='supabase'&&canEditEvent(ev))?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Encaissement des billets</h3>${ev.stripe_account?`<span class="pill p-paid">compte raccord\u00E9 \u2713</span>`:`<span class="pill p-due">non raccord\u00E9</span>`}</div>
-      <div style="padding:14px 20px">
-        ${ev.stripe_account
-          ? `<p class="msub">Les r\u00E8glements vont <b>directement</b> sur le compte Stripe de l\u2019association. UBORA ne d\u00E9tient jamais les fonds\u00A0; seule la commission de ${feePct}\u00A0% est pr\u00E9lev\u00E9e au passage.</p>`
-          : `<p class="msub">Pour vendre des billets payants, l\u2019association doit raccorder son propre compte Stripe. L\u2019argent ira <b>directement</b> chez elle\u00A0: UBORA ne d\u00E9tient aucun fonds.</p>
-             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">\uD83D\uDD17 Raccorder le compte de l\u2019association</button></div>`}
-      </div></div>`:''}
-    <p class="msub" style="margin-top:14px">${BACKEND==='supabase'?`Paiement g\u00E9r\u00E9 par Stripe \u00B7 l\u2019argent va directement au compte de l\u2019association \u00B7 commission UBORA ${feePct}\u00A0% pr\u00E9lev\u00E9e par Stripe.`:tr('ev_pay_note').replace('{p}',feePct)}</p>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Partager / Inviter','Share / Invite')}</h3></div>
       <div style="padding:6px 16px 14px">${inviteShareBlock(location.origin+location.pathname+'?ev='+ev.id, ev.title, {msg:_FL('Rejoignez « ','Join “')+ev.title+_FL(' » sur UBORA : ','” on UBORA: ')+location.origin+location.pathname+'?ev='+ev.id, caption:_FL('Scanner pour voir l’événement','Scan to view the event')})}</div></div>
+    ${adminBlock}
+    <div class="ev-nudge click" onclick="go('apex')">${tr("ev_nudge")}</div>
     ${reportCtl}
     ${footer()}`;
 }
@@ -10347,7 +10362,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.72';
+const UBORA_BUILD='v9.77';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
