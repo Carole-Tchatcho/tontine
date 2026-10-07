@@ -5793,9 +5793,9 @@ function viewCaisse(){
     <div class="seg" style="margin-top:12px">
       <button class="${state.caisseTab==='appels'?'on':''}" onclick="state.caisseTab='appels';render()">${tr('ca_tab_appels')}</button>
       <button class="${state.caisseTab==='foyers'?'on':''}" onclick="state.caisseTab='foyers';render()">${tr('ca_tab_foyers')}</button>
-      <button class="${state.caisseTab==='mouvements'?'on':''}" onclick="state.caisseTab='mouvements';render()">${_FL('Mouvements','Movements')}</button><button class="${state.caisseTab==='journal'?'on':''}" onclick="state.caisseTab='journal';render()">${tr('ca_tab_journal')}</button>
+      <button class="${state.caisseTab==='mouvements'?'on':''}" onclick="state.caisseTab='mouvements';render()">${_FL('Mouvements','Movements')}</button><button class="${state.caisseTab==='imani'?'on':''}" onclick="state.caisseTab='imani';render()">${_FL('IMANI · prêts','IMANI · loans')}</button><button class="${state.caisseTab==='journal'?'on':''}" onclick="state.caisseTab='journal';render()">${tr('ca_tab_journal')}</button>
     </div>`;
-  const body=({appels:caisseAppels,mouvements:caisseMouvements,foyers:caisseFoyers,journal:caisseJournal}[state.caisseTab]||caisseAppels)(c);
+  const body=({appels:caisseAppels,mouvements:caisseMouvements,foyers:caisseFoyers,imani:caisseImani,journal:caisseJournal}[state.caisseTab]||caisseAppels)(c);
   app().innerHTML=head+caisseInvitePanel(c)+body+footer();
 }
 
@@ -5959,6 +5959,114 @@ function caisseAddMouvement(id){
 function caisseDelMouvement(id,mid){
   if(!confirm(_FL('Supprimer ce mouvement ?','Delete this movement?')))return;
   var c=getC(id); if(!c)return; c.mouvements=(c.mouvements||[]).filter(function(m){return m.id!==mid;}); cPersist(id); render();
+}
+
+/* ============ IMANI — prêt solidaire sur le fonds de la caisse d'entraide ============
+   UBORA = registre, pas prêteur. Sans intérêt. Intra-groupe. v1 : plafond prudent suggéré
+   (affiché avec son raisonnement, le bureau ajuste), UN emprunt à la fois, remboursement en
+   1 à 3 fois, visibilité par rôle (bureau = nominatif ; membres = agrégats dignes), charte +
+   confirmation de lecture. Intégration native au ledger : prêt accordé = mouvement OUT,
+   remboursement = mouvement IN → le solde reste juste. Le NOM de l'emprunteur ne vit que dans
+   l'onglet IMANI (bureau) ; les mouvements ne portent aucun nom (on voit qu'un prêt existe, pas qui). */
+function imaniLoans(c){ return (c&&c.loans)||[]; }
+function imaniRepaid(l){ return ((l&&l.repayments)||[]).reduce(function(s,r){return s+(Number(r.montant)||0);},0); }
+function imaniActiveFor(c,name){ return imaniLoans(c).find(function(l){ return l&&l.member&&String(l.member).trim().toLowerCase()===String(name||'').trim().toLowerCase() && (l.statut==='demande'||l.statut==='accorde'||l.statut==='retard'); }); }
+function imaniPlafond(c){ return Math.max(0, Math.round(caisseSolde(c)/3)); } /* prudence : max 1/3 du fonds */
+function imaniAgg(c){
+  var ls=imaniLoans(c), enCours=0, rembourse=0, pret=0, rb=0;
+  ls.forEach(function(l){ if(l.statut==='accorde'||l.statut==='retard')enCours++; if(l.statut==='rembourse')rembourse++;
+    if(l.statut==='accorde'||l.statut==='retard'||l.statut==='rembourse'){ pret+=Number(l.montant)||0; rb+=imaniRepaid(l); } });
+  return {enCours:enCours, rembourse:rembourse, total:ls.length, pct:(pret>0?Math.round(rb/pret*100):100)};
+}
+function imaniCharteHtml(){
+  return '<ol style="margin:0;padding-left:18px;line-height:1.75">'
+   +'<li>'+_FL('IMANI est une caisse d’entraide : l’argent appartient au groupe ; UBORA n’en détient aucun centime.','IMANI is a mutual-aid fund: the money belongs to the group; UBORA holds none of it.')+'</li>'
+   +'<li>'+_FL('On emprunte sur la confiance, sans intérêt. Un emprunt à la fois, dans la limite fixée par le bureau.','You borrow on trust, interest-free. One loan at a time, within the limit set by the board.')+'</li>'
+   +'<li>'+_FL('Chaque mouvement est tracé ; les autres membres voient qu’un prêt existe, pas qui. Le bureau gère nominativement.','Every movement is logged; other members see that a loan exists, not who. The board manages it by name.')+'</li>'
+   +'<li>'+_FL('Rembourser, c’est protéger le fonds de tous — et construire votre SIFA.','Repaying protects everyone’s fund — and builds your SIFA.')+'</li>'
+   +'<li>'+_FL('Le solde du fonds est vérifié en continu ; tout écart alerte tout le monde.','The fund balance is checked continuously; any gap alerts everyone.')+'</li>'
+   +'<li>'+_FL('Les retards déclenchent un rappel, puis une décision du bureau — jamais d’humiliation publique.','Late repayments trigger a reminder, then a board decision — never public humiliation.')+'</li>'
+   +'</ol>';
+}
+function imaniStatutBadge(l){
+  var m={demande:['p-due',_FL('en attente','pending')],accorde:['p-now',_FL('en cours','ongoing')],retard:['p-late',_FL('en retard','late')],rembourse:['p-paid',_FL('remboursé','repaid')],refuse:['p-soon',_FL('refusé','declined')]};
+  var x=m[l.statut]||['p-soon',l.statut]; return '<span class="pill '+x[0]+'">'+x[1]+'</span>';
+}
+function imaniStart(id){ state.imaniNew=!state.imaniNew; render(); }
+function imaniSubmit(id){
+  var c=getC(id); if(!c)return; var g=function(x){var e=document.getElementById(x);return e?e.value:'';};
+  var name=(g('im-name')||state.user||'').trim(); if(!name){alert(_FL('Indiquez le membre emprunteur.','Enter the borrowing member.'));return;}
+  if(imaniActiveFor(c,name)){ alert(_FL('Ce membre a déjà un prêt en cours — un seul à la fois.','This member already has an active loan — one at a time.')); return; }
+  var mont=parseFloat(String(g('im-mont')).replace(',','.')); if(!(mont>0)){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  if(!document.getElementById('im-ack')||!document.getElementById('im-ack').checked){ alert(_FL('Confirmez la lecture de la charte avant de demander.','Confirm you have read the charter first.')); return; }
+  var parts=Math.max(1,Math.min(3,parseInt(g('im-parts'),10)||1));
+  c.loans=c.loans||[];
+  c.loans.unshift({ id:newId('l'), member:name, montant:Math.round(mont), cur:c.currency, parts:parts, raison:(g('im-raison')||'').trim(),
+    statut:'demande', date_demande:new Date().toISOString().slice(0,10), charte_ack:true, repayments:[], by:(state.user||'') });
+  state.imaniNew=false; cPersist(id); render();
+}
+function imaniApprove(id,lid){
+  var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l||l.statut!=='demande')return;
+  var plaf=imaniPlafond(c);
+  if(l.montant>caisseSolde(c)){ alert(_FL('Le fonds ne couvre pas ce montant.','The fund does not cover this amount.')); return; }
+  if(l.montant>plaf && !confirm(_FL('Ce montant dépasse le plafond prudent ('+money(plaf,c.currency)+'). Le bureau peut l’accorder quand même. Continuer ?','This exceeds the prudent cap ('+money(plaf,c.currency)+'). The board may still grant it. Continue?'))) return;
+  l.statut='accorde'; l.approved_by=(state.user||''); l.approved_at=new Date().toISOString().slice(0,10);
+  c.mouvements=c.mouvements||[];
+  c.mouvements.unshift({id:newId('m'), date:l.approved_at, sens:'out', libelle:_FL('Prêt IMANI','IMANI loan'), who:'', montant:l.montant, by:(state.user||''), imani:l.id});
+  cPersist(id); render();
+}
+function imaniRefuse(id,lid){
+  var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l)return;
+  if(!confirm(_FL('Refuser cette demande ?','Decline this request?')))return;
+  l.statut='refuse'; l.approved_by=(state.user||''); l.approved_at=new Date().toISOString().slice(0,10); cPersist(id); render();
+}
+function imaniRepay(id,lid){
+  var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l)return;
+  var v=prompt(_FL('Montant du remboursement','Repayment amount')+' ('+c.currency+') :'); if(v==null)return;
+  var mont=parseFloat(String(v).replace(',','.')); if(!(mont>0)){alert(_FL('Montant invalide.','Invalid amount.'));return;}
+  l.repayments=l.repayments||[]; l.repayments.push({id:newId('r'), date:new Date().toISOString().slice(0,10), montant:Math.round(mont), by:(state.user||'')});
+  c.mouvements=c.mouvements||[];
+  c.mouvements.unshift({id:newId('m'), date:new Date().toISOString().slice(0,10), sens:'in', libelle:_FL('Remboursement IMANI','IMANI repayment'), who:'', montant:Math.round(mont), by:(state.user||''), imani:l.id});
+  if(imaniRepaid(l)>=l.montant){ l.statut='rembourse'; l.rembourse_at=new Date().toISOString().slice(0,10); }
+  cPersist(id); render();
+}
+function caisseImani(c){
+  c.loans=c.loans||[]; var role=state.caisseRole; var bureau=(role==='tresorier'); var cur=c.currency;
+  var ag=imaniAgg(c), plaf=imaniPlafond(c), solde=caisseSolde(c);
+  var health='<div class="stat-grid" style="margin:4px 0 12px">'
+    +'<div class="stat"><div class="stat-n">'+money(solde,cur)+'</div><div class="stat-l">'+_FL('fonds disponible','available fund')+'</div></div>'
+    +'<div class="stat"><div class="stat-n">'+ag.enCours+'</div><div class="stat-l">'+_FL('prêts en cours','ongoing loans')+'</div></div>'
+    +'<div class="stat"><div class="stat-n">'+ag.pct+'%</div><div class="stat-l">'+_FL('remboursé','repaid')+'</div></div>'
+    +'</div>';
+  var charte='<details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#8a6a24">'+_FL('La charte IMANI','The IMANI charter')+'</summary><div style="margin-top:8px">'+imaniCharteHtml()+'</div></details>';
+  var form = state.imaniNew ? ('<div class="panel"><div class="panel-h"><h3>'+_FL('Demander un prêt','Request a loan')+'</h3></div><div style="padding:16px 20px">'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Membre emprunteur','Borrowing member')+'</label><input id="im-name" value="'+esc(state.user||'')+'"></div>'
+    +'<div class="row-gap"><div class="field" style="flex:1;min-width:140px"><label>'+_FL('Montant','Amount')+' ('+cur+')</label><input id="im-mont" inputmode="decimal" placeholder="0"></div>'
+    +'<div class="field" style="flex:1;min-width:140px"><label>'+_FL('Remboursement en','Repay in')+'</label><select id="im-parts"><option value="1">1 '+_FL('fois','time')+'</option><option value="2">2 '+_FL('fois','times')+'</option><option value="3">3 '+_FL('fois','times')+'</option></select></div></div>'
+    +'<div class="field"><label>'+_FL('Motif (facultatif)','Reason (optional)')+'</label><input id="im-raison" placeholder="'+_FL('Ex. frais de santé, rentrée scolaire…','e.g. medical costs, school start…')+'"></div>'
+    +'<div class="asnote" style="margin:6px 0">'+_FL('Plafond prudent suggéré : ','Suggested prudent cap: ')+'<b>'+money(plaf,cur)+'</b> — '+_FL('un prêt ne devrait pas immobiliser plus d’un tiers du fonds, pour qu’il reste disponible aux autres. Le bureau peut ajuster.','a loan should not tie up more than a third of the fund, so it stays available to others. The board can adjust.')+'</div>'
+    +'<label style="display:flex;align-items:flex-start;gap:8px;margin:6px 0;font-size:13px"><input type="checkbox" id="im-ack"> <span>'+_FL('J’ai lu la charte IMANI et je m’engage à rembourser.','I have read the IMANI charter and commit to repay.')+'</span></label>'
+    +'<div class="row-gap" style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="imaniSubmit(\''+c.id+'\')">'+_FL('Envoyer la demande','Send request')+'</button><button class="btn btn-ghost btn-sm" onclick="state.imaniNew=false;render()">'+_FL('Annuler','Cancel')+'</button></div>'
+    +'</div></div>') : '';
+  var cta='<div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-gold btn-sm" onclick="imaniStart(\''+c.id+'\')">'+(state.imaniNew?_FL('Fermer','Close'):_FL('+ Demander un prêt','+ Request a loan'))+'</button></div>';
+  if(!bureau){
+    return '<div class="asnote">'+_FL('L’entraide par le prêt : le groupe se prête à lui-même, sans intérêt. UBORA tient le registre — il ne détient aucun fonds.','Mutual aid through lending: the group lends to itself, interest-free. UBORA keeps the registry — it holds no funds.')+'</div>'
+      +health+charte+cta+form
+      +'<div class="panel"><div style="padding:14px 18px" class="msub">'+_FL('Par respect de chacun, le détail nominatif des prêts n’est visible que par le bureau. Vous voyez ici la santé d’ensemble.','Out of respect for everyone, itemised loans are visible only to the board. You see the overall health here.')+'</div></div>';
+  }
+  var rows=c.loans.length?c.loans.map(function(l){
+    var rp=imaniRepaid(l), reste=Math.max(0,l.montant-rp), act='';
+    if(l.statut==='demande') act='<button class="btn btn-gold btn-sm" onclick="imaniApprove(\''+c.id+'\',\''+l.id+'\')">'+_FL('Accorder','Grant')+'</button> <button class="btn btn-ghost btn-sm" onclick="imaniRefuse(\''+c.id+'\',\''+l.id+'\')">'+_FL('Refuser','Decline')+'</button>';
+    else if(l.statut==='accorde'||l.statut==='retard') act='<button class="btn btn-ghost btn-sm" onclick="imaniRepay(\''+c.id+'\',\''+l.id+'\')">'+_FL('Enregistrer un remboursement','Record a repayment')+'</button>';
+    return '<div class="panel" style="margin-bottom:8px"><div style="padding:12px 16px">'
+      +'<div class="between"><div class="mname">'+esc(l.member)+' '+imaniStatutBadge(l)+'</div><div class="right" style="font-weight:600">'+money(l.montant,cur)+'</div></div>'
+      +'<div class="msub" style="margin-top:4px">'+_FL('demandé le','requested')+' '+esc(l.date_demande)+' · '+_FL('en','in')+' '+l.parts+'×'+(l.raison?(' · '+esc(l.raison)):'')+'</div>'
+      +((l.statut==='accorde'||l.statut==='retard'||l.statut==='rembourse')?('<div class="msub" style="margin-top:4px">'+_FL('remboursé','repaid')+' '+money(rp,cur)+' · '+_FL('reste','left')+' '+money(reste,cur)+'</div>'):'')
+      +(act?('<div class="row-gap" style="margin-top:8px">'+act+'</div>'):'')
+      +'</div></div>';
+  }).join(''):'<div class="panel"><div class="empty">'+_FL('Aucun prêt pour l’instant.','No loan yet.')+'</div></div>';
+  return '<div class="asnote">'+_FL('Vous gérez les prêts du groupe : sans intérêt, un à la fois, dans la limite prudente. Accorder crée une sortie du fonds ; rembourser, une entrée — le solde reste juste.','You manage the group’s loans: interest-free, one at a time, within the prudent cap. Granting creates a fund outflow; repaying an inflow — the balance stays correct.')+'</div>'
+    +health+charte+cta+form+rows;
 }
 function caisseGenToken(){ return (Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Date.now().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,24); }
 function caisseInvitePanel(c){
@@ -10983,7 +11091,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.99';
+const UBORA_BUILD='v10.00';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
