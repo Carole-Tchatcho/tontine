@@ -765,6 +765,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 @media (prefers-reduced-motion:reduce){.mtc-dot,.mtc-diamond{animation:none;opacity:1}}
 </style>
   <script defer data-domain="tontine.caroletchatcho.com" src="https://plausible.io/js/script.js"></script>
+  <script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>
 <!-- ============================================================
      Bibliotheque Supabase (@supabase/supabase-js v2) INTEGREE au fichier.
      Chargee en 1 requete meme-origine au lieu de ~20 via un CDN tiers
@@ -4788,6 +4789,7 @@ async function createTontine(){
       try{await db.loadCases();}catch(_e){} }
     catch(e){ console.warn('lien tontine→case',e); }
   }
+  pgoal('Tontine créée', _caseLink?{source:'case'}:undefined);
   openTontine(id);
 }
 
@@ -6753,7 +6755,7 @@ function caseCreate(){const g=id=>{const e=document.getElementById(id);return e?
   }
   const nc={id:newId('cs'),name,type,mission,country,city};
   state_cases.unshift(nc);caseDraft=null;
-  if(BACKEND==='supabase'){db.saveCase(nc).then(()=>go('case')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
+  if(BACKEND==='supabase'){db.saveCase(nc).then(()=>{pgoal('Case créée');go('case');}).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e)));return;}
   go('case');}
 function editCase(id){ const c=state_cases.find(x=>x.id===id); if(!c)return; caseDraft={editId:id,name:c.name||'',type:c.type||'pro',mission:c.mission||'',country:c.country||'',city:c.city||''}; go('casecreate'); }
 function caseDelBlock(c){
@@ -9132,7 +9134,7 @@ async function eSave(){eRead();
   if(_g){_newEv.lat=_g.lat;_newEv.lng=_g.lng;}
   state_events.unshift(_newEv);
   eDraft=null;
-  if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>go('events')).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e))); return; }
+  if(BACKEND==='supabase'){ db.saveEvent(_newEv).then(()=>{pgoal('Événement créé');go('events');}).catch(e=>alert(_FL('Enregistrement échoué : ','Save failed: ')+(e.message||e))); return; }
   saveLocal();go('events');
 }
 function canEditEvent(ev){ if(!ev)return false; if(!ev.creator)return true; if(ev.creator===state.user||ev.creator===state.uid)return true; return (ev.editors||[]).some(e=>e.nom===state.user); }
@@ -10212,6 +10214,8 @@ async function supportLoadJournal(){
   sp.journalLoading=false; sp.journalLoaded=true; render();
 }
 function isUboraAdmin(){return UBORA_ADMINS.indexOf((state.email||'').toLowerCase())>-1;}
+/* Objectif de conversion Plausible — SANS cookie, sans donnée perso (juste un compteur d'action). */
+function pgoal(n,props){ try{ if(BACKEND==='supabase' && typeof window.plausible==='function') window.plausible(n, props?{props:props}:undefined); }catch(e){} }
 function setTextZoom(m){ m=Math.max(1,Math.min(1.6,Math.round(m*100)/100)); try{document.documentElement.style.zoom=String(m);localStorage.setItem('ubora_zoom',String(m));}catch(e){} var el=document.getElementById('zoomPct'); if(el)el.textContent=Math.round(m*100)+'%'; }
 function bumpZoom(d){ var cur=1; try{cur=parseFloat(localStorage.getItem('ubora_zoom'))||1;}catch(e){} setTextZoom(cur+d); }
 function premiumLabel(until){ if(!until)return ''; var d=new Date(until); if(d.getFullYear() > new Date().getFullYear()+50) return _FL('acc\u00e8s permanent','permanent access'); return _FL('actif jusqu\u2019au','active until')+' '+d.toLocaleDateString((typeof state!=='undefined'&&state.lang==='en')?'en-GB':'fr-CH'); }
@@ -10645,6 +10649,7 @@ async function sendWelcomeIfNew(){
     const link=location.origin+location.pathname;
     /* 1) Bienvenue dans le registre \u2014 une seule fois */
     if(!pr.welcome_sent){
+      pgoal('Inscription');
       await db.sendEmail(state.email,'Bienvenue dans l\u2019univers UBORA',
         '<p>Bonjour '+esc(pr.nom||'')+',</p>'
         +'<p>Bienvenue dans l\u2019univers <b>UBORA</b> \u2014 le registre de confiance des tontines, caisses d\u2019entraide et \u00E9v\u00E9nements de nos communaut\u00E9s. UBORA ne d\u00E9tient aucun fonds\u00A0: il trace, rappelle et prot\u00E8ge la parole donn\u00E9e.</p>'
@@ -10911,7 +10916,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.96';
+const UBORA_BUILD='v9.98';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
