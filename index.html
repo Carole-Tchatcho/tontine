@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='caserapportmois'||v==='casesuivi'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='caserapportmois'||v==='casesuivi'||v==='casetontine'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,caserapportmois:viewCaseRapportMois,casesuivi:viewCaseSuivi,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,caserapportmois:viewCaseRapportMois,casesuivi:viewCaseSuivi,casetontine:viewCaseTontine,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -4780,8 +4780,15 @@ async function createTontine(){
   if(!draft.name.trim()){alert(tr('al_cr_name'));$('#f-name').focus();return;}
   if(draft.oCountry)state.homeCountry=draft.oCountry;
   if(!draft.oName.trim()){alert(tr('al_cr_oname'));return;}
+  const _caseLink=draft.fromCase||null;
   let id; try{id=await db.create(draft);}catch(e){alert(e.message);return;}
-  draft=null;openTontine(id);
+  draft=null;
+  if(_caseLink && BACKEND==='supabase' && id){
+    try{ const{error}=await sb.rpc('case_share_grant',{p_case:_caseLink,p_tontine:id}); if(error)console.warn('case_share_grant',error);
+      try{await db.loadCases();}catch(_e){} }
+    catch(e){ console.warn('lien tontine→case',e); }
+  }
+  openTontine(id);
 }
 
 /* ---------- rejoindre par lien / code ---------- */
@@ -7483,8 +7490,9 @@ function viewCaseDetail(){
     `<div class="mrow" onclick="openCaseEvts('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_evt')}</div><div class="msub">${(c.evts||[]).length} \u00e9v\u00e9nement(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseSuivi('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Suivi interne','Internal tracking')} <span class="pill p-done" style="font-size:10px">${_FL('membres','members')}</span></div><div class="msub">${_FL('pilotage des événements — dons, statuts, comité','event oversight — gifts, statuses, committee')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseComptes('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Comptes','Accounts')}</div><div class="msub">${_FL('solde par membre + groupe','per-member + group balance')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
-    `<div class="mrow" onclick="openCaseCagnotte('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_pot')}</div><div class="msub">${((c.cagnotte&&c.cagnotte.contribs)||[]).length} contribution(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`
-  ].join('');
+    `<div class="mrow" onclick="openCaseCagnotte('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_pot')}</div><div class="msub">${((c.cagnotte&&c.cagnotte.contribs)||[]).length} contribution(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
+    (caseIsOwnerOrBureau(c)?`<div class="mrow" onclick="openCaseTontine('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Lancer une tontine','Launch a tontine')} <span class="pill p-done" style="font-size:10px">${_FL('compte dans la pyramide','counts toward the pyramid')}</span></div><div class="msub">${_FL('une vraie tontine pour les membres — fait progresser leurs niveaux','a real tontine for members — advances their levels')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`:'')
+  ].filter(Boolean).join('');
   app().innerHTML=`
     <button class="backlink" onclick="go('case')">\u2039 ${tr('mc_title')}</button>
     <div style="display:flex;gap:16px;align-items:flex-start">${caseGlyph(56)}<div><div class="eyebrow">${tr('mct_'+(c.type||'autre'))}</div>
@@ -7499,6 +7507,57 @@ function viewCaseDetail(){
     ${repAccessPanel(c)}
     ${repHistPanels(c)}
     ${footer()}`;
+}
+
+/* ===================== Lancer une tontine depuis l'annuaire (outil de Case) =====================
+   RÈGLE VERROUILLÉE : seule une VRAIE tontine compte dans la pyramide. Cet outil crée
+   une vraie tontine (state_tontines) à partir des membres cochés dans l'annuaire, puis
+   la rattache à la Case (case_share_grant). Chaque membre qui relie ensuite son compte
+   (code perso / fiche reliée) voit sa progression Découverte→…→Cercle avancer.
+   Réservé au bureau/créateur de la Case. */
+function caseIsOwnerOrBureau(c){ if(!c)return false; if(c._creator&&(c._creator===state.uid||c._creator===state.user))return true; return isCaseBureau(c.id); }
+function openCaseTontine(id){ const c=state_cases.find(x=>x.id===id); if(!caseIsOwnerOrBureau(c)){ alert(_FL('Seul le bureau de la Case peut lancer une tontine de groupe.','Only the Case bureau can launch a group tontine.')); return; } state.activeCase=id; go('casetontine'); }
+function caseTontineMembers(c){ return (c&&c.members||[]).filter(function(m){ return m && !m.excluded_at; }); }
+function caseTontineReadSel(c){ var out=[]; caseTontineMembers(c).forEach(function(m){ var el=document.getElementById('ttn-'+m.id); if(el&&el.checked) out.push({name:m.name,contact:m.contact||'—'}); }); return out; }
+function viewCaseTontine(){
+  const c=state_cases.find(x=>x.id===state.activeCase);
+  if(!c){return viewCase();}
+  if(!caseIsOwnerOrBureau(c)){ return viewCaseDetail(); }
+  const mem=caseTontineMembers(c);
+  const rows=mem.length?mem.map(function(m){
+    return `<label class="ct-row" style="cursor:pointer;align-items:center"><input type="checkbox" id="ttn-${m.id}" checked style="margin-right:10px">
+      <div class="ci"><div class="mname">${esc(m.name)}</div><div class="msub">${esc([m.contact,m.role].filter(Boolean).join(' · ')||'—')}</div></div></label>`;
+  }).join(''):`<div class="empty">${_FL('Aucun membre dans l’annuaire. Ajoutez d’abord des membres.','No member in the directory yet. Add members first.')}</div>`;
+  app().innerHTML=`
+    <button class="backlink" onclick="go('casedetail')">‹ ${esc(c.name)}</button>
+    <div class="eyebrow">${tr('nav_tontines')}</div>
+    <h1 class="page-title" style="margin-top:2px">${_FL('Lancer une tontine de groupe','Launch a group tontine')}</h1>
+    <p class="lead">${_FL('Choisissez les membres de l’association qui participent. UBORA crée une vraie tontine rattachée à la Case.','Pick the association members who take part. UBORA creates a real tontine linked to the Case.')}</p>
+    <div class="asnote"><b>${_FL('Pourquoi c’est important','Why this matters')}.</b> ${_FL('Seule une vraie tontine compte dans la progression (Découverte → Bâtisseur → Ambassadeur…). Chaque membre qui relie son compte UBORA la voit avancer son niveau — les cotisations et événements de l’association, eux, n’y entrent pas.','Only a real tontine counts toward progression (Discovery → Builder → Ambassador…). Each member who links their UBORA account sees their level advance — the association’s dues and events do not.')}</div>
+    <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Membres participants','Participating members')}</h3>
+      <span class="pill p-soon">${mem.length} ${_FL('dans l’annuaire','in directory')}</span></div>
+      <div style="padding:8px 16px">
+        ${mem.length?`<div class="row-gap" style="margin:4px 0 8px"><button class="btn btn-ghost btn-sm" onclick="caseTontineAll(true)">${_FL('Tout cocher','Check all')}</button><button class="btn btn-ghost btn-sm" onclick="caseTontineAll(false)">${_FL('Tout décocher','Uncheck all')}</button></div>`:''}
+        ${rows}
+      </div></div>
+    ${mem.length>=2?`<div class="row-gap" style="margin-top:14px"><button class="btn btn-gold" onclick="caseTontineGo('${c.id}')">${_FL('Continuer — régler montant & tours','Continue — set amount & rounds')} →</button></div>
+      <div class="msub" style="margin-top:8px">${_FL('Étape suivante : vous fixez le montant, la fréquence, l’ordre de réception et désignez trésorier·ère (et commissaire). Les membres rejoignent avec leur code perso — leur progression s’attache alors à leur compte.','Next step: you set the amount, frequency, reception order and designate the treasurer (and auditor). Members join with their personal code — their progression then attaches to their account.')}</div>`
+    :`<div class="msub" style="margin-top:12px">${_FL('Il faut au moins 2 membres pour former une tontine.','You need at least 2 members to form a tontine.')}</div>`}
+    ${footer()}`;
+}
+function caseTontineAll(v){ const c=state_cases.find(x=>x.id===state.activeCase); caseTontineMembers(c).forEach(function(m){ var el=document.getElementById('ttn-'+m.id); if(el)el.checked=!!v; }); }
+function caseTontineGo(caseId){
+  const c=state_cases.find(x=>x.id===caseId); if(!c)return;
+  if(!caseIsOwnerOrBureau(c)){ alert(_FL('Seul le bureau de la Case peut lancer une tontine de groupe.','Only the Case bureau can launch a group tontine.')); return; }
+  const sel=caseTontineReadSel(c);
+  if(sel.length<2){ alert(_FL('Cochez au moins 2 membres.','Select at least 2 members.')); return; }
+  const cur=(typeof COUNTRY_CUR!=='undefined'&&COUNTRY_CUR[c.country])||(state.homeCountry&&typeof COUNTRY_CUR!=='undefined'&&COUNTRY_CUR[state.homeCountry])||'XOF';
+  draft={ consent:{by:(state.user||state.uid||''),at:new Date().toISOString(),source:'case'},
+    name:c.name+' — '+_FL('Tontine','Tontine'), amount:'', currency:cur, frequency:'mensuelle',
+    places:Math.max(2,Math.min(30,sel.length+1)), jourEcheance:null,
+    oName:state.user||'', oContact:'', oCountry:(c.country||state.homeCountry||''), oMk:false, renforced:true,
+    fromCase:caseId, roster:sel };
+  go('create');
 }
 
 /* ===================== PARTAGE v2 — lien/QR sans compte, 2 vues =====================
@@ -9187,6 +9246,7 @@ function announceSend(){
 }
 function newsSchedule(){state.diffScheduled=true;render();}
 function newsSendNow(){
+  if(!(typeof isUboraAdmin==='function'&&isUboraAdmin())){alert(_FL('La newsletter UBORA est réservée à UBORA.','The UBORA newsletter is reserved to UBORA.'));return;}
   const elig=state_contacts.filter(ctEligibleNews);
   if(!elig.length){alert(tr('df_news_none'));return;}
   if(BACKEND==='supabase'){
@@ -9235,10 +9295,11 @@ function diffContactRow(c){
 function viewDiffusion(){
   const tab=state.diffuseTab||'carnet', ev=diffEv();
   const nC=state_contacts.length, nA=state_contacts.filter(ctTargetable).length, nE=state_contacts.filter(ctEligibleNews).length;
+  const _isAdmin=(typeof isUboraAdmin==='function'&&isUboraAdmin());
   const tabs=`<div class="seg" style="margin-top:14px">
     <button class="${tab==='carnet'?'on':''}" onclick="diffTab('carnet')">${tr('df_tab_carnet')}</button>
     <button class="${tab==='annonce'?'on':''}" onclick="diffTab('annonce')">${tr('df_tab_annonce')}</button>
-    <button class="${tab==='news'?'on':''}" onclick="diffTab('news')">${tr('df_tab_news')}</button>
+    ${_isAdmin?`<button class="${tab==='news'?'on':''}" onclick="diffTab('news')">${tr('df_tab_news')}</button>`:''}
   </div>`;
   let body='';
   if(tab==='carnet'){
@@ -9291,7 +9352,7 @@ function viewDiffusion(){
           </div></div>`:''}
       </div></div>
       ${diffOutbox()}`;
-  } else {
+  } else if(_isAdmin){
     const elig=state_contacts.filter(ctEligibleNews);
     const excl=state_contacts.filter(c=>!ctEligibleNews(c));
     body=`<div class="asnote">${tr('df_news_note')}</div>
@@ -9314,6 +9375,13 @@ function viewDiffusion(){
       <div class="panel"><div class="panel-h"><h3>${tr('df_news_excluded_h')}</h3></div>
         <div>${excl.map(c=>`<div class="ct-row"><div class="ci"><div class="mname">${c.name}</div><div class="msub">${ctReasonExcluded(c)}</div></div></div>`).join('')||'<div class="empty">—</div>'}</div></div>
       ${diffOutbox()}`;
+  } else {
+    body=`<div class="panel"><div class="panel-h"><h3>${_FL('La newsletter UBORA','The UBORA newsletter')}</h3></div>
+      <div style="padding:16px 20px">
+        <p class="msub" style="line-height:1.85">${_FL('La newsletter de l’univers UBORA est rédigée et diffusée par UBORA. Vos contacts qui y ont consenti la reçoivent automatiquement — vous n’avez rien à composer ni à envoyer.','The UBORA newsletter is written and sent by UBORA. Your contacts who consented to it receive it automatically — you have nothing to compose or send.')}</p>
+        <p class="msub" style="line-height:1.85;margin-top:8px">${_FL('Pour faire connaître <b>votre</b> événement à vos contacts, utilisez l’onglet <b>Annonce</b>.','To tell your contacts about <b>your</b> event, use the <b>Announce</b> tab.')}</p>
+        <div class="row-gap" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="diffTab('annonce')">${_FL('Aller à l’Annonce','Go to Announce')} →</button></div>
+      </div></div>`;
   }
   app().innerHTML=`
     <button class="backlink" onclick="goBack()">‹ ${backLabel()}</button>
@@ -10554,6 +10622,7 @@ async function authPhone(){try{const{error}=await sb.auth.signInWithOtp({phone:(
 async function authVerify(){try{const{data,error}=await sb.auth.verifyOtp({phone:($('#au-phone').value||'').trim(),token:($('#au-token').value||'').trim(),type:'sms'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.phone||data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function authVerifyEmail(){try{const _em=($('#au-email').value||'').trim();const{data,error}=await sb.auth.verifyOtp({email:_em,token:($('#au-etoken').value||'').trim(),type:'email'});if(error)throw error;state.user=authDispName(data.user);state.uid=data.user.id;state.email=data.user.email||'';await postLoginRoute();}catch(e){alert(e.message);}}
 async function saveEd0(){
+  if(!(typeof isUboraAdmin==='function'&&isUboraAdmin())){alert(_FL('La newsletter UBORA est r\u00E9serv\u00E9e \u00E0 UBORA.','The UBORA newsletter is reserved to UBORA.'));return;}
   try{
     const sub=($('#nw-sub')&&$('#nw-sub').value.trim())||'UBORA \u2014 \u00E9dition 0';
     const body=($('#nw-msg')&&$('#nw-msg').value.trim())||'';
