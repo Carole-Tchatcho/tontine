@@ -3937,11 +3937,23 @@ async function repLoadMyCases(){
   catch(e){state.myCases=[];}
   state.myCasesLoading=false;render();
 }
+function repFixLink(caseId){
+  var member=''; if(state.myCases){var r=state.myCases.find(function(x){return x&&x.case_id===caseId;}); member=(r&&r.member)||'';}
+  if(!confirm(_FL('Détacher votre compte de la fiche « ','Detach your account from the record “')+(member||'?')+_FL(' » ? Vous saisirez ensuite VOTRE code personnel.','”? You will then enter YOUR personal code.')))return;
+  (async function(){
+    try{ const res=await sb.rpc('case_member_unlink',{p_case:caseId}); if(res.error)throw res.error; }
+    catch(e){ alert(_FL('Impossible de détacher : ','Could not detach: ')+((e&&e.message)||e)); return; }
+    state.myCases=undefined; state.repJoinCode=''; state.repJoinOk=true;
+    state.repJoinMsg=_FL('Compte détaché. Saisissez maintenant VOTRE code personnel (celui de votre invitation).','Account detached. Now enter YOUR personal code (from your invitation).');
+    try{ await repLoadMyCases(); }catch(_e){}
+    go('casejoin');
+  })();
+}
 function repMyCasesPanel(){
   const mc=state.myCases;
   if(!mc||!mc.length)return '';
   const rows=mc.map(function(x){
-    return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.name)} ${x.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('vous : ','you: ')}${esc(x.member)}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">${x.bureau?`<button class="btn btn-ghost btn-sm" onclick="repOpenGroupLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}')">${_FL('Vue groupe','Group view')}</button>`:''}<button class="btn btn-gold btn-sm" onclick="repOpenMyLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}','${esc(String(x.member).replace(/'/g,"\\'"))}')">${_FL('Ma vue','My view')}</button></div></div>`;
+    return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.name)} ${x.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('vous : ','you: ')}${esc(x.member)}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">${x.bureau?`<button class="btn btn-ghost btn-sm" onclick="repOpenGroupLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}')">${_FL('Vue groupe','Group view')}</button>`:''}<button class="btn btn-gold btn-sm" onclick="repOpenMyLife('${esc(x.case_id)}','${esc(String(x.name).replace(/'/g,"\\'"))}','${esc(String(x.member).replace(/'/g,"\\'"))}')">${_FL('Ma vue','My view')}</button><button class="btn btn-ghost btn-sm" onclick="repFixLink('${esc(x.case_id)}')">${_FL('Ce n’est pas vous ?','Not you?')}</button></div></div>`;
   }).join('');
   return `<h2 class="section-h" style="margin-top:22px">${_FL('Mes groupes','My groups')}</h2><div class="hint" style="margin-bottom:8px">${_FL('Les groupes où vous êtes membre. Ouvrez « Ma vue » pour suivre votre vie dans le groupe.','Groups where you are a member. Open “My view” to follow your life in the group.')}</div><div class="panel"><div style="padding:6px 16px 10px">${rows}</div></div>`;
 }
@@ -3976,6 +3988,7 @@ function viewMyLife(){
     <div class="eyebrow">${_FL('Ma vue','My view')}</div>
     <h1 class="page-title">${esc(ml.name||'')}</h1>
     <p class="lead">${_FL('Vous : ','You: ')}<b>${esc(ml.member||'')}</b></p>
+    ${ml.caseId?`<div class="msub" style="margin-top:4px">${_FL('Ce n’est pas vous ?','Not you?')} <a href="#" onclick="repFixLink('${esc(ml.caseId)}');return false" style="color:#8a6a24;font-weight:600">${_FL('Corriger ma fiche','Fix my record')}</a></div>`:''}
     ${body}
     ${footer()}`;
 }
@@ -10742,7 +10755,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.90';
+const UBORA_BUILD='v9.91';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
