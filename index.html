@@ -4138,15 +4138,29 @@ function viewMemberHome(){
 function openGroupHub(id,name){ state.activeCase=id; state.groupHubName=name||''; go('grouphub'); }
 function viewGroupHub(){
   const c=state_cases.find(x=>x.id===state.activeCase); const nm=(c&&c.name)||state.groupHubName||'';
+  var _cur=(c&&c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c&&c.cagnotte&&c.cagnotte.cur)||'EUR'; var _tc=0,_td=0; (c&&c.members||[]).forEach(function(m){ _tc+=caseCotiseOf(c,m); _td+=caseEngageOf(c,m); }); var _sol=_tc-_td; var _nm2=(c&&c.members||[]).length, _ne=(c&&c.evts||[]).length; var _next=null; try{var _ti=new Date().toISOString().slice(0,10); var _up=(c&&c.evts||[]).filter(function(e){return e.dateISO&&e.dateISO>=_ti;}).sort(function(a,b){return (a.dateISO||'').localeCompare(b.dateISO||'');}); _next=_up[0]||null;}catch(_e){}
   app().innerHTML=ghStyle()+`
     <button class="backlink" onclick="openCase('${c?c.id:''}')">‹ ${tr('mc_title')}</button>
     <div class="eyebrow">${_FL('vue du groupe','group view')}</div>
     <h1 class="page-title">${esc(nm)}</h1>
-    <p class="lead">${_FL('Deux façons de voir le groupe.','Two ways to see the group.')}</p>
-    <div class="gh-drawers" style="margin-top:8px">
+    <p class="lead">${(c&&c.mission)?esc(c.mission):_FL('Deux façons de voir le groupe.','Two ways to see the group.')}</p>
+    <div class="panel" style="margin-top:4px"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:18px;align-items:flex-end">
+      <div><div class="msub">${_FL('Membres','Members')}</div><div style="font-size:20px;font-weight:600">${_nm2}</div></div>
+      <div><div class="msub">${_FL('Événements','Events')}</div><div style="font-size:20px;font-weight:600">${_ne}</div></div>
+      <div><div class="msub">${_FL('Prochain','Next')}</div><div style="font-size:14px;font-weight:600">${_next?esc(_next.title):'—'}</div></div>
+      <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div style="font-size:24px;font-weight:600;color:${_sol<0?'#8A2E16':'#8A6A24'}">${money(_sol,_cur)}</div></div>
+    </div></div></div>
+    <div class="gh-drawers" style="margin-top:12px">
       <div class="gh-drawer" onclick="openGroupHome('${c?c.id:''}')"><div class="gh-draw-ic">❖</div><div class="gh-draw-t">${_FL('Vie du groupe','Group life')}</div><div class="gh-draw-p">${_FL('Le foyer : finances, activités, projets, bureau, bibliothèque — tout réuni.','The home: finances, activities, projects, board, library — all together.')}</div></div>
       <div class="gh-drawer" onclick="repOpenGroupLife('${c?c.id:''}','${esc(String(nm).replace(/'/g,"\\'"))}')"><div class="gh-draw-ic">▦</div><div class="gh-draw-t">${_FL('Tiroirs membres','Member drawers')}</div><div class="gh-draw-p">${_FL('Le détail par membre — chacun sa fiche et son histoire.','Per-member detail — each their own record and story.')}</div></div>
     </div>
+    <div class="panel" style="margin-top:12px"><div class="panel-h"><h3>${_FL('Accès rapide','Quick access')}</h3></div><div style="padding:12px 16px"><div class="row-gap" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="openCaseSuivi('${c?c.id:''}')">${_FL('Suivi interne','Internal tracking')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCaseComptes('${c?c.id:''}')">${_FL('Comptes','Accounts')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCaseEvts('${c?c.id:''}')">${_FL('Événements','Events')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCaseMembers('${c?c.id:''}')">${_FL('Annuaire','Directory')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openCaseRapportMois('${c?c.id:''}')">${_FL('Attestation mensuelle','Monthly statement')}</button>
+    </div></div></div>
     ${footer()}`;
 }
 function caseBoardLabel(kind){ return kind==='idees'?_FL('Idées','Ideas'):(kind==='realisations'?_FL('Réalisations','Achievements'):(kind==='projetsDev'?_FL('Projets en développement','Projects in development'):_FL('Cahier','Notebook'))); }
@@ -7334,13 +7348,13 @@ function viewCaseSuivi(){
     <button class="backlink" onclick="go('casedetail')">‹ ${esc(c.name)}</button>
     <div class="eyebrow">${_FL('suivi interne','internal tracking')}</div>
     <h1 class="page-title">${_FL('Suivi','Tracking')} · ${esc(c.name)}</h1>
-    <p class="lead">${_FL('Visible par les membres du groupe. Le comité et le bureau agissent (confirmer, modifier) ; les autres consultent.','Visible to group members. The committee and board act (confirm, edit); others view.')}</p>
-    <div class="panel"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:18px;align-items:flex-end">
-      <div><div class="msub">${_FL('Confirmé (tous événements)','Confirmed (all events)')}</div><div style="font-size:22px;font-weight:600;color:#1c7a46">${money(gConf,cur)}</div></div>
-      <div><div class="msub">${_FL('En attente / promesses','Pending / pledges')}</div><div style="font-size:22px;font-weight:600;color:#9a5a1a">${money(gPend,cur)}</div></div>
-      <div><div class="msub">${_FL('Événements','Events')}</div><div style="font-size:22px;font-weight:600">${c.evts.length}</div></div>
-      <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Points de vigilance','Watch points')}</div><div style="font-size:22px;font-weight:600;color:${gVig>0?'#9a5a1a':'#1c7a46'}">${gVig}</div></div>
-    </div></div></div>
+    <p class="lead">${_FL('Visible par les membres. Le comité et le bureau agissent — les autres consultent.','Visible to members. The committee and board act — others view.')}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px">
+      <div style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div class="msub">${_FL('Confirmé','Confirmed')}</div><div style="font-size:22px;font-weight:600;color:#1c7a46;margin-top:2px">${money(gConf,cur)}</div><div class="msub" style="font-size:11px">${_FL('tous événements','all events')}</div></div>
+      <div style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div class="msub">${_FL('En attente / promesses','Pending / pledges')}</div><div style="font-size:22px;font-weight:600;color:#9a5a1a;margin-top:2px">${money(gPend,cur)}</div></div>
+      <div style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div class="msub">${_FL('Événements','Events')}</div><div style="font-size:22px;font-weight:600;margin-top:2px">${c.evts.length}</div></div>
+      <div style="flex:1;min-width:150px;background:${gVig>0?'#fbf1e3':'var(--card)'};border:1px solid ${gVig>0?'#e6c9a0':'var(--line)'};border-radius:12px;padding:14px 16px"><div class="msub">${_FL('Points de vigilance','Watch points')}</div><div style="font-size:22px;font-weight:600;margin-top:2px;color:${gVig>0?'#9a5a1a':'#1c7a46'}">${gVig}</div></div>
+    </div>
     ${evCards}
     <div class="asnote" style="margin-top:12px">${_FL('Vue interne — détails réservés aux membres (preuves, statuts, écarts). Le public ne voit que la page d’annonce de l’événement.','Internal view — details reserved to members (proofs, statuses, gaps). The public only sees the event’s announcement page.')}</div>
     ${footer()}`;
@@ -10755,7 +10769,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.91';
+const UBORA_BUILD='v9.92';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
