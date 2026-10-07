@@ -7020,6 +7020,17 @@ function viewCaseEvts(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>Événements (${c.evts.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     ${footer()}`;
 }
+function caseEvtGuestDupe(c,contribs){
+  var mem=(c&&c.members)||[];
+  for(var i=0;i<contribs.length;i++){ var k=contribs[i]; if(!k||!k.ext)continue;
+    for(var j=0;j<mem.length;j++){ var m=mem[j];
+      var sameName=caseSameName(m.name,k.name);
+      var sameMail=k.contact&&m.contact&&caseSameName(m.contact,k.contact);
+      if(sameName||sameMail) return {guest:(k.name||k.contact||''),member:(m.name||'')};
+    }
+  }
+  return null;
+}
 function caseEvtReadContribs(c,cur){
   const contribs=[];
   (c.members||[]).forEach(function(m){
@@ -7050,7 +7061,9 @@ function caseEvtAdd(){
   const cur=(document.getElementById('cv-cur')||{}).value||'EUR';
   const cat=(document.getElementById('cv-cat')||{}).value||'autre';
   const diso=(document.getElementById('cv-date')||{}).value||'';
-  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,objectif:Number(g('cv-obj'))||0,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:caseEvtReadContribs(c,cur)};
+  var _contribs=caseEvtReadContribs(c,cur);
+  var _dup=caseEvtGuestDupe(c,_contribs); if(_dup){ alert(_FL('« '+_dup.guest+' » semble déjà dans l’annuaire (membre « '+_dup.member+' »). Cochez-la dans la liste des membres ci-dessus — la zone « hors annuaire » est réservée aux personnes extérieures au groupe.','“'+_dup.guest+'” already appears in the directory (member “'+_dup.member+'”). Tick them in the members list above — the “outside the directory” box is for people outside the group.')); return; }
+  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,objectif:Number(g('cv-obj'))||0,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:_contribs};
   if(vis==='public') evt.pubId=newId('e');
   c.evts=c.evts||[]; c.evts.unshift(evt);
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
@@ -7070,7 +7083,9 @@ function caseEvtSave(){
   const cat=(document.getElementById('cv-cat')||{}).value||'autre';
   const diso=(document.getElementById('cv-date')||{}).value||'';
   const wasPublic=(ev0.visibility==='public');
-  ev0.title=title; ev0.date=diso; ev0.dateISO=diso; ev0.category=cat; ev0.objectif=Number(g('cv-obj'))||0; ev0.lieu=g('cv-lieu'); ev0.note=g('cv-note'); ev0.visibility=vis; ev0.contribs=caseEvtReadContribs(c,cur);
+  var _contribs=caseEvtReadContribs(c,cur);
+  var _dup=caseEvtGuestDupe(c,_contribs); if(_dup){ alert(_FL('« '+_dup.guest+' » semble déjà dans l’annuaire (membre « '+_dup.member+' »). Cochez-la dans la liste des membres ci-dessus — la zone « hors annuaire » est réservée aux personnes extérieures au groupe.','“'+_dup.guest+'” already appears in the directory (member “'+_dup.member+'”). Tick them in the members list above — the “outside the directory” box is for people outside the group.')); return; }
+  ev0.title=title; ev0.date=diso; ev0.dateISO=diso; ev0.category=cat; ev0.objectif=Number(g('cv-obj'))||0; ev0.lieu=g('cv-lieu'); ev0.note=g('cv-note'); ev0.visibility=vis; ev0.contribs=_contribs;
   if(vis==='public'){ if(!ev0.pubId) ev0.pubId=newId('e'); }
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
   if(vis==='public'){ caseEvtPublish(c,ev0); }
@@ -10525,7 +10540,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.80';
+const UBORA_BUILD='v9.81';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
