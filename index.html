@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='caserapportmois'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='caserapportmois'||v==='casesuivi'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,caserapportmois:viewCaseRapportMois,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,caserapportmois:viewCaseRapportMois,casesuivi:viewCaseSuivi,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -7275,6 +7275,63 @@ function viewCaseRapport(){
     <div class="asnote" style="margin-top:12px">${_FL('Registre interne de l\u2019association \u2014 UBORA ne d\u00e9tient aucun fonds. \u00c0 remettre aux membres (janvier).','Association internal ledger \u2014 UBORA holds no funds. To share with members (January).')}</div>
     ${footer()}`;
 }
+function openCaseSuivi(id){ state.activeCase=id; return (async function(){ try{ if(BACKEND==='supabase'&&db.loadEvents) await db.loadEvents(); }catch(e){} go('casesuivi'); })(); }
+function suiviEditEvent(caseId,idx){ state.activeCase=caseId; state.caseEvtEdit=idx; go('caseevts'); try{window.scrollTo(0,0);}catch(e){} }
+function suiviCanAct(c,evt){ if(!c)return false; if(c._creator&&(c._creator===state.uid||c._creator===state.user))return true; if(isCaseBureau(c.id))return true; var me=null; if(state.myCases){var r=state.myCases.find(function(x){return x&&x.case_id===c.id;}); me=r&&r.member;} if(!me&&state.user)me=state.user; if(me&&(evt.committee||[]).some(function(x){return x.name&&String(x.name).trim().toLowerCase()===String(me).trim().toLowerCase();}))return true; return false; }
+function viewCaseSuivi(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  if(state.uid && typeof state.myCases==='undefined'){ try{ repLoadMyCases().then(function(){render();}); }catch(_e){} }
+  c.evts=c.evts||[];
+  const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  var gConf=0,gPend=0,gVig=0,evCards='';
+  (c.evts||[]).forEach(function(evt,idx){
+    var pe=(typeof state_events!=='undefined'?state_events:[]).find(function(x){return x&&x.id===evt.pubId;});
+    var dons=(pe&&pe.dons)||[];
+    var conf=0,pend=0,prom=0,veri=0;
+    dons.forEach(function(d){var st=donStatutOf(d);var a=Number(d.montant)||0; if(st==='verifie')veri+=a; else if(st==='confirme')conf+=a; else if(st==='promesse')prom+=a; else pend+=a;});
+    var secured=veri+conf; var pendingA=pend+prom; gConf+=secured; gPend+=pendingA;
+    var cashVig=dons.filter(function(d){return d.mode==='especes'&&donStatutOf(d)==='attente';}).length; gVig+=cashVig;
+    var consTot=(evt.contribs||[]).reduce(function(s,k){return s+(Number(k.amount)||0);},0);
+    var act=suiviCanAct(c,evt);
+    var objv=Number(evt.objectif)||0; var pct=objv>0?Math.min(100,Math.round(secured/objv*100)):0;
+    var caisseB='<span class="pill" style="font-size:10px">'+((evt.caisse==='projet')?_FL('caisse projet','project fund'):_FL('caisse groupe','group fund'))+'</span>';
+    var visB=(evt.visibility==='public')?'<span class="pill p-done" style="font-size:10px">'+_FL('public','public')+'</span>':'<span class="pill" style="font-size:10px">'+_FL('privé','private')+'</span>';
+    var donRows=dons.slice().reverse().map(function(d){
+      var cBtn=(act&&donStatutOf(d)==='attente')?'<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" onclick="donConfirm(\''+esc(evt.pubId)+'\',\''+esc(d.ts||'')+'\')">'+_FL('Confirmer ✓','Confirm ✓')+'</button>':'';
+      var cby=(donStatutOf(d)==='confirme'&&d.confirmed_by)?'<br><span class="faint" style="font-size:11px">'+_FL('confirmé par','confirmed by')+' '+esc(d.confirmed_by)+'</span>':'';
+      var pf=d.proof?('<br><span class="faint" style="font-size:11px">'+esc(d.proof)+'</span>'):'';
+      return '<div class="between" style="padding:5px 0;border-top:1px solid var(--line)"><span>'+esc(d.name||_FL('Anonyme','Anonymous'))+' '+donStatutBadge(d)+(donModeLabel(d)?' <span class="faint" style="font-size:11px">'+donModeLabel(d)+'</span>':'')+pf+cby+' '+cBtn+'</span><span style="font-weight:600">'+money(Number(d.montant)||0,d.cur||cur)+'</span></div>';
+    }).join('')||('<div class="hint" style="padding:6px 0">'+_FL('Aucun don pour l’instant.','No gift yet.')+'</div>');
+    var comiteLine=(evt.committee&&evt.committee.length)?('<div class="msub" style="font-size:12px;margin-top:4px"><b>'+_FL('Comité','Committee')+'</b> : '+evt.committee.map(function(x){return esc(x.name);}).join(', ')+'</div>'):'';
+    var finLine=evt.finName?('<div class="msub" style="font-size:12px"><b>'+_FL('Responsable','Lead')+'</b> : '+esc(evt.finName)+'</div>'):'';
+    var editBtn=act?('<button class="btn btn-ghost btn-sm" onclick="suiviEditEvent(\''+esc(c.id)+'\','+idx+')">'+_FL('Modifier','Edit')+'</button>'):'';
+    var roleTag=act?('<span class="pill p-done" style="font-size:10px">'+_FL('comité / gestion','committee')+'</span>'):('<span class="pill" style="font-size:10px">'+_FL('lecture','read-only')+'</span>');
+    var bar=objv>0?('<div class="progress" style="margin-top:8px"><i style="width:'+pct+'%"></i></div><div class="msub" style="font-size:11px;margin-top:3px">'+pct+'% '+_FL('de','of')+' '+money(objv,cur)+'</div>'):'';
+    var vig=cashVig>0?('<div class="msub" style="font-size:11px;color:#9a5a1a;margin-top:4px">⚠️ '+cashVig+' '+_FL('espèce(s) en attente de confirmation','cash gift(s) to confirm')+'</div>'):'';
+    evCards+='<div class="panel" style="margin-top:12px;border-left:3px solid '+(pendingA>0?'#C9A84C':'#1c7a46')+'"><div style="padding:14px 18px">'
+      +'<div class="between" style="align-items:flex-start"><div><div class="mname">'+esc(evt.title||'Événement')+' '+visB+' '+caisseB+'</div><div class="msub" style="font-size:12px">'+(evt.date?esc(evt.date)+' · ':'')+roleTag+'</div></div><div style="text-align:right">'+editBtn+'</div></div>'
+      +bar+vig
+      +'<div class="between" style="margin-top:10px;flex-wrap:wrap;gap:12px"><span class="msub" style="font-size:12.5px">🟢 '+_FL('confirmé','confirmed')+' <b>'+money(secured,cur)+'</b> · 🟠 '+_FL('annoncé','announced')+' '+money(pendingA,cur)+(consTot>0?(' · '+_FL('contrib. membres','member contrib.')+' '+money(consTot,cur)):'')+'</span></div>'
+      +comiteLine+finLine
+      +'<div style="margin-top:8px">'+donRows+'</div>'
+      +'</div></div>';
+  });
+  if(!c.evts.length) evCards='<div class="panel"><div class="empty">'+_FL('Aucun événement pour l’instant.','No event yet.')+'</div></div>';
+  app().innerHTML=`
+    <button class="backlink" onclick="go('casedetail')">‹ ${esc(c.name)}</button>
+    <div class="eyebrow">${_FL('suivi interne','internal tracking')}</div>
+    <h1 class="page-title">${_FL('Suivi','Tracking')} · ${esc(c.name)}</h1>
+    <p class="lead">${_FL('Visible par les membres du groupe. Le comité et le bureau agissent (confirmer, modifier) ; les autres consultent.','Visible to group members. The committee and board act (confirm, edit); others view.')}</p>
+    <div class="panel"><div style="padding:16px 20px"><div class="between" style="flex-wrap:wrap;gap:18px;align-items:flex-end">
+      <div><div class="msub">${_FL('Confirmé (tous événements)','Confirmed (all events)')}</div><div style="font-size:22px;font-weight:600;color:#1c7a46">${money(gConf,cur)}</div></div>
+      <div><div class="msub">${_FL('En attente / promesses','Pending / pledges')}</div><div style="font-size:22px;font-weight:600;color:#9a5a1a">${money(gPend,cur)}</div></div>
+      <div><div class="msub">${_FL('Événements','Events')}</div><div style="font-size:22px;font-weight:600">${c.evts.length}</div></div>
+      <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Points de vigilance','Watch points')}</div><div style="font-size:22px;font-weight:600;color:${gVig>0?'#9a5a1a':'#1c7a46'}">${gVig}</div></div>
+    </div></div></div>
+    ${evCards}
+    <div class="asnote" style="margin-top:12px">${_FL('Vue interne — détails réservés aux membres (preuves, statuts, écarts). Le public ne voit que la page d’annonce de l’événement.','Internal view — details reserved to members (proofs, statuses, gaps). The public only sees the event’s announcement page.')}</div>
+    ${footer()}`;
+}
 function openCaseCagnotte(id){ state.activeCase=id; go('casecagnotte'); }
 function viewCaseCagnotte(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
@@ -7376,6 +7433,7 @@ function viewCaseDetail(){
     `<div class="mrow" onclick="openCaseMembers('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_dir')}</div><div class="msub">${(c.members||[]).length} membre(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseCotis('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_cot')}</div><div class="msub">${(c.cotis||[]).length} cotisation(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseEvts('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_evt')}</div><div class="msub">${(c.evts||[]).length} \u00e9v\u00e9nement(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
+    `<div class="mrow" onclick="openCaseSuivi('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Suivi interne','Internal tracking')} <span class="pill p-done" style="font-size:10px">${_FL('membres','members')}</span></div><div class="msub">${_FL('pilotage des événements — dons, statuts, comité','event oversight — gifts, statuses, committee')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseComptes('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${_FL('Comptes','Accounts')}</div><div class="msub">${_FL('solde par membre + groupe','per-member + group balance')}</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`,
     `<div class="mrow" onclick="openCaseCagnotte('${c.id}')" style="cursor:pointer"><div class="stack"><div class="mname">${tr('mc_tool_pot')}</div><div class="msub">${((c.cagnotte&&c.cagnotte.contribs)||[]).length} contribution(s)</div></div><div class="right"><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div></div>`
   ].join('');
@@ -10684,7 +10742,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.89';
+const UBORA_BUILD='v9.90';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
