@@ -7131,7 +7131,7 @@ function caseEvtPublish(c,evt){
   if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
   var prev=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===evt.pubId;});
   var effAcct=(evt.caisse==='projet')?((prev&&prev.stripe_account)||evt.stripe_account||''):((c&&c.stripe_account)||(prev&&prev.stripe_account)||'');
-  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, caisse:(evt.caisse||'groupe'), finName:(evt.finName||''), committee:(evt.committee||[]), stripe_account:effAcct, billets:[] };
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, caisse:(evt.caisse||'groupe'), finName:(evt.finName||''), committee:(evt.committee||[]), fapshi:((evt.caisse==='projet')?false:!!(c&&c.fapshi_connected)), stripe_account:effAcct, billets:[] };
   try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
@@ -8965,6 +8965,21 @@ async function evDonSubmit(id){
   } else { ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString(),mode:mode,proof:proof,statut:statut}); saveLocal(); }
   state.donFor=null; state.donMode=null; render();
 }
+async function fapshiDonate(id){
+  const ev=state_events.find(x=>x.id===id); if(!ev)return;
+  const nmEl=$('#don-name'), amEl=$('#don-amt');
+  const nm=(nmEl&&nmEl.value.trim())||_FL('Anonyme','Anonymous');
+  const amt=Number(String((amEl&&amEl.value)||'').replace(',','.'));
+  if(!amt||amt<=0){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/fapshi-donate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({action:'initiate',event_id:id,amount:amt,currency:(ev.currency||'XAF'),donor_name:nm,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert(_FL('Paiement Mobile Money impossible\u00A0: ','Mobile Money payment failed: ')+(e.message||e)); }
+}
 async function stripeDonate(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const nmEl=$('#don-name'), amEl=$('#don-amt');
@@ -9773,7 +9788,7 @@ function viewEvent(){
                <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>${_FL('Montant','Amount')} (${ev.currency||'EUR'})</label><input id="don-amt" type="number" min="1" placeholder="0"></div>
              </div>
              ${(!state.user||/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?`<div class="msub" style="margin:6px 0"><span style="color:#8a6a24">${_FL('Astuce : créez votre compte pour que votre don soit tracé à votre nom.','Tip: create your account so your gift is traced to your name.')}</span> <a href="#" onclick="state.donFor=null;go('auth');return false" style="color:#8a6a24;font-weight:600">${_FL('Créer mon compte','Create my account')}</a></div>`:''}
-             ${ev.stripe_account?`<div class="row-gap" style="margin:8px 0"><button class="btn btn-gold btn-sm" onclick="stripeDonate('${ev.id}')">${_FL('Payer par carte — vérifié ✓','Pay by card — verified ✓')}</button></div><div class="msub" style="margin:4px 0;border-top:1px solid var(--line);padding-top:8px">${_FL('Ou déclarer un don réglé autrement :','Or declare a gift settled another way:')}</div>`:''}
+             ${(ev.fapshi&&String(ev.currency||'').toUpperCase()==='XAF')?`<div class="row-gap" style="margin:8px 0"><button class="btn btn-gold btn-sm" onclick="fapshiDonate('${ev.id}')">${_FL('Payer par Mobile Money — vérifié ✓','Pay by Mobile Money — verified ✓')}</button></div><div class="msub" style="font-size:11px;margin:-2px 0 6px">${_FL('Orange Money / MTN — l’argent va directement à l’association ; frais ~3 % ajoutés.','Orange Money / MTN — money goes straight to the association; ~3% fee added.')}</div>`:''}${ev.stripe_account?`<div class="row-gap" style="margin:8px 0"><button class="btn btn-gold btn-sm" onclick="stripeDonate('${ev.id}')">${_FL('Payer par carte — vérifié ✓','Pay by card — verified ✓')}</button></div><div class="msub" style="margin:4px 0;border-top:1px solid var(--line);padding-top:8px">${_FL('Ou déclarer un don réglé autrement :','Or declare a gift settled another way:')}</div>`:''}
              <div class="row-gap" style="align-items:flex-end;flex-wrap:wrap;margin-top:6px">
                <div class="field" style="flex:1;min-width:150px;margin-top:0"><label>${_FL('Mode','Method')}</label><select id="don-mode" onchange="state.donMode=this.value;render()"><option value="mobile"${dmode==='mobile'?' selected':''}>${_FL('Mobile Money','Mobile Money')}</option><option value="especes"${dmode==='especes'?' selected':''}>${_FL('Espèces','Cash')}</option><option value="virement"${dmode==='virement'?' selected':''}>${_FL('Virement','Transfer')}</option><option value="promesse"${dmode==='promesse'?' selected':''}>${_FL('Promesse','Pledge')}</option></select></div>
                ${proofField}
@@ -10808,7 +10823,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.93';
+const UBORA_BUILD='v9.94';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -11475,6 +11490,17 @@ async function boot(){
   }
 
   /* 0-bis) Retour de Stripe apr\u00E8s paiement */
+  /* 0-bis-f) Retour d'un don Mobile Money (Fapshi) */
+  var _fd=(location.search||'').match(/[?&]fdon=([^~&]+)~([A-Za-z0-9-]+)/);
+  if(_fd&&BACKEND==='supabase'){
+    try{ await initSB(); }catch(e){}
+    var _fev=decodeURIComponent(_fd[1]), _fref=_fd[2], _fstatus='';
+    try{ const _rr=await fetch(SB_URL+'/functions/v1/fapshi-donate',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_ANON},body:JSON.stringify({action:'status',event_id:_fev,ref:_fref})}); const _jj=await _rr.json().catch(()=>({})); _fstatus=(_jj&&_jj.status)||''; }catch(e){}
+    try{ history.replaceState(null,'',location.origin+location.pathname); }catch(e){}
+    setTimeout(function(){ alert(_fstatus==='SUCCESSFUL'
+      ? _FL('Don Mobile Money reçu ✓ — inscrit (vérifié) dans la cagnotte. L’argent est allé directement à l’association.','Mobile Money gift received ✓ — recorded (verified) in the fund. Money went straight to the association.')
+      : _FL('Paiement en cours. S’il a réussi, le don apparaîtra « vérifié » dans un instant.','Payment processing. If it succeeded, the gift will show as verified shortly.')); },900);
+  }
   const _pay=(location.search||'').match(/[?&]paiement=(ok|annule)/);
   if(_pay){
     const _ok=_pay[1]==='ok';
