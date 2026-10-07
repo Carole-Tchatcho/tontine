@@ -2309,7 +2309,7 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
   if(BACKEND==='supabase'&&v==='events'){try{await db.loadEvents();}catch(e){console.warn('loadEvents',e);}}
   if(BACKEND==='supabase'&&(v==='entraide'||v==='caisse')){try{await db.loadCaisses();}catch(e){console.warn('loadCaisses',e);}}
   if(BACKEND==='supabase'&&(v==='partages'||v==='partage')){try{await db.loadPartages();}catch(e){console.warn('loadPartages',e);}}
-  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
+  if(BACKEND==='supabase'&&(v==='case'||v==='casedetail'||v==='casemembers'||v==='casecotis'||v==='caseevts'||v==='casecagnotte'||v==='casecomptes'||v==='casereleve'||v==='caserapport'||v==='caserapportmois'||v==='groupehome'||v==='memberhome'||v==='grouphub'||v==='caseboard')){try{await db.loadCases();}catch(e){console.warn('loadCases',e);}}
   if(BACKEND==='supabase'&&v==='reunion'){try{await db.loadReunions();}catch(e){console.warn('loadReunions',e);}}
   if(BACKEND==='supabase'&&v==='notif'){try{await db.loadList();await db.loadCaisses();}catch(e){console.warn('loadNotif',e);}}
   render();window.scrollTo({top:0,behavior:'smooth'});}
@@ -2931,7 +2931,7 @@ function render(){
   if(state.uid && state.cgvOk===false && state.view!=='cgv'){ viewCGVGate(); return; }
   const _GATED_SOON={};
   if(_GATED_SOON[state.view]){viewBientot();}
-  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
+  else { var _vh=({home:viewHome,accueil:viewAccueil,profil:viewProfil,reglages:viewProfil,messages:viewMessages,conversation:viewConversation,faq:viewFAQ,landing:viewLanding,create:viewCreate,join:viewJoin,joinform:viewJoinForm,dash:viewDash,notif:viewNotif,cercle:viewCercle,pyramide:viewPyramide,releve:viewReleve,auth:viewAuth,caisse:viewCaisse,caisseshared:viewCaisseShared,entraide:viewEntraide,mandate:viewMandate,registre:viewRegistre,tarifs:viewTarifs,attmine:viewAttMine,verify:viewVerify,federation:viewFedHome,fedhome:viewFedHome,fedask:viewFedAsk,fedadmin:viewFedAdmin,events:viewEvents,event:viewEvent,eventcreate:viewEventCreate,caissecreate:viewCaisseCreate,attestation:viewAttestation,apex:viewApex,reputation:viewReputation,diffusion:viewDiffusion,partages:viewPartages,partage:viewPartage,partagecreate:viewPartageCreate,partageedit:viewPartageEdit,pattest:viewPAttest,pattestlist:viewPAttestList,couples:viewCouples,couplecreate:viewCoupleCreate,couple:viewCouple,couplesettings:viewCoupleSettings,fattest:viewFAttest,fattestlist:viewFAttestList,importmembers:viewImport,reprise:viewReprise,casejoin:viewCaseJoin,casemylife:viewMyLife,casegroupview:viewGroupLife,attmembre:viewMemberAttest,attestation:viewAttestation,cgv:viewCGV,case:viewCase,casecreate:viewCaseCreate,casedetail:viewCaseDetail,casemembers:viewCaseMembers,casecotis:viewCaseCotis,caseevts:viewCaseEvts,casecagnotte:viewCaseCagnotte,casecomptes:viewCaseComptes,casereleve:viewCaseReleve,caserapport:viewCaseRapport,caserapportmois:viewCaseRapportMois,groupehome:viewGroupHome,memberhome:viewMemberHome,grouphub:viewGroupHub,caseboard:viewCaseBoard,deal:viewDeal,match:viewMatch,udroom:viewUDRoom,cenacleadmin:viewCenacleAdmin,reunion:viewReunion,seancereleve:viewSeanceReleve,privacy:viewPrivacy,recolte:viewRecolte,founder:viewFounder,support:viewSupport,memberreports:viewMemberReportsAdmin}[state.view]||viewHome)(); if(typeof _vh==='string'){var _ae=app(); if(_ae)_ae.innerHTML=_vh;} }
   const a=app();
   const screen=[state.view,state.active,state.tab,state.caisseTab,state.activeCaisse].join('|');
   const fresh = screen!==_lastScreen; _lastScreen=screen;
@@ -7096,7 +7096,8 @@ function caseEvtSave(){
 function caseEvtPublish(c,evt){
   if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
   var prev=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===evt.pubId;});
-  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, caisse:(evt.caisse||'groupe'), billets:[] };
+  var effAcct=(evt.caisse==='projet')?((prev&&prev.stripe_account)||evt.stripe_account||''):((c&&c.stripe_account)||(prev&&prev.stripe_account)||'');
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, caisse:(evt.caisse||'groupe'), stripe_account:effAcct, billets:[] };
   try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
@@ -7130,7 +7131,13 @@ function viewCaseComptes(){
       <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde du groupe','Group balance')}</div><div style="font-size:28px;font-weight:600;line-height:1.05;margin-top:2px;color:${solG<0?'#8A2E16':'#8A6A24'}">${money(solG,cur)}</div></div>
     </div></div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Compte par membre','Per-member account')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
-    <div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openCaseRapport('${c.id}')">${_FL('Rapport annuel (imprimable)','Annual report (printable)')}</button></div>
+    ${BACKEND==='supabase'?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Encaissement carte — compte du groupe','Card settlement — group account')}</h3>${c.stripe_account?`<span class="pill p-paid">${_FL('raccordé','connected')} ✓</span>`:`<span class="pill p-due">${_FL('non raccordé','not connected')}</span>`}</div>
+      <div style="padding:14px 20px">
+        ${c.stripe_account
+          ? `<p class="msub">${_FL('Les événements dont la cagnotte alimente « la caisse du groupe » encaissent les paiements carte sur ce compte. UBORA ne détient aucun fonds.','Events whose fund feeds “the group fund” collect card payments on this account. UBORA holds no funds.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="caseGroupApplyStripe('${c.id}')">${_FL('Appliquer aux événements du groupe','Apply to group events')}</button></div>`
+          : `<p class="msub">${_FL('Raccordez une seule fois le compte Stripe du groupe : tous les événements « caisse du groupe » l’utiliseront, sans re-raccorder à chaque fois.','Connect the group’s Stripe account once: every “group fund” event uses it, with no reconnecting each time.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripeGroup('${c.id}')">${_FL('Raccorder le compte du groupe','Connect the group account')}</button></div>`}
+      </div></div>`:''}
+    <div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openCaseRapport('${c.id}')">${_FL('Rapport annuel (imprimable)','Annual report (printable)')}</button><button class="btn btn-ghost btn-sm" onclick="openCaseRapportMois('${c.id}')">${_FL('Attestation mensuelle','Monthly statement')}</button></div>
     <div class="asnote" style="margin-top:12px">${_FL('UBORA ne détient aucun fonds — ces comptes sont le registre partagé du groupe, visible par tous ses membres.','UBORA holds no funds — these accounts are the group’s shared ledger, visible to all members.')}</div>
     ${footer()}`;
 }
@@ -7176,7 +7183,51 @@ function viewCaseReleve(){
     <div class="asnote" style="margin-top:12px">${_FL('Registre interne de l\u2019association \u2014 UBORA ne d\u00e9tient aucun fonds. L\u2019attestation UBORA (activit\u00e9 tontine v\u00e9rifi\u00e9e) est un document distinct.','Association internal ledger \u2014 UBORA holds no funds. The UBORA attestation is a separate document.')}</div>
     ${footer()}`;
 }
-function openCaseRapport(cid){ state.activeCase=cid; go('caserapport'); }
+async function openCaseRapport(cid){ state.activeCase=cid; try{ if(BACKEND==='supabase'&&db.loadEvents) await db.loadEvents(); }catch(e){} go('caserapport'); }
+async function openCaseRapportMois(cid){ state.activeCase=cid; if(!state.rapportMois){ var d=new Date(); state.rapportMois=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } try{ if(BACKEND==='supabase'&&db.loadEvents) await db.loadEvents(); }catch(e){} go('caserapportmois'); }
+function rapportMoisShift(delta){ var ym=state.rapportMois||''; var pp=ym.split('-'); var y=Number(pp[0]),m=Number(pp[1]); if(!y||!m){var d=new Date();y=d.getFullYear();m=d.getMonth()+1;} m+=delta; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} state.rapportMois=y+'-'+String(m).padStart(2,'0'); render(); }
+function caseEvtConfirmedDonsMonth(e,ym){ if(!e||!e.pubId)return []; var pe=(typeof state_events!=='undefined'?state_events:[]).find(function(x){return x&&x.id===e.pubId;}); if(!pe||!pe.dons)return []; return pe.dons.filter(function(d){ var st=donStatutOf(d); if(st!=='verifie'&&st!=='confirme')return false; return String(d.ts||'').slice(0,7)===ym; }); }
+function viewCaseRapportMois(){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
+  caseEnsureMemberIds(c);
+  const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
+  const ym=state.rapportMois||((new Date()).getFullYear()+'-'+String((new Date()).getMonth()+1).padStart(2,'0'));
+  const MONTHS_FR=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var yy=Number(ym.split('-')[0]), mm=Number(ym.split('-')[1]);
+  var monLabel=(MONTHS_FR[mm-1]||'')+' '+yy;
+  const today=new Date().toLocaleDateString('fr-CH');
+  var grpTot=0, grpLines=[]; var projMap={}; var projTot=0;
+  (c.evts||[]).forEach(function(e){ var ds=caseEvtConfirmedDonsMonth(e,ym); if(!ds.length)return;
+    ds.forEach(function(d){ var amt=Number(d.montant)||0; var line={name:(d.name||'Anonyme'),amount:amt,mode:donModeLabel(d),evt:(e.title||'Événement'),cur:(d.cur||cur)};
+      if((e.caisse||'groupe')==='projet'){ var k=e.title||'Projet'; (projMap[k]=projMap[k]||[]).push(line); projTot+=amt; }
+      else { grpLines.push(line); grpTot+=amt; } }); });
+  var sec=function(title,lines,tot){ if(!lines.length)return ''; var rows=lines.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.name)+' <span class="faint">('+esc(x.evt)+(x.mode?(' · '+esc(x.mode)):'')+')</span></div></div><div class="right">'+money(x.amount,x.cur)+'</div></div>';}).join(''); return '<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+title+'</h3><span class="mid" style="font-size:13px">'+money(tot,cur)+'</span></div><div style="padding:6px 16px 12px">'+rows+'</div></div>'; };
+  var projPanels=Object.keys(projMap).map(function(k){ var lines=projMap[k]; var t=lines.reduce(function(s,x){return s+x.amount;},0); return sec(_FL('Caisse du projet','Project fund')+' — '+esc(k),lines,t); }).join('');
+  var total=grpTot+projTot;
+  app().innerHTML=`
+    <button class="backlink" onclick="go('casecomptes')">‹ ${_FL('Comptes','Accounts')}</button>
+    <div class="row-gap" style="margin:6px 0;align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="rapportMoisShift(-1)">‹ ${_FL('Mois précédent','Prev month')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="rapportMoisShift(1)">${_FL('Mois suivant','Next month')} ›</button>
+      <button class="btn btn-gold btn-sm" onclick="window.print()">${_FL('Imprimer / PDF','Print / PDF')}</button>
+    </div>
+    <div class="panel"><div style="padding:20px 22px">
+      <div class="eyebrow">${esc(c.name)}</div>
+      <h1 class="page-title" style="margin-top:4px">${_FL('Attestation mensuelle','Monthly statement')}</h1>
+      <div class="msub">${_FL('Mois de','Month of')} ${monLabel} · ${_FL('émise le','issued')} ${today}</div>
+      <div class="between" style="flex-wrap:wrap;gap:16px;margin-top:16px">
+        <div><div class="msub">${_FL('Caisse du groupe','Group fund')}</div><div class="mname" style="font-size:18px">${money(grpTot,cur)}</div></div>
+        <div><div class="msub">${_FL('Caisses de projet','Project funds')}</div><div class="mname" style="font-size:18px">${money(projTot,cur)}</div></div>
+        <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Total encaissé (confirmé)','Total collected (confirmed)')}</div><div class="mname" style="font-size:24px;color:#8A6A24">${money(total,cur)}</div></div>
+      </div>
+    </div></div>
+    ${sec(_FL('Caisse du groupe','Group fund'),grpLines,grpTot)}
+    ${projPanels}
+    ${total<=0?`<div class="panel"><div class="empty">${_FL('Aucun don confirmé ce mois-ci.','No confirmed gift this month.')}</div></div>`:''}
+    <div class="asnote" style="margin-top:12px">${_FL('Registre interne — seuls les dons vérifiés (carte) ou confirmés par le trésorier sont comptés. UBORA ne détient aucun fonds.','Internal ledger — only verified (card) or treasurer-confirmed gifts are counted. UBORA holds no funds.')}</div>
+    ${footer()}`;
+}
+function openCaseRapport_UNUSED(){}
 function viewCaseRapport(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   caseEnsureMemberIds(c); c.members=c.members||[];
@@ -9645,7 +9696,7 @@ function viewEvent(){
         ${ev.stripe_account
           ? `<p class="msub">${_FL('Les règlements carte (billets et dons) vont directement sur le compte Stripe de l’association. UBORA ne détient jamais les fonds ; seule la commission de','Card payments (tickets and gifts) go directly to the association’s Stripe account. UBORA never holds the funds; only the')} ${feePct} % ${_FL('est prélevée au passage.','fee is taken.')}</p>`
           : `<p class="msub">${_FL('Pour encaisser par carte, l’association raccorde son propre compte Stripe. L’argent ira directement chez elle : UBORA ne détient aucun fonds.','To accept card payments, the association connects its own Stripe account. Money goes straight to it: UBORA holds no funds.')}</p>
-             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">${_FL('Raccorder le compte de l’association','Connect the association’s account')}</button></div>`}
+             <div class="row-gap" style="margin-top:10px">${(ev.caisse!=='projet'&&ev.caseId)?`<button class="btn btn-gold btn-sm" onclick="connectStripeGroup('${ev.caseId}')">${_FL('Raccorder le compte du groupe','Connect the group account')}</button>`:`<button class="btn btn-gold btn-sm" onclick="connectStripe('${ev.id}')">${_FL('Raccorder un compte dédié à ce projet','Connect a fund dedicated to this project')}</button>`}</div>`}
       </div></div>`:''}` : '';
 
   app().innerHTML=`
@@ -10557,6 +10608,26 @@ async function connectStripe(evId){
     throw new Error('R\u00E9ponse inattendue.');
   }catch(e){ alert('Raccordement impossible\u00A0: '+(e.message||e)); }
 }
+async function connectStripeGroup(caseId){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/stripe-connect',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({case_id:caseId,return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status+' \u2014 v\u00E9rifiez que la fonction stripe-connect (CON-v3) est d\u00E9ploy\u00E9e.'));
+    if(_j.url){ location.href=_j.url; return; }
+    throw new Error('R\u00E9ponse inattendue.');
+  }catch(e){ alert('Raccordement impossible\u00A0: '+(e.message||e)); }
+}
+async function caseGroupApplyStripe(caseId){
+  const c=state_cases.find(x=>x.id===caseId); if(!c)return;
+  if(!c.stripe_account){ alert(_FL('Raccordez d\u2019abord le compte du groupe.','Connect the group account first.')); return; }
+  try{ if(BACKEND==='supabase'&&db.loadEvents) await db.loadEvents(); }catch(e){}
+  var n=0; (c.evts||[]).forEach(function(evt){ if(evt&&evt.visibility==='public'&&evt.pubId&&(evt.caisse||'groupe')!=='projet'){ caseEvtPublish(c,evt); n++; } });
+  alert(_FL('Compte du groupe appliqu\u00e9 \u00e0 ','Group account applied to ')+n+_FL(' \u00e9v\u00e9nement(s) de groupe.',' group event(s).'));
+  render();
+}
 async function stripeBuy(evId,idx){
   const ev=state_events.find(x=>x.id===evId); if(!ev)return;
   const b=ev.billets[idx]; if(!b)return;
@@ -10600,7 +10671,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.85';
+const UBORA_BUILD='v9.87';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
