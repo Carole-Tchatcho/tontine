@@ -8756,19 +8756,27 @@ function eventStats(ev){
 }
 function openEvent(id){state.activeEvent=id;state.reportFor=null;state.reportDone=null;go('event');}
 function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;ev.billets[i].vendus++;if(BACKEND==='supabase'){db.saveEvent(ev).catch(e=>console.warn('event',e));}if(BACKEND==='supabase'){db.saveEvent(ev).catch(()=>{});}else saveLocal();render();}
+function donStatutOf(d){ if(d&&d.statut)return d.statut; if(d&&d.via==='carte')return 'verifie'; return 'attente'; }
+function donStatutBadge(d){ var s=donStatutOf(d); var map={verifie:['#1c7a46','#e4f3ea',_FL('vérifié','verified')],confirme:['#8a6a24','#f6edd6',_FL('confirmé','confirmed')],attente:['#9a5a1a','#f6e6d2',_FL('en attente','pending')],promesse:['#6b6b6b','#ececec',_FL('promesse','pledge')]}; var m=map[s]||map.attente; return '<span class="pill" style="color:'+m[0]+';background:'+m[1]+';font-size:11px">'+m[2]+'</span>'; }
+function donModeLabel(d){ var m=d&&d.mode; if(!m)return ''; var map={carte:_FL('carte','card'),mobile:_FL('Mobile Money','Mobile Money'),especes:_FL('espèces','cash'),virement:_FL('virement','transfer'),promesse:_FL('promesse','pledge')}; return map[m]||m; }
 async function evDonSubmit(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const nmEl=$('#don-name'), amEl=$('#don-amt');
   const nm=(nmEl&&nmEl.value.trim())||_FL('Anonyme','Anonymous');
   const amt=Number(String((amEl&&amEl.value)||'').replace(',','.'));
   if(!amt||amt<=0){alert(_FL('Indiquez un montant.','Enter an amount.'));return;}
+  const mode=((document.getElementById('don-mode')||{}).value)||state.donMode||'mobile';
+  const prEl=document.getElementById('don-proof'); const proof=prEl?String(prEl.value).trim():'';
+  const statut=(mode==='promesse')?'promesse':'attente';
+  if(mode==='mobile'&&!proof){ if(!confirm(_FL('Aucun code de transaction : le don restera « en attente » jusqu’à vérification par le trésorier. Continuer ?','No transaction code: the gift stays “pending” until the treasurer verifies it. Continue?')))return; }
+  if(mode==='especes'&&!proof){ if(!confirm(_FL('Vous n’avez pas indiqué à qui l’argent a été remis : la traçabilité sera incomplète. Continuer ?','You didn’t say who received the cash: traceability will be incomplete. Continue?')))return; }
   ev.dons=ev.dons||[];
   if(BACKEND==='supabase'){
-    try{ const{data,error}=await sb.rpc('event_don_add',{p_event:id,p_name:nm,p_amount:amt,p_cur:ev.currency||null}); if(error)throw error;
-      if(data&&data.don){ev.dons.push(data.don);} else {ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString()});}
+    try{ const{data,error}=await sb.rpc('event_don_add',{p_event:id,p_name:nm,p_amount:amt,p_cur:ev.currency||null,p_mode:mode,p_proof:proof,p_statut:statut}); if(error)throw error;
+      if(data&&data.don){ev.dons.push(data.don);} else {ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString(),mode:mode,proof:proof,statut:statut});}
     }catch(e){ alert(_FL('Don non enregistré : ','Could not record gift: ')+(e.message||e)); return; }
-  } else { ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString()}); saveLocal(); }
-  state.donFor=null; render();
+  } else { ev.dons.push({name:nm,montant:amt,cur:ev.currency,ts:new Date().toISOString(),mode:mode,proof:proof,statut:statut}); saveLocal(); }
+  state.donFor=null; state.donMode=null; render();
 }
 async function stripeDonate(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
@@ -9551,24 +9559,37 @@ function viewEvent(){
   let collectPanel='';
   if(ev.collecte==='dons'){
     const donTotal=(ev.dons||[]).reduce((s,d)=>s+(Number(d.montant)||0),0);
+    const donSecured=(ev.dons||[]).reduce((s,d)=>{var st=donStatutOf(d);return s+((st==='verifie'||st==='confirme')?(Number(d.montant)||0):0);},0);
+    const donPending=donTotal-donSecured;
     const donsList=(ev.dons||[]).slice().reverse();
-    const dpct=ev.objectif?Math.min(100,Math.round(donTotal/ev.objectif*100)):0;
+    const dpct=ev.objectif?Math.min(100,Math.round(donSecured/ev.objectif*100)):0;
     const myName=(state.user&&!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?state.user:'';
     collectPanel=`<div class="panel"><div class="panel-h"><h3>${_FL('Cagnotte de solidarité','Solidarity fund')}</h3><span class="pill p-paid">${_FL('dons libres','free gifts')}</span></div>
       <div style="padding:14px 20px">
-        <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · ${money(donTotal,ev.currency)} ${tr('ev_raised')}</span>${ev.objectif?`<span style="font-weight:600;color:#8a6a24">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
+        <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · <b>${money(donSecured,ev.currency)}</b> ${_FL('confirmés','confirmed')}${donPending>0?` · <span style="color:#9a5a1a">${money(donPending,ev.currency)} ${_FL('en attente','pending')}</span>`:''}</span>${ev.objectif?`<span style="font-weight:600;color:#8a6a24">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
         ${ev.objectif?`<div class="progress"><i style="width:${dpct}%"></i></div>`:''}
         <div class="msub" style="margin:8px 0">${_FL('Chacun donne ce qu’il peut. Chaque don est inscrit dans la cagnotte propre à cet événement — jamais mêlé au compte du groupe.','Each gives what they can. Every gift is recorded in this event’s own fund — never mixed with the group account.')}</div>
         ${state.donFor===ev.id
-          ? `<div class="row-gap" style="align-items:flex-end;flex-wrap:wrap">
+          ? (function(){ var dmode=state.donMode||'mobile';
+              var proofField = dmode==='promesse'
+                ? `<div class="msub" style="flex-basis:100%;margin-top:4px">${_FL('Vous vous engagez à donner — le trésorier confirmera à la réception.','You pledge to give — the treasurer will confirm on receipt.')}</div>`
+                : `<div class="field" style="flex:2;min-width:160px;margin-top:0"><label>${dmode==='mobile'?_FL('Code de transaction (Orange Money, MTN…)','Transaction code (Orange Money, MTN…)'):dmode==='especes'?_FL('Remis à (nom de la personne)','Handed to (person’s name)'):_FL('Référence du virement','Transfer reference')}</label><input id="don-proof" placeholder="${dmode==='mobile'?_FL('Ex. OM240107.1234','e.g. OM240107.1234'):dmode==='especes'?_FL('Ex. Awa Diallo, trésorière','e.g. Awa Diallo, treasurer'):_FL('Ex. VIR-2026-014','e.g. VIR-2026-014')}"></div>`;
+              return `<div class="row-gap" style="align-items:flex-end;flex-wrap:wrap">
                <div class="field" style="flex:2;min-width:150px;margin-top:0"><label>${_FL('Votre nom','Your name')}</label><input id="don-name" value="${esc(myName)}" placeholder="${_FL('Nom affiché','Shown name')}"></div>
                <div class="field" style="flex:1;min-width:110px;margin-top:0"><label>${_FL('Montant','Amount')} (${ev.currency||'EUR'})</label><input id="don-amt" type="number" min="1" placeholder="0"></div>
-               ${ev.stripe_account?`<button class="btn btn-gold btn-sm" onclick="stripeDonate('${ev.id}')">${_FL('Payer par carte','Pay by card')}</button>`:''}
-               <button class="btn ${ev.stripe_account?'btn-ghost':'btn-gold'} btn-sm" onclick="evDonSubmit('${ev.id}')">${ev.stripe_account?_FL('Inscrire un don réglé hors ligne','Record an offline gift'):_FL('Enregistrer mon don','Record my gift')}</button>
-               <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;render()">${tr('cancel')}</button>
-             </div>`
+             </div>
+             ${(!state.user||/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?`<div class="msub" style="margin:6px 0"><span style="color:#8a6a24">${_FL('Astuce : créez votre compte pour que votre don soit tracé à votre nom.','Tip: create your account so your gift is traced to your name.')}</span> <a href="#" onclick="state.donFor=null;go('auth');return false" style="color:#8a6a24;font-weight:600">${_FL('Créer mon compte','Create my account')}</a></div>`:''}
+             ${ev.stripe_account?`<div class="row-gap" style="margin:8px 0"><button class="btn btn-gold btn-sm" onclick="stripeDonate('${ev.id}')">${_FL('Payer par carte — vérifié ✓','Pay by card — verified ✓')}</button></div><div class="msub" style="margin:4px 0;border-top:1px solid var(--line);padding-top:8px">${_FL('Ou déclarer un don réglé autrement :','Or declare a gift settled another way:')}</div>`:''}
+             <div class="row-gap" style="align-items:flex-end;flex-wrap:wrap;margin-top:6px">
+               <div class="field" style="flex:1;min-width:150px;margin-top:0"><label>${_FL('Mode','Method')}</label><select id="don-mode" onchange="state.donMode=this.value;render()"><option value="mobile"${dmode==='mobile'?' selected':''}>${_FL('Mobile Money','Mobile Money')}</option><option value="especes"${dmode==='especes'?' selected':''}>${_FL('Espèces','Cash')}</option><option value="virement"${dmode==='virement'?' selected':''}>${_FL('Virement','Transfer')}</option><option value="promesse"${dmode==='promesse'?' selected':''}>${_FL('Promesse','Pledge')}</option></select></div>
+               ${proofField}
+             </div>
+             <div class="row-gap" style="margin-top:8px">
+               <button class="btn btn-gold btn-sm" onclick="evDonSubmit('${ev.id}')">${dmode==='promesse'?_FL('Enregistrer ma promesse','Record my pledge'):_FL('Enregistrer la déclaration','Record the declaration')}</button>
+               <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;state.donMode=null;render()">${tr('cancel')}</button>
+             </div>`; })()
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
-        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))}${d.via==='carte'?` <span class="faint">(${_FL('carte','card')})</span>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
+        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))} ${donStatutBadge(d)}${donModeLabel(d)?` <span class="faint" style="font-size:12px">${donModeLabel(d)}</span>`:''}${(d.proof&&manage)?`<br><span class="faint" style="font-size:11px">${esc(d.proof)}</span>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
         <div class="msub" style="margin-top:10px">${ev.settle?`<span><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}<br></span>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur.','UBORA holds no funds: settle directly with the organizer.')}</div>
       </div></div>`;
   } else {
@@ -10540,7 +10561,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.81';
+const UBORA_BUILD='v9.82';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
