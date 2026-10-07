@@ -7171,6 +7171,19 @@ function viewCaseComptes(){
           ? `<p class="msub">${_FL('Les événements dont la cagnotte alimente « la caisse du groupe » encaissent les paiements carte sur ce compte. UBORA ne détient aucun fonds.','Events whose fund feeds “the group fund” collect card payments on this account. UBORA holds no funds.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="caseGroupApplyStripe('${c.id}')">${_FL('Appliquer aux événements du groupe','Apply to group events')}</button></div>`
           : `<p class="msub">${_FL('Raccordez une seule fois le compte Stripe du groupe : tous les événements « caisse du groupe » l’utiliseront, sans re-raccorder à chaque fois.','Connect the group’s Stripe account once: every “group fund” event uses it, with no reconnecting each time.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectStripeGroup('${c.id}')">${_FL('Raccorder le compte du groupe','Connect the group account')}</button></div>`}
       </div></div>`:''}
+    ${BACKEND==='supabase'?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Encaissement Mobile Money — compte Fapshi du groupe','Mobile Money — group Fapshi account')}</h3>${c.fapshi_connected?`<span class="pill p-paid">${_FL('raccordé','connected')} ✓</span>`:`<span class="pill p-due">${_FL('non raccordé','not connected')}</span>`}</div>
+      <div style="padding:14px 20px">
+        ${c.fapshi_connected
+          ? `<p class="msub">${_FL('Les dons Mobile Money (Orange, MTN) des événements « caisse du groupe » sont encaissés directement sur votre compte Fapshi. UBORA ne détient aucun fonds ; la clé est « collecte-seule » (aucun retrait possible).','Mobile Money gifts for “group fund” events are collected directly on your Fapshi account. UBORA holds no funds; the key is collection-only.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="revokeFapshi('${c.id}')">${_FL('Révoquer / changer la clé','Revoke / change key')}</button></div>`
+          : `<p class="msub">${_FL('Pour encaisser par Mobile Money, l’association raccorde son propre compte Fapshi. L’argent va directement chez elle — UBORA ne détient aucun fonds.','To accept Mobile Money, the association connects its own Fapshi account. Money goes straight to it — UBORA holds no funds.')}</p>
+             <details style="margin:10px 0"><summary style="cursor:pointer;font-weight:600;color:#8a6a24">${_FL('Comment obtenir mes identifiants Fapshi (≈ 5 min)','How to get my Fapshi credentials (≈ 5 min)')}</summary>
+               <div class="msub" style="margin-top:8px;line-height:1.85">1. ${_FL('Créez un compte gratuit sur','Create a free account on')} <a href="https://fapshi.com" target="_blank" rel="noopener" style="color:#8a6a24">fapshi.com</a> ${_FL('(sans RCCM).','(no business registration needed).')}<br>2. ${_FL('Dans le tableau de bord Fapshi, créez un SERVICE de type « Collection » (collecte).','In the Fapshi dashboard, create a service of type “Collection”.')}<br>3. ${_FL('Copiez son « apiuser » et son « apikey » — c’est une clé « collecte-seule » : elle ne peut qu’encaisser, jamais retirer.','Copy its “apiuser” and “apikey” — a collection-only key: it can only receive, never withdraw.')}<br>4. ${_FL('Collez-les ci-dessous. L’argent des dons ira DIRECTEMENT sur votre compte — UBORA n’y touche jamais.','Paste them below. Gift money goes DIRECTLY to your account — UBORA never touches it.')}</div>
+             </details>
+             <div class="row-gap"><div class="field" style="flex:1;min-width:160px;margin-top:0"><label>apiuser (Fapshi)</label><input id="fap-user" placeholder="FAK..." autocomplete="off"></div>
+               <div class="field" style="flex:1;min-width:160px;margin-top:0"><label>apikey (Fapshi)</label><input id="fap-key" type="password" placeholder="FAK_..." autocomplete="off"></div></div>
+             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:13px"><input type="checkbox" id="fap-consent"> <span>${_FL('J’autorise UBORA à encaisser les dons en mon nom via Fapshi. Je comprends que la clé est « collecte-seule » et que l’argent va directement sur mon compte.','I authorize UBORA to collect gifts on my behalf via Fapshi. I understand the key is collection-only and money goes straight to my account.')}</span></label>
+             <div class="row-gap" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="connectFapshi('${c.id}')">${_FL('Raccorder le compte Fapshi','Connect the Fapshi account')}</button></div>`}
+      </div></div>`:''}
     <div class="row-gap" style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openCaseRapport('${c.id}')">${_FL('Rapport annuel (imprimable)','Annual report (printable)')}</button><button class="btn btn-ghost btn-sm" onclick="openCaseRapportMois('${c.id}')">${_FL('Attestation mensuelle','Monthly statement')}</button></div>
     <div class="asnote" style="margin-top:12px">${_FL('UBORA ne détient aucun fonds — ces comptes sont le registre partagé du groupe, visible par tous ses membres.','UBORA holds no funds — these accounts are the group’s shared ledger, visible to all members.')}</div>
     ${footer()}`;
@@ -10726,6 +10739,32 @@ async function caseGroupApplyStripe(caseId){
   alert(_FL('Compte du groupe appliqu\u00e9 \u00e0 ','Group account applied to ')+n+_FL(' \u00e9v\u00e9nement(s) de groupe.',' group event(s).'));
   render();
 }
+function connectFapshi(caseId){
+  const c=state_cases.find(x=>x.id===caseId); if(!c)return;
+  const u=((document.getElementById('fap-user')||{}).value||'').trim();
+  const k=((document.getElementById('fap-key')||{}).value||'').trim();
+  const cs=(document.getElementById('fap-consent')||{}).checked;
+  if(!u||!k){ alert(_FL('Collez vos identifiants Fapshi (apiuser + apikey) du service de collecte.','Paste your Fapshi collection-service credentials (apiuser + apikey).')); return; }
+  if(!cs){ alert(_FL('Cochez le consentement pour autoriser UBORA à encaisser en votre nom.','Tick consent to authorize UBORA to collect on your behalf.')); return; }
+  (async function(){
+    try{ const{data:{session:_s}}=await sb.auth.getSession();
+      const _r=await fetch(SB_URL+'/functions/v1/fapshi-connect',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({case_id:caseId,action:'connect',apiuser:u,apikey:k,consent:true})});
+      const _j=await _r.json().catch(()=>({})); if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status+' \u2014 v\u00e9rifiez que fapshi-connect est d\u00e9ploy\u00e9e et le secret UBORA_FAPSHI_ENC_KEY d\u00e9fini.'));
+      c.fapshi_connected=true; alert(_FL('Compte Fapshi raccordé \u2713','Fapshi account connected \u2713')); render();
+    }catch(e){ alert(_FL('Raccordement Fapshi impossible\u00A0: ','Fapshi connection failed: ')+(e.message||e)); }
+  })();
+}
+function revokeFapshi(caseId){
+  if(!confirm(_FL('Détacher le compte Fapshi de ce groupe ? Les paiements Mobile Money seront désactivés.','Detach the Fapshi account from this group? Mobile Money payments will be disabled.')))return;
+  const c=state_cases.find(x=>x.id===caseId);
+  (async function(){
+    try{ const{data:{session:_s}}=await sb.auth.getSession();
+      const _r=await fetch(SB_URL+'/functions/v1/fapshi-connect',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({case_id:caseId,action:'revoke'})});
+      const _j=await _r.json().catch(()=>({})); if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+      if(c)c.fapshi_connected=false; render();
+    }catch(e){ alert(_FL('Action impossible\u00A0: ','Could not update: ')+(e.message||e)); }
+  })();
+}
 async function stripeBuy(evId,idx){
   const ev=state_events.find(x=>x.id===evId); if(!ev)return;
   const b=ev.billets[idx]; if(!b)return;
@@ -10769,7 +10808,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.92';
+const UBORA_BUILD='v9.93';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
