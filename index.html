@@ -287,25 +287,33 @@ html,body{margin:0;background:#EBDCC4}
 
   .level-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12.5px;font-weight:600;letter-spacing:.02em}
   /* --- SIFA : le résumé (face unique du parcours) --- */
-  .sifa-crest{position:relative;border:1px solid rgba(201,168,76,.32);border-radius:18px;padding:22px 24px 18px;margin:14px 0 8px;overflow:hidden;
-    background:linear-gradient(135deg,#1C1E27 0%,#232737 55%,#2A2414 100%);color:#F4EFE3;box-shadow:0 10px 30px rgba(20,18,10,.18)}
-  .sifa-crest .sc-eye{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#C9A84C;opacity:.95}
-  .sifa-crest .sc-word{font-family:'Cormorant Garamond',Georgia,serif;font-size:40px;line-height:1;font-weight:600;letter-spacing:.08em;color:#F6E7BE;margin:4px 0 2px}
-  .sifa-crest .sc-full{font-size:11.5px;color:#C9BE9E;opacity:.9;margin-bottom:12px}
-  .sifa-crest .sc-level{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600;color:#F4EFE3;padding:5px 13px;border:1px solid rgba(201,168,76,.45);border-radius:999px}
+  /* Or métallique (foil) sur texte — le vrai signal premium */
+  .foilg{background:linear-gradient(130deg,#F3E7C2 0%,#DCC27C 42%,#B8963E 64%,#8A6A24 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sifa-crest{position:relative;border:1px solid rgba(201,168,76,.30);border-radius:16px;padding:20px 22px 16px;margin:14px 0 8px;overflow:hidden;
+    background:radial-gradient(120% 140% at 100% 0%,#20212A 0%,#15161C 52%,#0D0E12 100%);color:#F4EFE3;box-shadow:0 10px 30px rgba(14,12,8,.22)}
+  .sifa-crest .sc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .sifa-crest .sc-eye{font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:#C7B274}
+  .sifa-crest .sc-word{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;line-height:.92;font-weight:600;letter-spacing:.09em;margin:5px 0 0}
+  .sifa-crest .sc-acro{margin-top:9px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#A89E82;line-height:1.6}
+  .sifa-crest .sc-acro b{font-weight:600}
+  .sifa-crest .sc-level{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#F4EFE3;padding:5px 13px;border:1px solid rgba(201,168,76,.45);border-radius:999px;white-space:nowrap}
   .sifa-crest .sc-level .dot{color:#E3C878}
-  .sifa-crest .sc-soul{font-family:'Cormorant Garamond',Georgia,serif;font-size:18.5px;line-height:1.4;color:#EFE6D0;margin:12px 0 2px;font-style:italic}
-  .sifa-crest .sc-figs{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid rgba(201,168,76,.18)}
-  .sifa-crest .sc-fig{line-height:1.1}
-  .sifa-crest .sc-fig b{display:block;font-size:20px;font-weight:600;color:#F6E7BE}
-  .sifa-crest .sc-fig span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#B9AF90}
-  .sifa-crest .sc-next{margin-top:14px;padding-top:12px;border-top:1px solid rgba(201,168,76,.18);font-size:13px;color:#E3C878;line-height:1.5}
+  .sifa-crest .sc-soul{font-family:'Cormorant Garamond',Georgia,serif;font-size:17px;line-height:1.38;color:#EFE6D0;margin:13px 0 0;font-style:italic}
+  .sifa-crest .sc-figs{display:flex;gap:24px;flex-wrap:wrap;margin-top:13px;padding-top:12px;border-top:1px solid rgba(201,168,76,.16)}
+  .sifa-crest .sc-fig{line-height:1.05}
+  .sifa-crest .sc-fig b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:600}
+  .sifa-crest .sc-fig span{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#A89E82;margin-top:4px}
+  .sifa-crest .sc-next{margin-top:13px;padding-top:11px;border-top:1px solid rgba(201,168,76,.16);font-size:12px;color:#D9BD6E;line-height:1.5}
   .sifa-crest .sc-next b{color:#F6E7BE}
-  .sifa-layers{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
-  .sifa-layers .sl{flex:1;min-width:92px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--card)}
-  .sifa-layers .sl .n{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);opacity:.9}
-  .sifa-layers .sl .d{font-size:12px;color:var(--ink,#4a4a46);opacity:.8;margin-top:2px}
-  .sifa-layers .sl.here{border-color:rgba(201,168,76,.55);box-shadow:inset 0 0 0 1px rgba(201,168,76,.25)}
+  .sifa-foot{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:9px 0 2px;font-size:11px;color:#8a8577}
+  .sifa-foot .sf-dot{color:var(--gold);opacity:.5}
+  .sifa-foot a{color:var(--gold);text-decoration:none;font-weight:600}
+  /* En-tête IMANI compact (onglet prêts) */
+  .imani-head{border:1px solid rgba(201,168,76,.28);border-radius:14px;padding:13px 16px;margin-bottom:12px;color:#F3EADA;
+    background:radial-gradient(120% 150% at 0% 0%,#241B12 0%,#15100A 70%)}
+  .imani-head .ih-w{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:600;letter-spacing:.1em;line-height:1}
+  .imani-head .ih-a{margin-top:6px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#A89E82;line-height:1.5}
+  .imani-head .ih-a b{font-weight:600}
   /* --- Solde attendu vs réel : vérification + alerte non masquable --- */
   .sld-check{border-radius:12px;padding:11px 15px;margin:10px 0;font-size:13px;line-height:1.55}
   .sld-check.sld-ok{background:#EAF3E7;border:1px solid #9CBE8E;color:#2F5A2A}
@@ -5546,26 +5554,24 @@ function sifaNextMilestone(cur){
 }
 function sifaResume(cur,lv){
   const f=sifaFigures(); const ir=sifaImaniRepaid(); const ms=sifaNextMilestone(cur);
+  const acro='<b class="foilg">S</b>ignal&nbsp;·&nbsp;<b class="foilg">I</b>ntégrité&nbsp;·&nbsp;<b class="foilg">F</b>iabilité&nbsp;·&nbsp;<b class="foilg">A</b>ssiduité';
   return `<div class="sifa-crest">
-      <div class="sc-eye">${tr('sifa_eyebrow')}</div>
-      <div class="sc-word">${tr('sifa_name')}</div>
-      <div class="sc-full">${tr('sifa_full')}</div>
-      <div class="sc-level"><span class="dot">◆</span> ${esc(lv.name)}</div>
+      <div class="sc-head">
+        <div><div class="sc-eye">${tr('sifa_eyebrow')}</div>
+          <div class="sc-word foilg">${tr('sifa_name')}</div>
+          <div class="sc-acro">${acro}</div></div>
+        <div class="sc-level"><span class="dot">◆</span> ${esc(lv.name)}</div>
+      </div>
       <div class="sc-soul">${sifaSoul(cur)}</div>
       <div class="sc-figs">
-        <div class="sc-fig"><b>${f.cycles}</b><span>${tr('sifa_f_acts')}</span></div>
-        <div class="sc-fig"><b>${f.onTime}%</b><span>${tr('sifa_f_ontime')}</span></div>
-        <div class="sc-fig"><b>${f.circles}</b><span>${tr('sifa_f_circles')}</span></div>
-        ${ir>0?`<div class="sc-fig"><b>${ir}</b><span>${_FL('prêts remboursés','loans repaid')}</span></div>`:''}
+        <div class="sc-fig"><b class="foilg">${f.cycles}</b><span>${tr('sifa_f_acts')}</span></div>
+        <div class="sc-fig"><b class="foilg">${f.onTime}%</b><span>${tr('sifa_f_ontime')}</span></div>
+        <div class="sc-fig"><b class="foilg">${f.circles}</b><span>${tr('sifa_f_circles')}</span></div>
+        ${ir>0?`<div class="sc-fig"><b class="foilg">${ir}</b><span>${_FL('prêts remboursés','loans repaid')}</span></div>`:''}
       </div>
       ${ms?`<div class="sc-next">→ ${ms}</div>`:''}
     </div>
-    <div class="sifa-layers">
-      <div class="sl here"><div class="n">${tr('sifa_layer_resume')}</div><div class="d">SIFA</div></div>
-      <div class="sl"><div class="n">${tr('sifa_layer_film')}</div><div class="d">${_FL('ci-dessous','below')}</div></div>
-      <div class="sl" onclick="go('reputation')" style="cursor:pointer"><div class="n">${tr('sifa_layer_photo')}</div><div class="d" style="color:var(--gold)">${tr('sifa_see_attest')}</div></div>
-    </div>
-    <div class="asnote" style="margin-top:8px">${tr('sifa_layers_note')}</div>`;
+    <div class="sifa-foot"><span>${tr('sifa_layer_resume')} · SIFA</span><span class="sf-dot">·</span><span>${tr('sifa_layer_film')} ${_FL('ci-dessous','below')}</span><span class="sf-dot">·</span><a href="#" onclick="go('reputation');return false">${tr('sifa_layer_photo')} ${tr('sifa_see_attest')}</a></div>`;
 }
 function viewPyramide(){
   const s=aggregateStats(state.user);
@@ -6105,6 +6111,10 @@ function imaniRepay(id,lid){
   if(imaniRepaid(l)>=l.montant){ l.statut='rembourse'; l.rembourse_at=new Date().toISOString().slice(0,10); }
   cPersist(id); render();
 }
+function imaniHeadHtml(){
+  return '<div class="imani-head"><div class="ih-w foilg">IMANI</div>'
+    +'<div class="ih-a"><b class="foilg">I</b>nitiative&nbsp;·&nbsp;<b class="foilg">M</b>utuelle&nbsp;·&nbsp;<b class="foilg">A</b>ide&nbsp;·&nbsp;<b class="foilg">N</b>on-usuraire&nbsp;·&nbsp;<b class="foilg">I</b>nter-membres</div></div>';
+}
 function caisseImani(c){
   c.loans=c.loans||[]; var role=state.caisseRole; var bureau=(role==='tresorier'); var cur=c.currency;
   var ag=imaniAgg(c), plaf=imaniPlafond(c), solde=caisseSolde(c);
@@ -6125,7 +6135,7 @@ function caisseImani(c){
     +'</div></div>') : '';
   var cta='<div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-gold btn-sm" onclick="imaniStart(\''+c.id+'\')">'+(state.imaniNew?_FL('Fermer','Close'):_FL('+ Demander un prêt','+ Request a loan'))+'</button></div>';
   if(!bureau){
-    return '<div class="asnote">'+_FL('L’entraide par le prêt : le groupe se prête à lui-même, sans intérêt. UBORA tient le registre — il ne détient aucun fonds.','Mutual aid through lending: the group lends to itself, interest-free. UBORA keeps the registry — it holds no funds.')+'</div>'
+    return imaniHeadHtml()+'<div class="asnote">'+_FL('L’entraide par le prêt : le groupe se prête à lui-même, sans intérêt. UBORA tient le registre — il ne détient aucun fonds.','Mutual aid through lending: the group lends to itself, interest-free. UBORA keeps the registry — it holds no funds.')+'</div>'
       +health+charte+cta+form
       +'<div class="panel"><div style="padding:14px 18px" class="msub">'+_FL('Par respect de chacun, le détail nominatif des prêts n’est visible que par le bureau. Vous voyez ici la santé d’ensemble.','Out of respect for everyone, itemised loans are visible only to the board. You see the overall health here.')+'</div></div>';
   }
@@ -6140,7 +6150,7 @@ function caisseImani(c){
       +(act?('<div class="row-gap" style="margin-top:8px">'+act+'</div>'):'')
       +'</div></div>';
   }).join(''):'<div class="panel"><div class="empty">'+_FL('Aucun prêt pour l’instant.','No loan yet.')+'</div></div>';
-  return '<div class="asnote">'+_FL('Vous gérez les prêts du groupe : sans intérêt, un à la fois, dans la limite prudente. Accorder crée une sortie du fonds ; rembourser, une entrée — le solde reste juste.','You manage the group’s loans: interest-free, one at a time, within the prudent cap. Granting creates a fund outflow; repaying an inflow — the balance stays correct.')+'</div>'
+  return imaniHeadHtml()+'<div class="asnote">'+_FL('Vous gérez les prêts du groupe : sans intérêt, un à la fois, dans la limite prudente. Accorder crée une sortie du fonds ; rembourser, une entrée — le solde reste juste.','You manage the group’s loans: interest-free, one at a time, within the prudent cap. Granting creates a fund outflow; repaying an inflow — the balance stays correct.')+'</div>'
     +health+charte+cta+form+rows;
 }
 function caisseGenToken(){ return (Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Date.now().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,24); }
@@ -11191,7 +11201,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.02';
+const UBORA_BUILD='v10.04';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
