@@ -6976,7 +6976,7 @@ function viewCaseEvts(){
     var clist=cons.length?('<div class="msub" style="margin-top:6px">'+cons.map(function(k){return esc(k.name||memName(k.mid))+(k.ext?(' <span class="faint">('+_FL('invité·e','guest')+')</span>'):'')+' · '+money(Number(k.amount)||0,k.cur||cur);}).join('<br>')+'</div>'):'';
     var goalTxt=(Number(x.objectif)||0)>0?(' · '+_FL('objectif','goal')+' '+money(Number(x.objectif)||0,cur)):'';
     var meta=[x.date,x.lieu].filter(Boolean).map(esc).join(' · ')+(x.note?(' · '+esc(x.note)):'')+goalTxt+(cons.length?(' · '+_FL('collecté','collected')+' '+money(tot,cur)+' · '+cons.length+' '+_FL('contributeur(s)','contributor(s)')):'');
-    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="caseEvtEditStart('+i+')">'+_FL('Modifier','Edit')+'</button><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">'+_FL('Retirer','Remove')+'</button></div></div>';
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' '+vis+caseEvtPendBadge(x)+'</div><div class="msub">'+(meta||'—')+'</div>'+clist+'</div><div class="right" style="display:flex;gap:6px;flex-wrap:wrap">'+caseEvtFollowBtn(x)+'<button class="btn btn-ghost btn-sm" onclick="caseEvtEditStart('+i+')">'+_FL('Modifier','Edit')+'</button><button class="btn btn-ghost btn-sm" onclick="caseEvtDel('+i+')">'+_FL('Retirer','Remove')+'</button></div></div>';
   }).join(''):('<div class="empty">'+tr('empty_org_events')+'</div>');
   const pick=c.members.length?c.members.map(function(m){
     var k=conById[m.id]; var chk=k?' checked':''; var amt=k?(Number(k.amount)||0):'';
@@ -8759,6 +8759,19 @@ function buyTicket(id,i){const ev=state_events.find(x=>x.id===id);if(!ev)return;
 function donStatutOf(d){ if(d&&d.statut)return d.statut; if(d&&d.via==='carte')return 'verifie'; return 'attente'; }
 function donStatutBadge(d){ var s=donStatutOf(d); var map={verifie:['#1c7a46','#e4f3ea',_FL('vérifié','verified')],confirme:['#8a6a24','#f6edd6',_FL('confirmé','confirmed')],attente:['#9a5a1a','#f6e6d2',_FL('en attente','pending')],promesse:['#6b6b6b','#ececec',_FL('promesse','pledge')]}; var m=map[s]||map.attente; return '<span class="pill" style="color:'+m[0]+';background:'+m[1]+';font-size:11px">'+m[2]+'</span>'; }
 function donModeLabel(d){ var m=d&&d.mode; if(!m)return ''; var map={carte:_FL('carte','card'),mobile:_FL('Mobile Money','Mobile Money'),especes:_FL('espèces','cash'),virement:_FL('virement','transfer'),promesse:_FL('promesse','pledge')}; return map[m]||m; }
+async function donConfirm(id,ts,revert){
+  const ev=state_events.find(x=>x.id===id); if(!ev)return;
+  var by=(state.user&&!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?state.user:'';
+  if(BACKEND==='supabase'){
+    try{ const{error}=await sb.rpc('event_don_set_status',{p_event:id,p_ts:ts,p_statut:revert?'attente':'confirme',p_by:by}); if(error)throw error;
+    }catch(e){ alert(_FL('Action impossible : ','Could not update: ')+(e.message||e)); return; }
+  }
+  (ev.dons||[]).forEach(function(d){ if(d&&d.ts===ts){ if(revert){ d.statut='attente'; delete d.confirmed_by; delete d.confirmed_at; } else { d.statut='confirme'; d.confirmed_by=by||_FL('trésorier','treasurer'); d.confirmed_at=new Date().toISOString(); } } });
+  if(BACKEND!=='supabase') saveLocal();
+  render();
+}
+function caseEvtPendBadge(x){ if(!x||!x.pubId)return ''; var pe=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===x.pubId;}); if(!pe||!pe.dons)return ''; var n=pe.dons.filter(function(d){return donStatutOf(d)==='attente';}).length; return n>0?(' <span class="pill" style="color:#9a5a1a;background:#f6e6d2;font-size:11px">\uD83D\uDD14 '+n+' '+_FL('à confirmer','to confirm')+'</span>'):''; }
+function caseEvtFollowBtn(x){ if(!x||!x.pubId)return ''; return '<button class="btn btn-ghost btn-sm" onclick="openEvent(\''+esc(x.pubId)+'\')">'+_FL('Suivre','Track')+'</button>'; }
 async function evDonSubmit(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const nmEl=$('#don-name'), amEl=$('#don-amt');
@@ -9568,6 +9581,7 @@ function viewEvent(){
       <div style="padding:14px 20px">
         <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · <b>${money(donSecured,ev.currency)}</b> ${_FL('confirmés','confirmed')}${donPending>0?` · <span style="color:#9a5a1a">${money(donPending,ev.currency)} ${_FL('en attente','pending')}</span>`:''}</span>${ev.objectif?`<span style="font-weight:600;color:#8a6a24">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
         ${ev.objectif?`<div class="progress"><i style="width:${dpct}%"></i></div>`:''}
+        ${(manage&&donPending>0)?`<div class="msub" style="background:#f6e6d2;color:#9a5a1a;border-radius:8px;padding:8px 12px;margin:8px 0">\uD83D\uDD14 ${(ev.dons||[]).filter(d=>donStatutOf(d)==='attente').length} ${_FL('don(s) en attente de votre confirmation','gift(s) awaiting your confirmation')}</div>`:''}
         <div class="msub" style="margin:8px 0">${_FL('Chacun donne ce qu’il peut. Chaque don est inscrit dans la cagnotte propre à cet événement — jamais mêlé au compte du groupe.','Each gives what they can. Every gift is recorded in this event’s own fund — never mixed with the group account.')}</div>
         ${state.donFor===ev.id
           ? (function(){ var dmode=state.donMode||'mobile';
@@ -9589,7 +9603,7 @@ function viewEvent(){
                <button class="btn btn-ghost btn-sm" onclick="state.donFor=null;state.donMode=null;render()">${tr('cancel')}</button>
              </div>`; })()
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
-        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))} ${donStatutBadge(d)}${donModeLabel(d)?` <span class="faint" style="font-size:12px">${donModeLabel(d)}</span>`:''}${(d.proof&&manage)?`<br><span class="faint" style="font-size:11px">${esc(d.proof)}</span>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
+        ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))} ${donStatutBadge(d)}${donModeLabel(d)?` <span class="faint" style="font-size:12px">${donModeLabel(d)}</span>`:''}${(d.proof&&manage)?`<br><span class="faint" style="font-size:11px">${esc(d.proof)}</span>`:''}${(donStatutOf(d)==='confirme'&&d.confirmed_by)?`<br><span class="faint" style="font-size:11px">${_FL('confirmé par','confirmed by')} ${esc(d.confirmed_by)}</span>`:''}${(manage&&donStatutOf(d)==='attente')?` <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" onclick="donConfirm('${ev.id}','${esc(d.ts||'')}')">${_FL('Confirmer ✓','Confirm ✓')}</button>`:''}${(manage&&donStatutOf(d)==='confirme')?` <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" onclick="donConfirm('${ev.id}','${esc(d.ts||'')}',true)">${_FL('Annuler','Undo')}</button>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
         <div class="msub" style="margin-top:10px">${ev.settle?`<span><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}<br></span>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur.','UBORA holds no funds: settle directly with the organizer.')}</div>
       </div></div>`;
   } else {
@@ -10561,7 +10575,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.82';
+const UBORA_BUILD='v9.83';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
