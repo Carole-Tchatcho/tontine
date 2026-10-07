@@ -311,6 +311,32 @@ html,body{margin:0;background:#EBDCC4}
   .sld-check.sld-ok{background:#EAF3E7;border:1px solid #9CBE8E;color:#2F5A2A}
   .sld-check.sld-alert{background:#FBEAE4;border:1px solid #D79A86;color:#8A2E16;font-weight:600}
   .sld-check.sld-none{background:var(--card);border:1px dashed var(--line);color:var(--ink,#4a4a46);opacity:.85}
+  /* --- Entraide désencombré : caisses (le bijou), réseau, appels --- */
+  .sect-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:4px}
+  .sect-head .section-h{margin:0}
+  .entr-caisse-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:12px;margin-top:6px}
+  .entr-caisse{display:block;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:14px;background:var(--card);padding:15px 17px;cursor:pointer;transition:border-left-color .15s ease,box-shadow .15s ease}
+  .entr-caisse:hover{border-left-color:var(--gold-bright);box-shadow:0 6px 18px rgba(40,34,18,.08)}
+  .entr-caisse .ec-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .entr-caisse .ec-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:600;color:#3a362c;line-height:1.08}
+  .entr-caisse .ec-solde{font-weight:600;font-size:14.5px;color:#8a6a24;white-space:nowrap}
+  .entr-caisse .ec-meta{font-size:12.5px;color:#8a8577;margin-top:3px}
+  .entr-caisse .ec-foot{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .entr-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;letter-spacing:.03em;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:#8a8577}
+  .entr-tag.imani{border-color:rgba(201,168,76,.5);color:#8a6a24;background:rgba(201,168,76,.08)}
+  .entr-vdot{display:inline-flex;align-items:center;gap:5px;font-size:11.5px}
+  .entr-vdot i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .entr-vdot.ok{color:#2F5A2A} .entr-vdot.ok i{background:#5B8C4F}
+  .entr-vdot.warn{color:#8A2E16} .entr-vdot.warn i{background:#C06A4A}
+  .entr-vdot.none{color:#8a8577} .entr-vdot.none i{background:#C9C2B0}
+  .entr-reseau{border:1px solid rgba(201,168,76,.3);border-radius:16px;overflow:hidden;cursor:pointer;margin-top:6px;
+    background:linear-gradient(135deg,#1C1E27 0%,#232737 60%,#2A2414 100%);color:#F4EFE3;transition:border-color .15s ease}
+  .entr-reseau:hover{border-color:rgba(201,168,76,.55)}
+  .entr-reseau .er-in{padding:18px 20px;display:flex;align-items:center;gap:16px}
+  .entr-reseau .er-glyph{flex:0 0 auto;font-size:26px;color:#C9A84C;opacity:.9}
+  .entr-reseau .er-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:#FAFAF7;line-height:1.1}
+  .entr-reseau .er-d{color:#C9BE9E;font-size:13px;margin-top:4px;line-height:1.5}
+  .entr-reseau .er-go{flex:0 0 auto;color:#C9A84C;font-size:13px;font-weight:600}
   .level-track{display:flex;gap:7px;margin-bottom:4px}
   .level-node{flex:1;min-width:0}
   .level-bar{height:6px;border-radius:5px}
@@ -6214,30 +6240,54 @@ function openEvents(){
 }
 const memberState=aId=>state.consent[aId]||'notified';
 
+/* Pastille de vérification du solde pour la carte de caisse (reprend le verrou §2.3). */
+function entraideVerif(c){
+  var d=caisseLastDecl(c); if(!d) return {cls:'none',txt:_FL('à vérifier','to verify')};
+  var ec=caisseSolde(c)-(Number(d.montant)||0);
+  if(Math.abs(ec)<1) return {cls:'ok',txt:_FL('vérifié','verified')};
+  return {cls:'warn',txt:_FL('écart','gap')};
+}
+function entraideCaisseCard(c){
+  var solde=caisseSolde(c), nf=(c.foyers||[]).length;
+  var loans=(c.loans||[]).filter(function(l){return l&&(l.statut==='accorde'||l.statut==='retard');}).length;
+  var v=entraideVerif(c);
+  return '<div class="entr-caisse" onclick="openCaisse(\''+c.id+'\')">'
+    +'<div class="ec-top"><div class="ec-name">'+esc(c.name||c.group)+'</div><div class="ec-solde">'+money(solde,c.currency)+'</div></div>'
+    +'<div class="ec-meta">'+esc(c.group||'')+' · '+nf+' '+tr('ca_foyers')+'</div>'
+    +'<div class="ec-foot"><span class="entr-vdot '+v.cls+'"><i></i>'+v.txt+'</span>'
+    +(loans>0?('<span class="entr-tag imani">IMANI · '+loans+' '+_FL('en cours','ongoing')+'</span>'):'')
+    +'<span style="margin-left:auto;color:var(--gold);font-size:13px;font-weight:600">'+tr('pt_open')+'</span></div></div>';
+}
+function reseauCardHtml(){
+  return '<div class="entr-reseau" onclick="go(\'fedhome\')"><div class="er-in">'
+    +'<div class="er-glyph">◈</div>'
+    +'<div style="flex:1;min-width:0"><div class="er-t">'+_FL('Réseau & fédérations','Network & federations')+'</div>'
+    +'<div class="er-d">'+_FL('Reliez plusieurs groupes en fédération : événements, entraide et visibilité mis en commun — chacun reste maître de son registre.','Link several groups into a federation: events, mutual aid and visibility pooled — each stays in control of its own ledger.')+'</div></div>'
+    +'<div class="er-go">'+tr('pt_open')+'</div></div></div>';
+}
 function viewEntraide(){
-  const events=openEvents(), m=state.mandate;
-  const mandateStrip = m
-    ? `<div class="panel"><div style="padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-         <div class="mand-ic">✓</div>
-         <div style="flex:1;min-width:200px"><div class="mname">${tr('et_mand_active_t')}</div>
-           <div class="msub">${m.method} · ${money(m.perEventCap,m.currency)}${tr('et_per_event')} · ${money(m.monthlyCap,m.currency)}${tr('et_per_month')} · ${tr('et_notice_by')} ${m.notif} · via Stripe</div></div>
-         <button class="btn btn-ghost btn-sm" onclick="go('mandate')">${tr('et_manage')}</button></div></div>`
-    : `<div class="panel ndop-edge"><div style="padding:20px 22px">
-         <div class="mname" style="font-size:17px;font-family:'Cormorant Garamond',serif">${tr('et_mand_cta_t')}</div>
-         <div class="msub" style="margin:6px 0 14px">${tr('et_mand_cta_sub')}</div>
-         <button class="btn btn-gold btn-sm" onclick="go('mandate')">${icon('lock',true)} ${tr('et_mand_cta_btn')}</button></div></div>`;
+  const events=openEvents();
   const cards=events.map(({c,a})=>entraideCard(c,a)).join('');
-  const feePct=(UBORA_FEE_RATE*100).toFixed(1).replace('.0','');
   app().innerHTML=`
     <div class="eyebrow">${tr('et_eyebrow')}</div>
     <h1 class="page-title">${tr('et_title')}</h1>
     <p class="lead">${tr('et_lead')}</p>
     <div>${trustSeal(tr('et_seal'))}</div>
-    <div style="margin:16px 0 8px" class="row-gap"><button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${tr('cc_create_btn')}</button><button class="btn btn-ghost btn-sm" onclick="go('fedhome')">${tr('et_sec_networks')}</button></div>
-    <h2 class="section-h">${tr('et_my_caisses')}</h2>
-    <div class="cards">${state_caisses.length?state_caisses.map(c=>`<div class="panel" onclick="openCaisse('${c.id}')" style="cursor:pointer"><div style="padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="mname">${esc(c.name||c.group)}</div><div class="msub">${esc(c.group)} · ${(c.foyers||[]).length} ${tr('ca_foyers')} · ${money(c.fonds||0,c.currency)} ${tr('ca_in_fund')}</div></div><span class="reg-link" style="margin:0">${tr('pt_open')}</span></div></div>`).join(''):`<div class="empty">${tr('et_empty_caisses')}</div>`}</div>
-    
-    <h2 class="section-h">${tr('et_sec_open')}</h2>
+
+    <div class="sect-head" style="margin-top:20px"><h2 class="section-h">${_FL('Mes caisses d’entraide','My mutual-aid funds')}</h2>
+      <button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${_FL('Nouvelle caisse','New fund')}</button></div>
+    ${state_caisses.length
+      ? `<div class="entr-caisse-grid">${state_caisses.map(entraideCaisseCard).join('')}</div>`
+      : `<div class="panel"><div style="padding:24px 22px;text-align:center">
+           <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;color:#3a362c;line-height:1.2">${_FL('Ouvrez la caisse d’entraide de votre groupe','Open your group’s mutual-aid fund')}</div>
+           <div class="msub" style="margin:7px auto 14px;max-width:440px;line-height:1.6">${_FL('On épargne ensemble, on s’entraide, on peut même se prêter sans intérêt (IMANI) — le tout au grand jour. UBORA tient le registre et ne détient aucun fonds.','Save together, support each other, even lend interest-free among members (IMANI) — all in the open. UBORA keeps the register and holds no funds.')}</div>
+           <button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${_FL('Nouvelle caisse d’entraide','New mutual-aid fund')}</button>
+         </div></div>`}
+
+    <h2 class="section-h" style="margin-top:24px">${_FL('Réseau','Network')}</h2>
+    ${reseauCardHtml()}
+
+    <h2 class="section-h" style="margin-top:24px">${tr('et_sec_open')}</h2>
     <div class="cards">${cards||`<div class="empty">${tr('et_empty')}</div>`}</div>
     ${footer()}`;
 }
