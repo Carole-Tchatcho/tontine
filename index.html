@@ -6817,7 +6817,19 @@ function viewCaseMembers(){
   const c=state_cases.find(x=>x.id===state.activeCase);
   if(!c)return go('case');
   c.members=c.members||[];
-  const rows=c.members.length?c.members.map((m,i)=>`<div class="mrow"><div class="stack"><div class="mname">${esc(m.name)}</div><div class="msub">${[m.role,m.contact].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</div></div><div class="right"><button class="btn btn-ghost btn-sm" onclick="caseMemberDel(${i})">🗑</button></div></div>`).join(''):`<div class="empty">${tr('empty_members')}</div>`;
+  const rows=c.members.length?c.members.map((m,i)=>{
+    if(state.caseMemberEdit===i){
+      return '<div class="mrow"><div class="stack" style="width:100%">'
+        +'<div class="row-gap" style="gap:8px">'
+        +'<input id="cme-name-'+i+'" value="'+esc(m.name||'')+'" placeholder="'+_FL('Nom','Name')+'" style="flex:2;min-width:120px">'
+        +'<input id="cme-contact-'+i+'" value="'+esc(m.contact||'')+'" placeholder="'+_FL('Email ou téléphone','Email or phone')+'" style="flex:2;min-width:120px">'
+        +'<input id="cme-role-'+i+'" value="'+esc(m.role||'')+'" placeholder="'+_FL('Rôle','Role')+'" style="flex:1;min-width:90px">'
+        +'</div>'
+        +'<div class="row-gap" style="gap:6px;margin-top:6px"><button class="btn btn-gold btn-sm" onclick="caseMemberSave('+i+')">'+_FL('Enregistrer','Save')+'</button><button class="btn btn-ghost btn-sm" onclick="caseMemberEditCancel()">'+_FL('Annuler','Cancel')+'</button></div>'
+        +'</div></div>';
+    }
+    return '<div class="mrow"><div class="stack"><div class="mname">'+esc(m.name)+'</div><div class="msub">'+([m.role,m.contact].filter(Boolean).map(esc).join(' · ')||'—')+'</div></div><div class="right" style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="caseMemberEditStart('+i+')">'+_FL('Modifier','Edit')+'</button><button class="btn btn-ghost btn-sm" onclick="caseMemberDel('+i+')">🗑</button></div></div>';
+  }).join(''):`<div class="empty">${tr('empty_members')}</div>`;
   app().innerHTML=`
     <button class="backlink" onclick="openCase('${c.id}')">\u2039 ${esc(c.name)}</button>
     <div class="eyebrow">${tr('mc_tool_dir')}</div>
@@ -6867,6 +6879,16 @@ function caseMemberDel(i){
   c.members.splice(i,1);
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
   render();
+}
+function caseMemberEditStart(i){ state.caseMemberEdit=i; render(); }
+function caseMemberEditCancel(){ state.caseMemberEdit=null; render(); }
+function caseMemberSave(i){
+  const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.members||!c.members[i])return;
+  const g=id=>{const e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const name=g('cme-name-'+i); if(!name){alert(_FL('Indiquez au moins le nom.','Enter at least the name.'));return;}
+  c.members[i].name=name; c.members[i].contact=g('cme-contact-'+i); c.members[i].role=g('cme-role-'+i);
+  if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn('saveCase',e));}
+  state.caseMemberEdit=null; render();
 }
 function caseMembersFile(ev){ const f=ev&&ev.target&&ev.target.files&&ev.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ const ta=document.getElementById('cm-bulk'); if(ta){ ta.value=String((e.target&&e.target.result)||''); } }; r.readAsText(f); ev.target.value=''; }
 function caseParseLine(line){ var d = line.indexOf('\t')>=0 ? '\t' : (line.indexOf(';')>=0 ? ';' : (line.indexOf(',')>=0 ? ',' : null)); return d ? line.split(d).map(function(x){return x.trim();}) : [line.trim()]; }
@@ -6960,7 +6982,8 @@ function viewCaseEvts(){
     var k=conById[m.id]; var chk=k?' checked':''; var amt=k?(Number(k.amount)||0):'';
     return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0"><label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer"><input type="checkbox" id="evc-'+m.id+'"'+chk+'> <span>'+esc(m.name)+'</span></label><input type="number" id="eva-'+m.id+'" value="'+amt+'" placeholder="0" style="width:90px"></div>';
   }).join(''):('<div class="hint">'+_FL('Ajoutez d’abord des membres à l’annuaire pour pouvoir les sélectionner.','Add members to the directory first.')+'</div>');
-  var extRows=exts.map(function(k,j){ return '<div class="row-gap" style="gap:8px;margin-top:4px"><input id="exn-'+j+'" value="'+esc(k.name||'')+'" placeholder="'+_FL('Nom (hors annuaire)','Name (not in directory)')+'" style="flex:2;min-width:140px"><input id="exa-'+j+'" type="number" value="'+(Number(k.amount)||0)+'" placeholder="0" style="flex:1;min-width:90px"></div>'; }).join('');
+  var canInvite=!!(ev0&&ev0.visibility==='public'&&ev0.pubId);
+  var extRows=exts.map(function(k,j){ var ib=canInvite?('<button class="btn btn-ghost btn-sm" style="flex:0 0 auto" onclick="caseEvtInviteGuest(\''+esc(ev0.pubId)+'\','+j+')">'+_FL('Inviter','Invite')+'</button>'):''; return '<div class="row-gap" style="gap:8px;margin-top:4px"><input id="exn-'+j+'" value="'+esc(k.name||'')+'" placeholder="'+_FL('Nom (hors annuaire)','Name (not in directory)')+'" style="flex:2;min-width:120px"><input id="exc-'+j+'" value="'+esc(k.contact||'')+'" placeholder="'+_FL('Contact (facultatif)','Contact (optional)')+'" style="flex:2;min-width:120px"><input id="exa-'+j+'" type="number" value="'+(Number(k.amount)||0)+'" placeholder="0" style="flex:1;min-width:80px">'+ib+'</div>'; }).join('');
   const T=function(id){return (ev0&&ev0[id]!=null)?ev0[id]:'';};
   const selVis=function(v){return (ev0?ev0.visibility:'private')===v?' selected':'';};
   const selCat=function(k){return (ev0?(ev0.category||'autre'):'autre')===k?' selected':'';};
@@ -6978,16 +7001,16 @@ function viewCaseEvts(){
         <select id="cv-vis"><option value="private"${selVis('private')}>${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public"${selVis('public')}>${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
       <div class="row-gap"><div class="field" style="flex:1;min-width:150px"><label>${_FL('Catégorie','Category')}</label><select id="cv-cat">${['culturel','cultuel','deuil','sport','networking','fetenat','integration','autre'].map(function(k){return '<option value="'+k+'"'+selCat(k)+'>'+tr('cat_'+k)+'</option>';}).join('')}</select></div>
         <div class="field" style="flex:1;min-width:120px"><label>${_FL('Objectif (facultatif)','Goal (optional)')}</label><input id="cv-obj" type="number" value="${(Number(ev0&&ev0.objectif)||0)||''}" placeholder="0"></div></div>
-      <div class="field"><label>Note</label><input id="cv-note" value="${esc(T('note'))}" placeholder="Optionnel"></div>
+      <div class="field"><label>${_FL('Informations · programme','Information · programme')}</label><textarea id="cv-note" rows="4" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical" placeholder="${_FL('Programme de la veillée, lieu de rassemblement, destination du rapatriement, déroulé… tout ce qui est utile.','Vigil programme, gathering place, repatriation destination, schedule… anything useful.')}">${esc(T('note'))}</textarea></div>
       <div class="panel" style="margin-top:12px;background:#fbf7ec;border:1px solid #e6dcc0"><div style="padding:12px 16px">
         <div class="mname" style="margin-bottom:4px">${_FL('Contributions des membres','Member contributions')}</div>
         <div class="hint" style="margin-bottom:8px">${_FL('Cochez les membres qui contribuent et indiquez le montant de chacun.','Tick contributing members and enter each amount.')}</div>
         <div class="field" style="margin-top:0;max-width:160px"><label>${_FL('Devise','Currency')}</label><select id="cv-cur">${caseCurOpts(curSel)}</select></div>
         ${pick}
         <div style="margin-top:10px"><div class="mname" style="margin-bottom:4px">${_FL('Participants hors annuaire (invité·e·s)','Guests (outside the directory)')}</div>
-          <div class="hint" style="margin-bottom:6px">${_FL('Des personnes extérieures au groupe peuvent contribuer : elles comptent dans le total, mais n’ont pas de compte membre. Videz le nom pour retirer.','People outside the group can contribute: they count in the total but have no member account. Clear the name to remove.')}</div>
+          <div class="hint" style="margin-bottom:6px">${_FL('Des personnes extérieures au groupe peuvent contribuer : elles comptent dans le total, mais n’ont pas de compte membre. Renseignez un contact (facultatif) pour pouvoir les inviter — l’invitation se fait via le lien public de l’événement, une fois celui-ci public et enregistré. Videz le nom pour retirer.','People outside the group can contribute: they count in the total but have no member account. Add an optional contact so you can invite them — invitations use the event’s public link once it is public and saved. Clear the name to remove.')}</div>
           ${extRows}
-          <div class="row-gap" style="gap:8px;margin-top:6px"><input id="exn-new" placeholder="${_FL('Ajouter un·e invité·e','Add a guest')}" style="flex:2;min-width:140px"><input id="exa-new" type="number" placeholder="0" style="flex:1;min-width:90px"></div>
+          <div class="row-gap" style="gap:8px;margin-top:6px"><input id="exn-new" placeholder="${_FL('Ajouter un·e invité·e','Add a guest')}" style="flex:2;min-width:120px"><input id="exc-new" placeholder="${_FL('Contact (facultatif)','Contact (optional)')}" style="flex:2;min-width:120px"><input id="exa-new" type="number" placeholder="0" style="flex:1;min-width:80px"></div>
         </div>
       </div></div>
       <div class="row-gap" style="margin-top:12px">${ev0
@@ -7003,9 +7026,20 @@ function caseEvtReadContribs(c,cur){
     var chk=document.getElementById('evc-'+m.id);
     if(chk&&chk.checked){ var amt=document.getElementById('eva-'+m.id); contribs.push({mid:m.id,name:m.name,amount:Number(amt&&amt.value)||0,cur:cur}); }
   });
-  for(var j=0;;j++){ var el=document.getElementById('exn-'+j); if(!el)break; var nm=String(el.value||'').trim(); if(!nm)continue; var am=document.getElementById('exa-'+j); contribs.push({name:nm,amount:Number(am&&am.value)||0,cur:cur,ext:true}); }
-  var nn=document.getElementById('exn-new'); if(nn&&String(nn.value||'').trim()){ var na=document.getElementById('exa-new'); contribs.push({name:String(nn.value).trim(),amount:Number(na&&na.value)||0,cur:cur,ext:true}); }
+  for(var j=0;;j++){ var el=document.getElementById('exn-'+j); if(!el)break; var nm=String(el.value||'').trim(); if(!nm)continue; var am=document.getElementById('exa-'+j); var ct=document.getElementById('exc-'+j); contribs.push({name:nm,amount:Number(am&&am.value)||0,cur:cur,contact:(ct?String(ct.value).trim():''),ext:true}); }
+  var nn=document.getElementById('exn-new'); if(nn&&String(nn.value||'').trim()){ var na=document.getElementById('exa-new'); var nc=document.getElementById('exc-new'); contribs.push({name:String(nn.value).trim(),amount:Number(na&&na.value)||0,cur:cur,contact:(nc?String(nc.value).trim():''),ext:true}); }
   return contribs;
+}
+function caseEvtInviteGuest(pubId,j){
+  if(!pubId){ alert(_FL('Rendez l’événement public et enregistrez-le d’abord : l’invitation se fait via son lien public.','Make the event public and save it first: invitations use its public link.')); return; }
+  var nmEl=document.getElementById('exn-'+j), ctEl=document.getElementById('exc-'+j);
+  var name=nmEl?String(nmEl.value).trim():''; var contact=ctEl?String(ctEl.value).trim():'';
+  var link=location.origin+location.pathname+'?ev='+encodeURIComponent(pubId);
+  var msg=_FL('Bonjour','Hello')+(name?(' '+name):'')+_FL(', vous êtes invité·e à participer à notre événement. Détails et participation : ',', you are invited to take part in our event. Details and participation: ')+link;
+  if(/@/.test(contact)){ location.href='mailto:'+encodeURIComponent(contact)+'?subject='+encodeURIComponent(_FL('Invitation à un événement','Event invitation'))+'&body='+encodeURIComponent(msg); return; }
+  if(/^[+0-9 ().-]{6,}$/.test(contact)){ location.href='sms:'+encodeURIComponent(contact)+'?&body='+encodeURIComponent(msg); return; }
+  if(navigator.share){ navigator.share({text:msg}).catch(function(){}); return; }
+  try{ navigator.clipboard.writeText(link); alert(_FL('Lien d’invitation copié — partagez-le avec votre invité·e.','Invitation link copied — share it with your guest.')); }catch(e){ try{ prompt(_FL('Copiez ce lien :','Copy this link:'),link); }catch(_e){} }
 }
 function caseEvtAdd(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return;
@@ -10491,7 +10525,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.79';
+const UBORA_BUILD='v9.80';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
