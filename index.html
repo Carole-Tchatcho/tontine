@@ -7174,7 +7174,15 @@ function viewCaseComptes(){
     ${BACKEND==='supabase'?`<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Encaissement Mobile Money — compte Fapshi du groupe','Mobile Money — group Fapshi account')}</h3>${c.fapshi_connected?`<span class="pill p-paid">${_FL('raccordé','connected')} ✓</span>`:`<span class="pill p-due">${_FL('non raccordé','not connected')}</span>`}</div>
       <div style="padding:14px 20px">
         ${c.fapshi_connected
-          ? `<p class="msub">${_FL('Les dons Mobile Money (Orange, MTN) des événements « caisse du groupe » sont encaissés directement sur votre compte Fapshi. UBORA ne détient aucun fonds ; la clé est « collecte-seule » (aucun retrait possible).','Mobile Money gifts for “group fund” events are collected directly on your Fapshi account. UBORA holds no funds; the key is collection-only.')}</p><div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="revokeFapshi('${c.id}')">${_FL('Révoquer / changer la clé','Revoke / change key')}</button></div>`
+          ? `<p class="msub">${_FL('Les dons Mobile Money (Orange, MTN) des événements « caisse du groupe » sont encaissés directement sur votre compte Fapshi. UBORA ne détient aucun fonds ; la clé est « collecte-seule » (aucun retrait possible).','Mobile Money gifts for “group fund” events are collected directly on your Fapshi account. UBORA holds no funds; the key is collection-only.')}</p>
+             <details style="margin:10px 0" ${(window._fapWh&&window._fapWh[c.id])?'open':''}><summary style="cursor:pointer;font-weight:600;color:#8a6a24">${_FL('Fiabiliser l’encaissement (webhook) — recommandé','Make collection reliable (webhook) — recommended')}</summary>
+               <div class="msub" style="margin-top:8px;line-height:1.85">${_FL('Si le donateur ferme l’onglet après avoir payé sans revenir sur le site, le webhook confirme quand même son don tout seul. Dans votre dashboard Fapshi → votre service de collecte → « Webhook », collez cette adresse et ce secret :','If a donor closes the tab after paying without returning to the site, the webhook still confirms the gift on its own. In your Fapshi dashboard → your collection service → “Webhook”, paste this address and secret:')}</div>
+               <div class="field" style="margin-top:8px"><label>${_FL('Adresse du webhook','Webhook URL')}</label><input readonly onclick="this.select()" value="${esc(SB_URL+'/functions/v1/fapshi-donate-webhook')}"></div>
+               ${(window._fapWh&&window._fapWh[c.id])
+                 ? `<div class="field" style="margin-top:6px"><label>${_FL('Secret (x-wh-secret) — copiez-le maintenant, il ne sera plus affiché','Secret (x-wh-secret) — copy it now, it won’t be shown again')}</label><input readonly onclick="this.select()" value="${esc(window._fapWh[c.id])}"></div>`
+                 : `<div class="row-gap" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="rewhFapshi('${c.id}')">${_FL('Afficher / régénérer le secret','Show / regenerate the secret')}</button></div><div class="msub" style="margin-top:4px;font-size:12px">${_FL('Par sécurité le secret n’est jamais réaffiché. Régénérez-le ici si besoin (puis recollez-le dans Fapshi).','For security the secret is never shown again. Regenerate it here if needed (then paste it again in Fapshi).')}</div>`}
+             </details>
+             <div class="row-gap" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="revokeFapshi('${c.id}')">${_FL('Révoquer / changer la clé','Revoke / change key')}</button></div>`
           : `<p class="msub">${_FL('Pour encaisser par Mobile Money, l’association raccorde son propre compte Fapshi. L’argent va directement chez elle — UBORA ne détient aucun fonds.','To accept Mobile Money, the association connects its own Fapshi account. Money goes straight to it — UBORA holds no funds.')}</p>
              <details style="margin:10px 0"><summary style="cursor:pointer;font-weight:600;color:#8a6a24">${_FL('Comment obtenir mes identifiants Fapshi (≈ 5 min)','How to get my Fapshi credentials (≈ 5 min)')}</summary>
                <div class="msub" style="margin-top:8px;line-height:1.85">1. ${_FL('Créez un compte gratuit sur','Create a free account on')} <a href="https://fapshi.com" target="_blank" rel="noopener" style="color:#8a6a24">fapshi.com</a> ${_FL('(sans RCCM).','(no business registration needed).')}<br>2. ${_FL('Dans le tableau de bord Fapshi, créez un SERVICE de type « Collection » (collecte).','In the Fapshi dashboard, create a service of type “Collection”.')}<br>3. ${_FL('Copiez son « apiuser » et son « apikey » — c’est une clé « collecte-seule » : elle ne peut qu’encaisser, jamais retirer.','Copy its “apiuser” and “apikey” — a collection-only key: it can only receive, never withdraw.')}<br>4. ${_FL('Collez-les ci-dessous. L’argent des dons ira DIRECTEMENT sur votre compte — UBORA n’y touche jamais.','Paste them below. Gift money goes DIRECTLY to your account — UBORA never touches it.')}</div>
@@ -10765,7 +10773,9 @@ function connectFapshi(caseId){
     try{ const{data:{session:_s}}=await sb.auth.getSession();
       const _r=await fetch(SB_URL+'/functions/v1/fapshi-connect',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({case_id:caseId,action:'connect',apiuser:u,apikey:k,consent:true})});
       const _j=await _r.json().catch(()=>({})); if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status+' \u2014 v\u00e9rifiez que fapshi-connect est d\u00e9ploy\u00e9e et le secret UBORA_FAPSHI_ENC_KEY d\u00e9fini.'));
-      c.fapshi_connected=true; alert(_FL('Compte Fapshi raccordé \u2713','Fapshi account connected \u2713')); render();
+      c.fapshi_connected=true;
+      if(_j.wh_secret){ window._fapWh=window._fapWh||{}; window._fapWh[caseId]=_j.wh_secret; }
+      alert(_FL('Compte Fapshi raccordé \u2713','Fapshi account connected \u2713')); render();
     }catch(e){ alert(_FL('Raccordement Fapshi impossible\u00A0: ','Fapshi connection failed: ')+(e.message||e)); }
   })();
 }
@@ -10776,7 +10786,16 @@ function revokeFapshi(caseId){
     try{ const{data:{session:_s}}=await sb.auth.getSession();
       const _r=await fetch(SB_URL+'/functions/v1/fapshi-connect',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({case_id:caseId,action:'revoke'})});
       const _j=await _r.json().catch(()=>({})); if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
-      if(c)c.fapshi_connected=false; render();
+      if(c)c.fapshi_connected=false; if(window._fapWh)delete window._fapWh[caseId]; render();
+    }catch(e){ alert(_FL('Action impossible\u00A0: ','Could not update: ')+(e.message||e)); }
+  })();
+}
+function rewhFapshi(caseId){
+  (async function(){
+    try{ const{data:{session:_s}}=await sb.auth.getSession();
+      const _r=await fetch(SB_URL+'/functions/v1/fapshi-connect',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},body:JSON.stringify({case_id:caseId,action:'rewh'})});
+      const _j=await _r.json().catch(()=>({})); if(!_r.ok||!_j.ok) throw new Error(_j.error||('Erreur '+_r.status));
+      window._fapWh=window._fapWh||{}; window._fapWh[caseId]=_j.wh_secret||''; render();
     }catch(e){ alert(_FL('Action impossible\u00A0: ','Could not update: ')+(e.message||e)); }
   })();
 }
@@ -10823,7 +10842,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.94';
+const UBORA_BUILD='v9.95';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
