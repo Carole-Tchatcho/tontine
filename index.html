@@ -7001,6 +7001,7 @@ function viewCaseEvts(){
         <select id="cv-vis"><option value="private"${selVis('private')}>${_FL('Privé — seulement les membres du groupe','Private — group members only')}</option><option value="public"${selVis('public')}>${_FL('Public — visible dans l’onglet Événements de la plateforme','Public — shown in the platform Events tab')}</option></select></div>
       <div class="row-gap"><div class="field" style="flex:1;min-width:150px"><label>${_FL('Catégorie','Category')}</label><select id="cv-cat">${['culturel','cultuel','deuil','sport','networking','fetenat','integration','autre'].map(function(k){return '<option value="'+k+'"'+selCat(k)+'>'+tr('cat_'+k)+'</option>';}).join('')}</select></div>
         <div class="field" style="flex:1;min-width:120px"><label>${_FL('Objectif (facultatif)','Goal (optional)')}</label><input id="cv-obj" type="number" value="${(Number(ev0&&ev0.objectif)||0)||''}" placeholder="0"></div></div>
+      <div class="field"><label>${_FL('Cette cagnotte alimente','This fund feeds')}</label><select id="cv-caisse"><option value="groupe"${(ev0&&ev0.caisse==='projet')?'':' selected'}>${_FL('La caisse du groupe','The group fund')}</option><option value="projet"${(ev0&&ev0.caisse==='projet')?' selected':''}>${_FL('Une caisse dédiée à ce projet','A fund dedicated to this project')}</option></select><div class="hint" style="margin-top:4px">${_FL('Les dons de cet événement seront rattachés à cette caisse — et présentés ainsi dans le rapport.','This event’s gifts are attached to this fund — and shown as such in the report.')}</div></div>
       <div class="field"><label>${_FL('Informations · programme','Information · programme')}</label><textarea id="cv-note" rows="4" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);resize:vertical" placeholder="${_FL('Programme de la veillée, lieu de rassemblement, destination du rapatriement, déroulé… tout ce qui est utile.','Vigil programme, gathering place, repatriation destination, schedule… anything useful.')}">${esc(T('note'))}</textarea></div>
       <div class="panel" style="margin-top:12px;background:#fbf7ec;border:1px solid #e6dcc0"><div style="padding:12px 16px">
         <div class="mname" style="margin-bottom:4px">${_FL('Contributions des membres','Member contributions')}</div>
@@ -7063,7 +7064,7 @@ function caseEvtAdd(){
   const diso=(document.getElementById('cv-date')||{}).value||'';
   var _contribs=caseEvtReadContribs(c,cur);
   var _dup=caseEvtGuestDupe(c,_contribs); if(_dup){ alert(_FL('« '+_dup.guest+' » semble déjà dans l’annuaire (membre « '+_dup.member+' »). Cochez-la dans la liste des membres ci-dessus — la zone « hors annuaire » est réservée aux personnes extérieures au groupe.','“'+_dup.guest+'” already appears in the directory (member “'+_dup.member+'”). Tick them in the members list above — the “outside the directory” box is for people outside the group.')); return; }
-  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,objectif:Number(g('cv-obj'))||0,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,contribs:_contribs};
+  var evt={id:newId('ev'),title:title,date:diso,dateISO:diso,category:cat,objectif:Number(g('cv-obj'))||0,lieu:g('cv-lieu'),note:g('cv-note'),visibility:vis,caisse:((document.getElementById('cv-caisse')||{}).value||'groupe'),contribs:_contribs};
   if(vis==='public') evt.pubId=newId('e');
   c.evts=c.evts||[]; c.evts.unshift(evt);
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
@@ -7085,7 +7086,7 @@ function caseEvtSave(){
   const wasPublic=(ev0.visibility==='public');
   var _contribs=caseEvtReadContribs(c,cur);
   var _dup=caseEvtGuestDupe(c,_contribs); if(_dup){ alert(_FL('« '+_dup.guest+' » semble déjà dans l’annuaire (membre « '+_dup.member+' »). Cochez-la dans la liste des membres ci-dessus — la zone « hors annuaire » est réservée aux personnes extérieures au groupe.','“'+_dup.guest+'” already appears in the directory (member “'+_dup.member+'”). Tick them in the members list above — the “outside the directory” box is for people outside the group.')); return; }
-  ev0.title=title; ev0.date=diso; ev0.dateISO=diso; ev0.category=cat; ev0.objectif=Number(g('cv-obj'))||0; ev0.lieu=g('cv-lieu'); ev0.note=g('cv-note'); ev0.visibility=vis; ev0.contribs=_contribs;
+  ev0.title=title; ev0.date=diso; ev0.dateISO=diso; ev0.category=cat; ev0.objectif=Number(g('cv-obj'))||0; ev0.lieu=g('cv-lieu'); ev0.note=g('cv-note'); ev0.visibility=vis; ev0.caisse=((document.getElementById('cv-caisse')||{}).value||'groupe'); ev0.contribs=_contribs;
   if(vis==='public'){ if(!ev0.pubId) ev0.pubId=newId('e'); }
   if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));}
   if(vis==='public'){ caseEvtPublish(c,ev0); }
@@ -7095,7 +7096,7 @@ function caseEvtSave(){
 function caseEvtPublish(c,evt){
   if(BACKEND!=='supabase'||!evt||!evt.pubId) return;
   var prev=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===evt.pubId;});
-  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, billets:[] };
+  var pe={ id:evt.pubId, creator:state.user, group:c.name, type:'autre', category:evt.category||'autre', country:c.country||'', city:c.city||'', openToAll:true, visibility:'public', audience:[], dateISO:evt.dateISO||'', postedISO:(prev&&prev.postedISO)||(typeof EV_TODAY!=='undefined'?EV_TODAY:''), title:evt.title, date:evt.date||evt.dateISO||'', lieu:evt.lieu||'—', currency:(prev&&prev.currency)||'EUR', objectif:Number(evt.objectif)||0, desc:evt.note||'', collecte:'dons', dons:(prev&&prev.dons)||[], source:'case', caseId:c.id, caisse:(evt.caisse||'groupe'), billets:[] };
   try{ db.saveEvent(pe).then(function(){ if(typeof evGeocode==='function'&&pe.city&&pe.country){ evGeocode(pe.city,pe.country).then(function(gg){ if(gg){ pe.lat=gg.lat; pe.lng=gg.lng; db.saveEvent(pe).catch(function(){}); } }).catch(function(){}); } }).catch(function(e){ console.warn('publier evenement',e); }); }catch(e){ console.warn(e); }
 }
 function caseEvtDel(i){ const c=state_cases.find(x=>x.id===state.activeCase); if(!c||!c.evts)return; if(!confirm('Retirer cet \u00e9v\u00e9nement ?'))return; var _ev=c.evts[i]; if(_ev&&_ev.pubId&&BACKEND==='supabase'){ try{ db.deleteEvent(_ev.pubId).catch(function(){}); }catch(_e){} } c.evts.splice(i,1); if(BACKEND==='supabase'){db.saveCase(c).catch(e=>console.warn(e));} render(); }
@@ -7186,6 +7187,17 @@ function viewCaseRapport(){
   }).join(''):('<div class="hint">'+_FL('Aucun membre.','No members.')+'</div>');
   const evs=(c.evts||[]).map(function(e){ var cons=(e.contribs||[]); var tot=cons.reduce(function(s,k){return s+(Number(k.amount)||0);},0); return '<div class="mrow"><div class="stack"><div class="mname">'+esc(e.title||'\u00c9v\u00e9nement')+'</div><div class="msub">'+(e.date?esc(e.date)+' \u00b7 ':'')+cons.length+' '+_FL('contributeur(s)','contributor(s)')+'</div></div><div class="right">'+money(tot,cur)+'</div></div>'; }).join('')||('<div class="hint">'+_FL('Aucun \u00e9v\u00e9nement.','No events.')+'</div>');
   var solG=totC-totD; const year=new Date().getFullYear(); const today=new Date().toLocaleDateString('fr-CH');
+  var grpDon=0; var projDon=[];
+  (c.evts||[]).forEach(function(e){ var dt=caseEvtConfirmedDons(e); if(dt<=0)return; if((e.caisse||'groupe')==='projet'){ projDon.push({title:(e.title||'Projet'),amount:dt}); } else { grpDon+=dt; } });
+  var caissePanel='';
+  if(grpDon>0||projDon.length){
+    var pr=projDon.map(function(x){return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.title)+' <span class="faint">('+_FL('caisse projet','project fund')+')</span></div></div><div class="right">'+money(x.amount,cur)+'</div></div>';}).join('');
+    caissePanel='<div class="panel" style="margin-top:14px"><div class="panel-h"><h3>'+_FL('Caisses — dons encaissés (confirmés)','Funds — collected gifts (confirmed)')+'</h3></div><div style="padding:6px 16px 12px">'
+      +'<div class="mrow"><div class="stack"><div class="mname">'+_FL('Caisse du groupe','Group fund')+'</div></div><div class="right"><b>'+money(grpDon,cur)+'</b></div></div>'
+      +pr
+      +'<div class="asnote" style="margin-top:8px">'+_FL('Seuls les dons vérifiés (carte) ou confirmés par le trésorier sont comptés. Un projet à caisse dédiée est présenté séparément de la caisse du groupe.','Only verified (card) or treasurer-confirmed gifts are counted. A project with a dedicated fund is shown separately from the group fund.')+'</div>'
+      +'</div></div>';
+  }
   app().innerHTML=`
     <button class="backlink" onclick="go('casecomptes')">\u2039 ${_FL('Comptes','Accounts')}</button>
     <div class="row-gap" style="margin:6px 0"><button class="btn btn-gold btn-sm" onclick="window.print()">${_FL('Imprimer / PDF','Print / PDF')}</button></div>
@@ -7201,6 +7213,7 @@ function viewCaseRapport(){
     </div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('Comptes des membres','Member accounts')}</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${_FL('\u00c9v\u00e9nements de l\u2019exercice','Events of the period')}</h3></div><div style="padding:6px 16px 12px">${evs}</div></div>
+    ${caissePanel}
     <div class="asnote" style="margin-top:12px">${_FL('Registre interne de l\u2019association \u2014 UBORA ne d\u00e9tient aucun fonds. \u00c0 remettre aux membres (janvier).','Association internal ledger \u2014 UBORA holds no funds. To share with members (January).')}</div>
     ${footer()}`;
 }
@@ -8772,6 +8785,7 @@ async function donConfirm(id,ts,revert){
 }
 function caseEvtPendBadge(x){ if(!x||!x.pubId)return ''; var pe=(typeof state_events!=='undefined'?state_events:[]).find(function(e){return e&&e.id===x.pubId;}); if(!pe||!pe.dons)return ''; var n=pe.dons.filter(function(d){return donStatutOf(d)==='attente';}).length; return n>0?(' <span class="pill" style="color:#9a5a1a;background:#f6e6d2;font-size:11px">\uD83D\uDD14 '+n+' '+_FL('à confirmer','to confirm')+'</span>'):''; }
 function caseEvtFollowBtn(x){ if(!x||!x.pubId)return ''; return '<button class="btn btn-ghost btn-sm" onclick="openEvent(\''+esc(x.pubId)+'\')">'+_FL('Suivre','Track')+'</button>'; }
+function caseEvtConfirmedDons(e){ if(!e||!e.pubId)return 0; var pe=(typeof state_events!=='undefined'?state_events:[]).find(function(x){return x&&x.id===e.pubId;}); if(!pe||!pe.dons)return 0; return pe.dons.reduce(function(s,d){var st=donStatutOf(d);return s+((st==='verifie'||st==='confirme')?(Number(d.montant)||0):0);},0); }
 async function evDonSubmit(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const nmEl=$('#don-name'), amEl=$('#don-amt');
@@ -9585,6 +9599,7 @@ function viewEvent(){
         <div class="between"><span class="mid" style="font-size:13px">${(ev.dons||[]).length} ${_FL('don(s)','gift(s)')} · <b>${money(donSecured,ev.currency)}</b> ${_FL('confirmés','confirmed')}${donPending>0?` · <span style="color:#9a5a1a">${money(donPending,ev.currency)} ${_FL('en attente','pending')}</span>`:''}</span>${ev.objectif?`<span style="font-weight:600;color:#8a6a24">${dpct}% ${tr('ev_of')} ${money(ev.objectif,ev.currency)}</span>`:''}</div>
         ${ev.objectif?`<div class="progress"><i style="width:${dpct}%"></i></div>`:''}
         ${(manage&&donPending>0)?`<div class="msub" style="background:#f6e6d2;color:#9a5a1a;border-radius:8px;padding:8px 12px;margin:8px 0">\uD83D\uDD14 ${(ev.dons||[]).filter(d=>donStatutOf(d)==='attente').length} ${_FL('don(s) en attente de votre confirmation','gift(s) awaiting your confirmation')}</div>`:''}
+        <div class="msub" style="font-size:12px;margin:6px 0"><b>${_FL('Destination','Destination')}</b> : ${(ev.caisse==='projet')?_FL('caisse dédiée à ce projet','fund dedicated to this project'):_FL('caisse du groupe','group fund')}</div>
         <div class="msub" style="margin:8px 0">${_FL('Chacun donne ce qu’il peut. Chaque don est inscrit dans la cagnotte propre à cet événement — jamais mêlé au compte du groupe.','Each gives what they can. Every gift is recorded in this event’s own fund — never mixed with the group account.')}</div>
         ${state.donFor===ev.id
           ? (function(){ var dmode=state.donMode||'mobile';
@@ -10585,7 +10600,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.84';
+const UBORA_BUILD='v9.85';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
