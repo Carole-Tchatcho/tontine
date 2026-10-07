@@ -286,6 +286,24 @@ html,body{margin:0;background:#EBDCC4}
     background:var(--green-bg);border-radius:20px;padding:5px 13px;margin-top:14px}
 
   .level-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12.5px;font-weight:600;letter-spacing:.02em}
+  /* --- SIFA : le résumé (face unique du parcours) --- */
+  .sifa-crest{position:relative;border:1px solid rgba(201,168,76,.32);border-radius:18px;padding:22px 24px 18px;margin:14px 0 8px;overflow:hidden;
+    background:linear-gradient(135deg,#1C1E27 0%,#232737 55%,#2A2414 100%);color:#F4EFE3;box-shadow:0 10px 30px rgba(20,18,10,.18)}
+  .sifa-crest .sc-eye{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#C9A84C;opacity:.95}
+  .sifa-crest .sc-word{font-family:'Cormorant Garamond',Georgia,serif;font-size:40px;line-height:1;font-weight:600;letter-spacing:.08em;color:#F6E7BE;margin:4px 0 2px}
+  .sifa-crest .sc-full{font-size:11.5px;color:#C9BE9E;opacity:.9;margin-bottom:12px}
+  .sifa-crest .sc-level{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600;color:#F4EFE3;padding:5px 13px;border:1px solid rgba(201,168,76,.45);border-radius:999px}
+  .sifa-crest .sc-level .dot{color:#E3C878}
+  .sifa-crest .sc-soul{font-family:'Cormorant Garamond',Georgia,serif;font-size:18.5px;line-height:1.4;color:#EFE6D0;margin:12px 0 2px;font-style:italic}
+  .sifa-crest .sc-figs{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:13px;border-top:1px solid rgba(201,168,76,.18)}
+  .sifa-crest .sc-fig{line-height:1.1}
+  .sifa-crest .sc-fig b{display:block;font-size:20px;font-weight:600;color:#F6E7BE}
+  .sifa-crest .sc-fig span{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#B9AF90}
+  .sifa-layers{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+  .sifa-layers .sl{flex:1;min-width:92px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--card)}
+  .sifa-layers .sl .n{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);opacity:.9}
+  .sifa-layers .sl .d{font-size:12px;color:var(--ink,#4a4a46);opacity:.8;margin-top:2px}
+  .sifa-layers .sl.here{border-color:rgba(201,168,76,.55);box-shadow:inset 0 0 0 1px rgba(201,168,76,.25)}
   .level-track{display:flex;gap:7px;margin-bottom:4px}
   .level-node{flex:1;min-width:0}
   .level-bar{height:6px;border-radius:5px}
@@ -1440,6 +1458,16 @@ Object.assign(I18N.fr,{
   rp2_for_reach:'Pour atteindre {n}',rp2_onqual:'(sur qualification)',rp2_unlocks:'Ce que ça débloque :',
   rp2_cercle_top:'<b>Le Cercle</b> se rejoint sur qualification — il donne accès à la méthode et aux contenus UBORA sur l\u2019investissement.',
   rp2_my_path:'Mon parcours',rp2_climb:'On monte en tenant ses engagements — jamais en payant, jamais sous pression.',
+  sifa_name:'SIFA',sifa_full:'Signal d’Intégrité, de Fiabilité et d’Assiduité',sifa_eyebrow:'Votre réputation portable',
+  sifa_tag:'Elle vous suit partout — bâtie seulement sur vos actes, jamais déclarée.',
+  sifa_soul_new:'Votre confiance commence à s’écrire. Chaque engagement tenu la fait grandir.',
+  sifa_soul_building:'Votre confiance se construit, acte après acte.',
+  sifa_soul_solid:'Votre confiance est solide — elle se voit, et elle se transmet.',
+  sifa_soul_radiant:'Votre confiance rayonne. Vous ouvrez la voie aux autres.',
+  sifa_f_acts:'actes confirmés',sifa_f_ontime:'à temps',sifa_f_circles:'cercles',
+  sifa_layer_resume:'Résumé',sifa_layer_film:'Parcours vivant',sifa_layer_photo:'Attestation',
+  sifa_layers_note:'<b>SIFA</b>, c’est le résumé. Juste en dessous, votre parcours vivant. Et pour un tiers, votre attestation — la photo, figée et datée.',
+  sifa_see_attest:'Mon attestation →',
   rp2_discover_cercle:'Découvrir Le Cercle →',
   py_here:'Vous êtes ici',py_entry:'Niveau d\u2019entrée — aucune condition. Bienvenue.',
   py_reached:'{n} <span class="faint" style="font-size:15px">— atteint ✓</span>',
@@ -1509,6 +1537,16 @@ Object.assign(I18N.en,{
   rp2_for_reach:'To reach {n}',rp2_onqual:'(by qualification)',rp2_unlocks:'What it unlocks:',
   rp2_cercle_top:'<b>The Circle</b> is joined by qualification — it gives access to the UBORA method and content on investing.',
   rp2_my_path:'My path',rp2_climb:'You rise by keeping your commitments — never by paying, never under pressure.',
+  sifa_name:'SIFA',sifa_full:'Signal of Integrity, Reliability and Diligence',sifa_eyebrow:'Your portable reputation',
+  sifa_tag:'It follows you everywhere — built only on your actions, never declared.',
+  sifa_soul_new:'Your trust is just beginning to take shape. Every kept commitment grows it.',
+  sifa_soul_building:'Your trust is building, act after act.',
+  sifa_soul_solid:'Your trust is solid — it shows, and it carries over.',
+  sifa_soul_radiant:'Your trust shines. You light the way for others.',
+  sifa_f_acts:'confirmed acts',sifa_f_ontime:'on time',sifa_f_circles:'circles',
+  sifa_layer_resume:'Summary',sifa_layer_film:'Living path',sifa_layer_photo:'Attestation',
+  sifa_layers_note:'<b>SIFA</b> is the summary. Just below, your living path. And for a third party, your attestation — the snapshot, fixed and dated.',
+  sifa_see_attest:'My attestation →',
   rp2_discover_cercle:'Discover The Circle →',
   py_here:'You are here',py_entry:'Entry level — no conditions. Welcome.',
   py_reached:'{n} <span class="faint" style="font-size:15px">— reached ✓</span>',
@@ -5448,6 +5486,35 @@ function privateRoomDoor(){
     </svg></div>`;
 }
 
+/* SIFA — le RÉSUMÉ : une seule face, bâtie sur les actes réels. Pas un 2e score :
+   c'est le nom + le repère lisible + l'âme encourageante donnés au parcours existant.
+   3 couches : SIFA (résumé, ici) · parcours vivant (dessous) · attestation (la photo, go('reputation')). */
+function sifaFigures(){
+  if(BACKEND==='supabase'&&state.serverStats){ const ss=state.serverStats; return {cycles:ss.cycles||0,onTime:(ss.ponctualite!=null?ss.ponctualite:100),circles:ss.tontines||0}; }
+  const s=aggregateStats(state.user); return {cycles:s.cyclesDone||0,onTime:(s.onTime!=null?s.onTime:100),circles:s.tontines||0};
+}
+function sifaSoul(cur){ if(cur>=4)return tr('sifa_soul_radiant'); if(cur>=2)return tr('sifa_soul_solid'); if(cur>=1)return tr('sifa_soul_building'); return tr('sifa_soul_new'); }
+function sifaResume(cur,lv){
+  const f=sifaFigures();
+  return `<div class="sifa-crest">
+      <div class="sc-eye">${tr('sifa_eyebrow')}</div>
+      <div class="sc-word">${tr('sifa_name')}</div>
+      <div class="sc-full">${tr('sifa_full')}</div>
+      <div class="sc-level"><span class="dot">◆</span> ${esc(lv.name)}</div>
+      <div class="sc-soul">${sifaSoul(cur)}</div>
+      <div class="sc-figs">
+        <div class="sc-fig"><b>${f.cycles}</b><span>${tr('sifa_f_acts')}</span></div>
+        <div class="sc-fig"><b>${f.onTime}%</b><span>${tr('sifa_f_ontime')}</span></div>
+        <div class="sc-fig"><b>${f.circles}</b><span>${tr('sifa_f_circles')}</span></div>
+      </div>
+    </div>
+    <div class="sifa-layers">
+      <div class="sl here"><div class="n">${tr('sifa_layer_resume')}</div><div class="d">SIFA</div></div>
+      <div class="sl"><div class="n">${tr('sifa_layer_film')}</div><div class="d">${_FL('ci-dessous','below')}</div></div>
+      <div class="sl" onclick="go('reputation')" style="cursor:pointer"><div class="n">${tr('sifa_layer_photo')}</div><div class="d" style="color:var(--gold)">${tr('sifa_see_attest')}</div></div>
+    </div>
+    <div class="asnote" style="margin-top:8px">${tr('sifa_layers_note')}</div>`;
+}
 function viewPyramide(){
   const s=aggregateStats(state.user);
   const cur=state.serverLevel?Math.max(0,LEVELS.findIndex(L=>L.name===state.serverLevel)):myLevel();
@@ -5477,7 +5544,7 @@ function viewPyramide(){
     <div class="eyebrow">${tr('py_eyebrow')}</div>
     <h1 class="page-title">${tr('rp2_my_path')}</h1>
     <p class="lead">${tr('py_lead')}</p>
-    <div class="row" style="margin-top:10px"><span class="level-badge" style="background:${lv.bg};color:${lv.color}">◆ ${lv.name}</span></div>
+    ${sifaResume(cur,lv)}
     <div class="pyr-cap" style="margin-top:18px">${tr('py_cap')}</div>
     <div class="apex-jewel"><video class="apex-badge" autoplay loop muted playsinline aria-hidden="true">
       <source src="triangle-cercle-badge.mp4" type="video/mp4">
@@ -10916,7 +10983,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.98';
+const UBORA_BUILD='v9.99';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
