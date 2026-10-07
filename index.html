@@ -9574,6 +9574,9 @@ function viewEvent(){
     const donTotal=(ev.dons||[]).reduce((s,d)=>s+(Number(d.montant)||0),0);
     const donSecured=(ev.dons||[]).reduce((s,d)=>{var st=donStatutOf(d);return s+((st==='verifie'||st==='confirme')?(Number(d.montant)||0):0);},0);
     const donPending=donTotal-donSecured;
+    const donBy={verifie:{n:0,s:0},confirme:{n:0,s:0},attente:{n:0,s:0},promesse:{n:0,s:0}};
+    (ev.dons||[]).forEach(function(d){var st=donStatutOf(d);if(!donBy[st])st='attente';donBy[st].n++;donBy[st].s+=Number(d.montant)||0;});
+    const donCash=(ev.dons||[]).filter(function(d){return d.mode==='especes'&&donStatutOf(d)==='attente';});
     const donsList=(ev.dons||[]).slice().reverse();
     const dpct=ev.objectif?Math.min(100,Math.round(donSecured/ev.objectif*100)):0;
     const myName=(state.user&&!/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(state.user)))?state.user:'';
@@ -9604,6 +9607,13 @@ function viewEvent(){
              </div>`; })()
           : `<button class="btn btn-gold btn-sm" onclick="state.donFor='${ev.id}';render()">${_FL('Faire un don','Give')}</button>`}
         ${donsList.length?`<div style="margin-top:12px">${donsList.map(d=>`<div class="between" style="padding:6px 0;border-top:1px solid var(--line)"><span>${esc(d.name||_FL('Anonyme','Anonymous'))} ${donStatutBadge(d)}${donModeLabel(d)?` <span class="faint" style="font-size:12px">${donModeLabel(d)}</span>`:''}${(d.proof&&manage)?`<br><span class="faint" style="font-size:11px">${esc(d.proof)}</span>`:''}${(donStatutOf(d)==='confirme'&&d.confirmed_by)?`<br><span class="faint" style="font-size:11px">${_FL('confirmé par','confirmed by')} ${esc(d.confirmed_by)}</span>`:''}${(manage&&donStatutOf(d)==='attente')?` <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" onclick="donConfirm('${ev.id}','${esc(d.ts||'')}')">${_FL('Confirmer ✓','Confirm ✓')}</button>`:''}${(manage&&donStatutOf(d)==='confirme')?` <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px" onclick="donConfirm('${ev.id}','${esc(d.ts||'')}',true)">${_FL('Annuler','Undo')}</button>`:''}</span><span style="font-weight:600">${money(Number(d.montant)||0,d.cur||ev.currency)}</span></div>`).join('')}</div>`:''}
+        ${manage?`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px">
+          <div class="mname" style="font-size:13px;margin-bottom:6px">${_FL('Bilan d’audit','Audit summary')}</div>
+          <div class="msub" style="font-size:12.5px;line-height:1.9">🟢 ${_FL('vérifié','verified')} : ${donBy.verifie.n} · ${money(donBy.verifie.s,ev.currency)}<br>🟡 ${_FL('confirmé','confirmed')} : ${donBy.confirme.n} · ${money(donBy.confirme.s,ev.currency)}<br>🟠 ${_FL('en attente','pending')} : ${donBy.attente.n} · ${money(donBy.attente.s,ev.currency)}<br>⚪ ${_FL('promesse','pledge')} : ${donBy.promesse.n} · ${money(donBy.promesse.s,ev.currency)}</div>
+          <div class="msub" style="margin-top:8px;font-size:12.5px"><b>${_FL('Reçu (confirmé + vérifié)','Received (confirmed + verified)')}</b> : ${money(donBy.verifie.s+donBy.confirme.s,ev.currency)} · <b>${_FL('Annoncé','Announced')}</b> : ${money(donBy.attente.s+donBy.promesse.s,ev.currency)}</div>
+          ${donCash.length?`<div class="msub" style="margin-top:8px;color:#9a5a1a"><b>⚠️ ${_FL('Espèces reçues, pas encore confirmées','Cash received, not yet confirmed')}</b><br>${donCash.map(function(d){return esc(d.name||'—')+' · '+money(Number(d.montant)||0,d.cur||ev.currency)+(d.proof?(' → '+_FL('remis à','handed to')+' '+esc(d.proof)):(' → '+_FL('récepteur non précisé','receiver not specified')));}).join('<br>')}</div>`:''}
+          ${(donBy.attente.s+donBy.promesse.s)>0?`<div class="msub" style="margin-top:8px;font-size:12px">${_FL('Écart à suivre : montant annoncé mais pas encore confirmé — relancez ou confirmez à réception.','Gap to track: announced but not yet confirmed — follow up or confirm on receipt.')}</div>`:''}
+        </div>`:''}
         <div class="msub" style="margin-top:10px">${ev.settle?`<span><b>${_FL('Pour régler','To settle')}</b> : ${esc(ev.settle)}<br></span>`:''}${_FL('UBORA ne détient aucun fonds : le règlement se fait directement avec l’organisateur.','UBORA holds no funds: settle directly with the organizer.')}</div>
       </div></div>`;
   } else {
@@ -10575,7 +10585,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v9.83';
+const UBORA_BUILD='v9.84';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
