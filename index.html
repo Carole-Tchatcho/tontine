@@ -5635,6 +5635,7 @@ function sifaNextMilestone(cur){
 }
 function sifaResume(cur,lv){
   const f=sifaFigures(); const ir=sifaImaniRepaid(); const ms=sifaNextMilestone(cur);
+  const rg=sifaRegularite(state.user); const froze=sifaFrozen(state.user);
   const acro='<b class="foilg">S</b>ignal&nbsp;·&nbsp;<b class="foilg">I</b>ntégrité&nbsp;·&nbsp;<b class="foilg">F</b>iabilité&nbsp;·&nbsp;<b class="foilg">A</b>ssiduité';
   return `<div class="sifa-crest">
       <div class="sc-head">
@@ -5649,8 +5650,9 @@ function sifaResume(cur,lv){
         <div class="sc-fig"><b class="foilg">${f.onTime}%</b><span>${tr('sifa_f_ontime')}</span></div>
         <div class="sc-fig"><b class="foilg">${f.circles}</b><span>${tr('sifa_f_circles')}</span></div>
         ${ir>0?`<div class="sc-fig"><b class="foilg">${ir}</b><span>${_FL('prêts remboursés','loans repaid')}</span></div>`:''}
+        ${rg.expected>0?`<div class="sc-fig"><b class="foilg">${rg.pct}%</b><span>${_FL('assiduité caisse','fund regularity')}</span></div>`:''}
       </div>
-      ${ms?`<div class="sc-next">→ ${ms}</div>`:''}
+      ${froze?`<div class="sc-next" style="color:#8A2E16;border-color:rgba(138,46,22,.35)">⏳ ${_FL('Un engagement est en souffrance — à régulariser pour reprendre votre progression.','A commitment is outstanding — settle it to resume your progression.')}</div>`:(ms?`<div class="sc-next">→ ${ms}</div>`:'')}
     </div>
     <div class="sifa-foot"><span>${tr('sifa_layer_resume')} · SIFA</span><span class="sf-dot">·</span><span>${tr('sifa_layer_film')} ${_FL('ci-dessous','below')}</span><span class="sf-dot">·</span><a href="#" onclick="go('reputation');return false">${tr('sifa_layer_photo')} ${tr('sifa_see_attest')}</a></div>`;
 }
@@ -5658,6 +5660,7 @@ function viewPyramide(){
   const s=aggregateStats(state.user);
   const cur=state.serverLevel?Math.max(0,LEVELS.findIndex(L=>L.name===state.serverLevel)):myLevel();
   const lv=LEVELS[cur];
+  const pyrFrozen=sifaFrozen(state.user);
   const sel=(state.selectedLevel!=null)?state.selectedLevel:Math.min(cur+1,LEVELS.length-1);
   const order=[5,4,3,2,1,0], W=[42,52,62,72,82,94];
   const tiers=order.map((i,pos)=>{
@@ -5684,6 +5687,7 @@ function viewPyramide(){
     <h1 class="page-title">${tr('rp2_my_path')}</h1>
     <p class="lead">${tr('py_lead')}</p>
     ${sifaResume(cur,lv)}
+    ${pyrFrozen?`<div class="panel" style="margin-top:14px;border-left:3px solid #8A2E16;background:rgba(138,46,22,.05)"><div style="padding:14px 18px"><div class="mname" style="color:#8A2E16">⏳ ${_FL('Progression gelée','Progression frozen')}</div><div class="msub" style="margin-top:4px">${_FL('Un engagement est en souffrance envers un groupe. On ne monte pas tant qu’un litige reste ouvert — c’est une question de justice envers les autres, pas une punition. Dès qu’il est réglé, la montée reprend exactement où elle en était.','A commitment is outstanding to a group. You don’t climb while a dispute stays open — a matter of fairness to others, not a punishment. Once settled, progression resumes exactly where it was.')}</div></div></div>`:''}
     <div class="pyr-cap" style="margin-top:18px">${tr('py_cap')}</div>
     <div class="apex-jewel"><video class="apex-badge" autoplay loop muted playsinline aria-hidden="true">
       <source src="triangle-cercle-badge.mp4" type="video/mp4">
@@ -6202,12 +6206,91 @@ function imaniRepay(id,lid){
   l.repayments=l.repayments||[]; l.repayments.push({id:newId('r'), date:new Date().toISOString().slice(0,10), montant:Math.round(mont), by:(state.user||'')});
   c.mouvements=c.mouvements||[];
   c.mouvements.unshift({id:newId('m'), date:new Date().toISOString().slice(0,10), sens:'in', libelle:_FL('Remboursement IMANI','IMANI repayment'), who:'', montant:Math.round(mont), by:(state.user||''), imani:l.id});
-  if(imaniRepaid(l)>=l.montant){ l.statut='rembourse'; l.rembourse_at=new Date().toISOString().slice(0,10); }
+  if(imaniRepaid(l)>=l.montant){ l.statut='rembourse'; l.rembourse_at=new Date().toISOString().slice(0,10);
+    var _x=(c.litiges||[]).find(function(y){return y.loanId===l.id&&(y.statut==='ouvert'||y.statut==='propose');});
+    if(_x){ _x.statut='resolu'; _x.resolved_at=l.rembourse_at; _x.resolved_by=_FL('remboursement intégral','full repayment'); }
+  }
   cPersist(id); render();
 }
 function imaniHeadHtml(){
   return '<div class="imani-head"><div class="ih-w foilg">IMANI</div>'
     +'<div class="ih-a"><b class="foilg">I</b>nitiative&nbsp;·&nbsp;<b class="foilg">M</b>utuelle&nbsp;·&nbsp;<b class="foilg">A</b>ide&nbsp;·&nbsp;<b class="foilg">N</b>on-usuraire&nbsp;·&nbsp;<b class="foilg">I</b>nter-membres</div></div>';
+}
+/* ============================================================================
+   SIFA étape 2b — RÉGULARITÉ (appels de caisse) + LITIGE (manquement grave).
+   Décidé avec Carole (8 oct 2026) :
+   - Régularité = honorer chaque appel clos de la caisse (cadence déjà existante).
+   - Litige = manquement grave et persistant causant préjudice au groupe (emprunt
+     non remboursé sans gage, cotisation, tontine, autre). Déclaré par le bureau à
+     2 CLÉS distinctes (1 refus annule) ; se résout, ou s'abandonne (2 clés).
+   - Pyramide : MONTER = tontines seules (verrou intact). Un litige OUVERT GÈLE la
+     montée partout (frein, pas un score). SIFA le signale sobrement ; l'ATTESTATION
+     garde la trace de TOUS les litiges, même résolus (la vérité, sans humilier). */
+function caisseFoyerIndexOf(c,name){
+  var nm=String(name||'').trim(); if(!nm)return -1;
+  return (c.foyers||[]).findIndex(function(f){ var fn=String(f.name||'').replace(/^Foyer\s+/i,'').trim(); return caseSameName(fn,nm)||caseSameName(f.name,nm); });
+}
+function sifaRegularite(name){
+  var expected=0,honored=0;
+  (typeof state_caisses!=='undefined'?state_caisses:[]).forEach(function(c){
+    var fi=caisseFoyerIndexOf(c,name); if(fi<0)return;
+    (c.appels||[]).forEach(function(a){ var clos=(a.statut==='remis'||a.remis); if(!clos)return; expected++; if(a.versements&&a.versements[fi]==='confirmed')honored++; });
+  });
+  return {expected:expected,honored:honored,pct:(expected?Math.round(honored/expected*100):100)};
+}
+function sifaLitiges(name){
+  var me=String(name||'').trim().toLowerCase(); var open=[],resolved=[],all=[];
+  (typeof state_caisses!=='undefined'?state_caisses:[]).forEach(function(c){
+    ((c&&c.litiges)||[]).forEach(function(x){ if(String(x.member||'').trim().toLowerCase()!==me)return; var rec={l:x,caisse:c}; all.push(rec);
+      if(x.statut==='ouvert'||x.statut==='propose')open.push(rec); else resolved.push(rec); });
+  });
+  return {open:open,resolved:resolved,all:all};
+}
+function sifaFrozen(name){ return sifaLitiges(name||state.user).open.filter(function(r){return r.l.statut==='ouvert';}).length>0; }
+function litigeTypeLabel(t){ return ({emprunt:_FL('emprunt non remboursé','unrepaid loan'),cotisation:_FL('cotisation','contribution'),tontine:_FL('tontine','tontine'),autre:_FL('engagement','commitment')})[t]||_FL('engagement','commitment'); }
+function litigeStatutBadge(s){ var m={propose:['p-due',_FL('déclaré · 1 clé','filed · 1 key')],ouvert:['p-late',_FL('en souffrance','outstanding')],resolu:['p-paid',_FL('réglé','settled')],abandon:['p-soon',_FL('abandon de créance','written off')]}; var x=m[s]||['p-soon',s]; return '<span class="pill '+x[0]+'">'+x[1]+'</span>'; }
+function litigeKeyHas(x,me){ return (x.keys||[]).some(function(k){return caseSameName(k,me);}); }
+function litigeOpenFor(c,loanId){ return (c.litiges||[]).find(function(x){return x.loanId===loanId&&(x.statut==='propose'||x.statut==='ouvert');}); }
+/* Déclaration (1re clé) — depuis un prêt en défaut ou un manquement autonome. */
+function litigeDeclare(id,member,type,montant,cur,raison,loanId){
+  var c=getC(id); if(!c)return; var me=(state.user||'').trim();
+  if(!me){alert(_FL('Connectez-vous pour déclarer — chaque clé est nominative.','Sign in to file — each key is nominative.'));return;}
+  member=String(member||'').trim(); if(!member){alert(_FL('Indiquez le membre concerné.','Name the member.'));return;}
+  if(caseSameName(me,member)){alert(_FL('On ne déclare pas un litige sur soi-même.','You cannot file a dispute on yourself.'));return;}
+  if(loanId&&litigeOpenFor(c,loanId)){ return; }
+  c.litiges=c.litiges||[];
+  c.litiges.unshift({id:newId('x'),member:member,type:type||'autre',montant:Math.round(Number(montant)||0),cur:cur||c.currency,raison:String(raison||'').trim(),
+    loanId:loanId||null,date_declaree:new Date().toISOString().slice(0,10),keys:[me],statut:'propose'});
+  state.litigeNew=false; cPersist(id); render();
+}
+/* 2e clé → le litige devient "ouvert" (il gèle alors la pyramide du membre). */
+function litigeAddKey(id,xid){
+  var c=getC(id); if(!c)return; var x=(c.litiges||[]).find(function(y){return y.id===xid;}); if(!x||x.statut!=='propose')return;
+  var me=(state.user||'').trim(); if(!me){alert(_FL('Connectez-vous pour valider.','Sign in to confirm.'));return;}
+  if(caseSameName(me,x.member)){alert(_FL('On ne valide pas un litige sur soi-même.','You cannot confirm a dispute on yourself.'));return;}
+  if(litigeKeyHas(x,me)){alert(_FL('Vous avez déjà apporté votre clé — il faut une 2e personne du bureau.','You already gave your key — a 2nd board member is required.'));return;}
+  x.keys.push(me); if(x.keys.length>=2){x.statut='ouvert'; x.opened_at=new Date().toISOString().slice(0,10);} cPersist(id); render();
+}
+function litigeRefuse(id,xid){
+  var c=getC(id); if(!c)return; var x=(c.litiges||[]).find(function(y){return y.id===xid;}); if(!x)return;
+  if(!confirm(_FL('Rejeter cette déclaration de litige ? Un seul refus suffit à l’annuler.','Reject this dispute filing? A single refusal cancels it.')))return;
+  c.litiges=c.litiges.filter(function(y){return y.id!==xid;}); cPersist(id); render();
+}
+function litigeResolve(id,xid){
+  var c=getC(id); if(!c)return; var x=(c.litiges||[]).find(function(y){return y.id===xid;}); if(!x||(x.statut!=='ouvert'&&x.statut!=='propose'))return;
+  if(!confirm(_FL('Marquer ce litige comme réglé ? Il quitte l’affichage courant mais reste inscrit dans l’attestation (la vérité).','Mark this dispute settled? It leaves the daily view but stays in the attestation (the truth).')))return;
+  x.statut='resolu'; x.resolved_at=new Date().toISOString().slice(0,10); x.resolved_by=(state.user||''); cPersist(id); render();
+}
+/* Abandon de créance — 2 clés distinctes (charte §6). */
+function litigeAbandon(id,xid){
+  var c=getC(id); if(!c)return; var x=(c.litiges||[]).find(function(y){return y.id===xid;}); if(!x||x.statut!=='ouvert')return;
+  var me=(state.user||'').trim(); if(!me)return;
+  if(caseSameName(me,x.member)){alert(_FL('On ne vote pas l’abandon de sa propre dette.','You cannot vote to write off your own debt.'));return;}
+  x.abandonKeys=x.abandonKeys||[];
+  if(x.abandonKeys.some(function(k){return caseSameName(k,me);})){alert(_FL('Vous avez déjà voté l’abandon — il faut une 2e clé.','You already voted the write-off — a 2nd key is required.'));return;}
+  x.abandonKeys.push(me);
+  if(x.abandonKeys.length>=2){ x.statut='abandon'; x.resolved_at=new Date().toISOString().slice(0,10); x.resolved_by=x.abandonKeys.join(' + '); }
+  cPersist(id); render();
 }
 function caisseImani(c){
   c.loans=c.loans||[]; var role=state.caisseRole; var bureau=(role==='tresorier'); var cur=c.currency;
@@ -6249,7 +6332,17 @@ function caisseImani(c){
       if(mine) act+=' <span class="msub" style="align-self:center">'+_FL('votre demande — en attente de 2 clés','your request — awaiting 2 keys')+'</span>';
       else if(already) act+=' <span class="msub" style="align-self:center">'+_FL('vous avez validé — une 2e clé est requise','you approved — a 2nd key is required')+'</span>';
     }
-    else if(l.statut==='accorde'||l.statut==='retard') act='<button class="btn btn-ghost btn-sm" onclick="imaniRepay(\''+c.id+'\',\''+l.id+'\')">'+_FL('Enregistrer un remboursement','Record a repayment')+'</button>';
+    else if(l.statut==='accorde'||l.statut==='retard'){
+      act='<button class="btn btn-ghost btn-sm" onclick="imaniRepay(\''+c.id+'\',\''+l.id+'\')">'+_FL('Enregistrer un remboursement','Record a repayment')+'</button>';
+      var _lx=litigeOpenFor(c,l.id);
+      if(!_lx){ act+=' <button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:rgba(138,46,22,.4)" onclick="litigeDeclare(\''+c.id+'\',\''+esc(String(l.member).replace(/\\/g,"\\\\").replace(/'/g,"\\'"))+'\',\'emprunt\','+reste+',\''+cur+'\',\''+_FL('Prêt non remboursé','Loan unrepaid').replace(/'/g,"\\'")+'\',\''+l.id+'\')">'+_FL('Déclarer un litige','File a dispute')+'</button>'; }
+      else if(_lx.statut==='propose'){ var _me2=meU; keyline+='<div class="msub" style="margin-top:4px">'+litigeStatutBadge('propose')+' · '+_FL('déclaré par','filed by')+' '+esc((_lx.keys||[]).join(', '))+'</div>';
+        if(_me2 && !caseSameName(_me2,_lx.member) && !litigeKeyHas(_lx,_me2)) act+=' <button class="btn btn-gold btn-sm" onclick="litigeAddKey(\''+c.id+'\',\''+_lx.id+'\')">'+_FL('Apporter ma 2e clé','Add 2nd key')+'</button>';
+        act+=' <button class="btn btn-ghost btn-sm" onclick="litigeRefuse(\''+c.id+'\',\''+_lx.id+'\')">'+_FL('Rejeter','Reject')+'</button>'; }
+      else if(_lx.statut==='ouvert'){ keyline+='<div class="msub" style="margin-top:4px">'+litigeStatutBadge('ouvert')+' · '+_FL('depuis le','since')+' '+esc(_lx.opened_at||_lx.date_declaree)+'</div>';
+        act+=' <button class="btn btn-ghost btn-sm" onclick="litigeResolve(\''+c.id+'\',\''+_lx.id+'\')">'+_FL('Marquer réglé','Mark settled')+'</button>';
+        act+=' <button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:rgba(138,46,22,.4)" onclick="litigeAbandon(\''+c.id+'\',\''+_lx.id+'\')">'+_FL('Abandon de créance','Write off')+((_lx.abandonKeys&&_lx.abandonKeys.length)?' ('+_lx.abandonKeys.length+'/2)':'')+'</button>'; }
+    }
     return '<div class="panel" style="margin-bottom:8px"><div style="padding:12px 16px">'
       +'<div class="between"><div class="mname">'+esc(l.member)+' '+imaniStatutBadge(l)+'</div><div class="right" style="font-weight:600">'+money(l.montant,cur)+'</div></div>'
       +'<div class="msub" style="margin-top:4px">'+_FL('demandé le','requested')+' '+esc(l.date_demande)+' · '+_FL('en','in')+' '+l.parts+'×'+(l.raison?(' · '+esc(l.raison)):'')+'</div>'
@@ -6258,8 +6351,42 @@ function caisseImani(c){
       +(act?('<div class="row-gap" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+act+'</div>'):'')
       +'</div></div>';
   }).join(''):'<div class="panel"><div class="empty">'+_FL('Aucun prêt pour l’instant.','No loan yet.')+'</div></div>';
+  /* --- Litiges : manquements graves déclarés par le bureau (2 clés). --- */
+  c.litiges=c.litiges||[];
+  var litActifs=c.litiges.filter(function(x){return x.statut==='propose'||x.statut==='ouvert';});
+  var litLignes=c.litiges.map(function(x){
+    var act2='';
+    var me3=meU;
+    if(x.statut==='propose'){ if(me3 && !caseSameName(me3,x.member) && !litigeKeyHas(x,me3)) act2+='<button class="btn btn-gold btn-sm" onclick="litigeAddKey(\''+c.id+'\',\''+x.id+'\')">'+_FL('Apporter ma 2e clé','Add 2nd key')+'</button> ';
+      act2+='<button class="btn btn-ghost btn-sm" onclick="litigeRefuse(\''+c.id+'\',\''+x.id+'\')">'+_FL('Rejeter','Reject')+'</button>'; }
+    else if(x.statut==='ouvert'){ act2+='<button class="btn btn-ghost btn-sm" onclick="litigeResolve(\''+c.id+'\',\''+x.id+'\')">'+_FL('Marquer réglé','Mark settled')+'</button> ';
+      act2+='<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:rgba(138,46,22,.4)" onclick="litigeAbandon(\''+c.id+'\',\''+x.id+'\')">'+_FL('Abandon de créance','Write off')+((x.abandonKeys&&x.abandonKeys.length)?' ('+x.abandonKeys.length+'/2)':'')+'</button>'; }
+    return '<div class="panel" style="margin-bottom:8px"><div style="padding:12px 16px">'
+      +'<div class="between"><div class="mname">'+esc(x.member)+' '+litigeStatutBadge(x.statut)+'</div>'+(x.montant?'<div class="right" style="font-weight:600;color:#8A2E16">'+money(x.montant,x.cur||cur)+'</div>':'')+'</div>'
+      +'<div class="msub" style="margin-top:4px">'+litigeTypeLabel(x.type)+(x.raison?(' · '+esc(x.raison)):'')+' · '+_FL('déclaré le','filed')+' '+esc(x.date_declaree)
+        +(x.statut==='propose'?(' · '+_FL('1 clé — en attente de la 2e','1 key — awaiting 2nd')):'')
+        +((x.statut==='resolu'||x.statut==='abandon')?(' · '+esc(x.resolved_at||'')+(x.resolved_by?(' · '+esc(x.resolved_by)):'')):'')+'</div>'
+      +(act2?('<div class="row-gap" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+act2+'</div>'):'')
+      +'</div></div>';
+  }).join('');
+  var litForm = state.litigeNew ? ('<div class="panel" style="border-left:3px solid #8A2E16"><div class="panel-h"><h3>'+_FL('Déclarer un manquement','File a breach')+'</h3></div><div style="padding:16px 20px">'
+    +'<div class="asnote" style="margin-top:0">'+_FL('Un litige se déclare à <b>2 clés du bureau</b> (1 refus l’annule). Il gèle la progression du membre jusqu’à régularisation et restera, même réglé, dans son attestation — pour rester juste, jamais pour humilier.','A dispute is filed with <b>2 board keys</b> (1 refusal cancels it). It freezes the member’s progression until settled and stays, even once settled, in their attestation — to stay fair, never to humiliate.')+'</div>'
+    +'<div class="field"><label>'+_FL('Membre concerné','Member concerned')+'</label><input id="lx-name" placeholder="'+_FL('Nom du membre','Member name')+'"></div>'
+    +'<div class="row-gap"><div class="field" style="flex:1;min-width:150px"><label>'+_FL('Nature','Nature')+'</label><select id="lx-type"><option value="cotisation">'+_FL('Cotisation non honorée','Unpaid contribution')+'</option><option value="tontine">'+_FL('Défaut sur une tontine','Tontine default')+'</option><option value="emprunt">'+_FL('Emprunt non remboursé','Unrepaid loan')+'</option><option value="autre">'+_FL('Autre engagement','Other commitment')+'</option></select></div>'
+    +'<div class="field" style="flex:1;min-width:130px"><label>'+_FL('Préjudice','Prejudice')+' ('+cur+', '+_FL('facultatif','optional')+')</label><input id="lx-mont" inputmode="decimal" placeholder="0"></div></div>'
+    +'<div class="field"><label>'+_FL('Précision','Detail')+'</label><input id="lx-raison" placeholder="'+_FL('Ex. 3 appels non honorés, aucun contact depuis…','e.g. 3 calls unmet, no contact since…')+'"></div>'
+    +'<div class="row-gap" style="margin-top:8px"><button class="btn btn-gold btn-sm" onclick="litigeDeclareFromForm(\''+c.id+'\')">'+_FL('Déclarer (1re clé)','File (1st key)')+'</button><button class="btn btn-ghost btn-sm" onclick="state.litigeNew=false;render()">'+_FL('Annuler','Cancel')+'</button></div>'
+    +'</div></div>') : '';
+  var litCta='<div class="row-gap" style="margin:14px 0 8px"><button class="btn btn-ghost btn-sm" onclick="state.litigeNew=!state.litigeNew;render()" style="color:#8A2E16;border-color:rgba(138,46,22,.4)">'+(state.litigeNew?_FL('Fermer','Close'):_FL('⚠ Déclarer un manquement','⚠ File a breach'))+'</button></div>';
+  var litPanel='<div style="margin-top:14px"><div class="panel-h" style="padding:0 2px 6px"><h3>'+_FL('Litiges & manquements','Disputes & breaches')+(litActifs.length?(' <span class="pill p-late">'+litActifs.length+'</span>'):'')+'</h3></div>'
+    +litCta+litForm
+    +(c.litiges.length?litLignes:'<div class="panel"><div class="empty">'+_FL('Aucun litige — que ça dure.','No dispute — long may it last.')+'</div></div>')+'</div>';
   return imaniHeadHtml()+'<div class="asnote">'+_FL('Vous gérez les prêts du groupe : sans intérêt, un à la fois, dans la limite prudente. Accorder crée une sortie du fonds ; rembourser, une entrée — le solde reste juste.','You manage the group’s loans: interest-free, one at a time, within the prudent cap. Granting creates a fund outflow; repaying an inflow — the balance stays correct.')+'</div>'
-    +health+charte+cta+form+rows;
+    +health+charte+cta+form+rows+litPanel;
+}
+function litigeDeclareFromForm(id){
+  var g=function(x){var e=document.getElementById(x);return e?e.value:'';};
+  litigeDeclare(id,g('lx-name'),g('lx-type')||'autre',parseFloat(String(g('lx-mont')).replace(',','.'))||0,(getC(id)||{}).currency,g('lx-raison'),null);
 }
 function caisseGenToken(){ return (Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Date.now().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,24); }
 function caisseInvitePanel(c){
@@ -9057,6 +9184,18 @@ function repCircles(){
   state_caisses.forEach(c=>{ if((c.bureau||[]).some(b=>b.name===state.user)||(c.foyers||[]).some(f=>f.name.replace('Foyer ','')===state.user)) names.push(c.name); });
   return names;
 }
+function repIncidentsHtml(){
+  var agg=sifaLitiges(state.user); var lit=agg.all;
+  if(!lit.length) return '<div class="asnote" style="margin-top:14px">'+_FL('Aucun litige au registre — parcours sans incident.','No dispute on record — a clear track.')+'</div>';
+  var rows=lit.slice().sort(function(a,b){return String(b.l.date_declaree||'').localeCompare(String(a.l.date_declaree||''));}).map(function(r){
+    var x=r.l;
+    return '<div class="mrow"><div class="stack"><div class="mname">'+litigeTypeLabel(x.type)+' '+litigeStatutBadge(x.statut)+'</div><div class="msub">'+esc(r.caisse.name||'')+(x.montant?(' · '+money(x.montant,x.cur||'EUR')):'')+' · '+_FL('déclaré le','filed')+' '+esc(x.date_declaree)+((x.statut==='resolu'||x.statut==='abandon')?(' · '+(x.statut==='abandon'?(_FL('abandon de créance le','written off ')+' '):(_FL('réglé le','settled ')+' '))+esc(x.resolved_at||'')):'')+'</div></div></div>';
+  }).join('');
+  return '<h2 class="section-h">'+_FL('Incidents & litiges','Disputes & incidents')+'</h2>'
+    +'<div class="asnote" style="margin-top:0">'+_FL('L’attestation dit toute la vérité : chaque litige y figure, même réglé. Non pour humilier — pour rester juste.','The attestation tells the whole truth: every dispute appears, even settled. Not to humiliate — to stay fair.')+'</div>'
+    +'<div class="panel"><div style="padding:6px 4px">'+rows+'</div></div>'
+    +(agg.open.length?'<div class="asnote" style="color:#8A2E16;margin-top:6px">'+_FL('Un engagement en souffrance gèle aujourd’hui la progression.','An outstanding commitment currently freezes progression.')+'</div>':'');
+}
 function viewReputation(){
   let p=repProfile();
   if(BACKEND==='supabase'&&state.serverStats){
@@ -9089,6 +9228,7 @@ function viewReputation(){
     <div class="asnote">${tr('rp_note').replace('{name}',state.user)}</div>
     <h2 class="section-h">${tr('rp_earned_h')}</h2>
     <div class="panel"><div style="padding:6px 4px">${list}</div></div>
+    ${repIncidentsHtml()}
     <div class="row-gap" style="margin-top:16px">
       <button class="btn btn-gold btn-sm" onclick="downloadReputation()">${icon('dl')}${tr('rp_btn_card')}</button>
     </div>
@@ -9121,7 +9261,8 @@ table{width:100%;border-collapse:collapse;margin:14px 0}.note{font-size:12px;col
 <h1>${esc(state.user)}</h1><div class="lvl">${esc(tr('rp_level'))} · <b>${esc(L.name)}</b></div>
 <div class="stmt">${esc(stmt)}</div>
 <table><tr>${cell(p.cycles,BACKEND==='supabase'?'versements confirm\u00E9s':tr('rp_m_cycles'))}${cell(p.onTime+'%',tr('rp_m_ontime'))}${cell(p.circles,tr('rp_m_circles'))}${p.endorse==null?'':cell(p.endorse,tr('rp_m_endorse'))}</tr></table>
-<div class="note">${tr('rp_note').replace('{name}',esc(state.user))}</div>
+${(function(){var lit=sifaLitiges(state.user).all; if(!lit.length)return '<div class="note" style="margin-top:10px">'+_FL('Aucun litige au registre.','No dispute on record.')+'</div>'; var ln=lit.slice().sort(function(a,b){return String(b.l.date_declaree||'').localeCompare(String(a.l.date_declaree||''));}).map(function(r){var x=r.l; var st=({propose:_FL('d\u00E9clar\u00E9','filed'),ouvert:_FL('en souffrance','outstanding'),resolu:_FL('r\u00E9gl\u00E9','settled'),abandon:_FL('abandon de cr\u00E9ance','written off')})[x.statut]||x.statut; return '<li>'+esc(litigeTypeLabel(x.type))+' \u2014 '+esc(st)+(x.montant?(' ('+esc(money(x.montant,x.cur||'EUR'))+')'):'')+' \u00B7 '+esc(x.date_declaree)+((x.statut==='resolu'||x.statut==='abandon')?(' \u2192 '+esc(x.resolved_at||'')):'')+'</li>';}).join(''); return '<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:#8A2E16;text-transform:uppercase;letter-spacing:.08em">'+_FL('Incidents & litiges','Disputes & incidents')+'</div><ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#5a4428;line-height:1.6">'+ln+'</ul></div>';})()}
+<div class="note" style="margin-top:10px">${tr('rp_note').replace('{name}',esc(state.user))}</div>
 <div class="foot">${esc(tr('at_issued'))} · ${BACKEND==='supabase'?'Donn\u00E9es r\u00E9elles du registre':(esc(tr('rp_since'))+' '+p.since)}</div>
 </div></body></html>`;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'}),el=document.createElement('a');
@@ -11318,7 +11459,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.08';
+const UBORA_BUILD='v10.09';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
