@@ -7130,7 +7130,11 @@ async function caseDeleteNow(id){
     try{ await db.loadCases(); }catch(_e){}
     try{ await repLoadMyCases(); }catch(_e){}
     go('case');
-  }catch(e){ alert(_FL('Suppression refusée : ','Deletion refused: ')+(e.message||e)); }
+  }catch(e){ var m=String((e&&e.message)||e);
+    if(/case_delete_now|does not exist|not found|schema cache|PGRST202|function/i.test(m)){
+      alert(_FL('Suppression indisponible : la fonction serveur n’est pas encore installée. Exécutez « CASE-suppression-directe.sql » dans Supabase (SQL Editor), puis réessayez.','Deletion unavailable: the server function is not installed yet. Run “CASE-suppression-directe.sql” in Supabase (SQL Editor), then retry.'));
+    } else { alert(_FL('Suppression refusée : ','Deletion refused: ')+m); }
+  }
 }
 function delCase(id){ if(!confirm(_FL('Supprimer cette Case ? Cette action est définitive.','Delete this Case? This action is permanent.')))return; const done=()=>{ state_cases=state_cases.filter(x=>x.id!==id); go('case'); }; if(BACKEND==='supabase'){ db.deleteCase(id).then(done).catch(e=>alert(_FL('Suppression échouée : ','Deletion failed: ')+(e.message||e))); } else { done(); } }
 function openCaseMembers(id){ state.activeCase=id; go('casemembers'); }
@@ -7734,11 +7738,16 @@ function caseGlyph(s){s=s||64;return `<svg width="${s}" height="${s}" viewBox="0
   <path d="M42 90 L42 73 Q50 63 58 73 L58 90" fill="#0b1030" stroke="#C9A84C" stroke-width="1.6"/>
 </svg>`;}
 function viewCase(){if(typeof state!=='undefined'&&state.myCases===undefined&&!state.myCasesLoading){repLoadMyCases();}
-  const cards=state_cases.map(c=>`<div class="panel p-card" onclick="openCase('${c.id}')">
+  const cards=state_cases.map(function(c){
+    const canDel=(state.uid&&c._creator&&String(c._creator)===String(state.uid))||(typeof isUboraAdmin==='function'&&isUboraAdmin());
+    const delBtn=canDel?`<button class="btn btn-ghost btn-sm" style="color:#8A2E16;border-color:#B4452855" onclick="event.stopPropagation();caseDeleteNow('${c.id}')">\ud83d\uddd1 ${_FL('Supprimer','Delete')}</button>`:'';
+    return `<div class="panel p-card" onclick="openCase('${c.id}')">
       <div class="panel-h"><h3>${esc(c.name)}</h3><span class="pill p-face">${tr('mct_'+(c.type||'autre'))}</span></div>
       <div style="padding:12px 20px 16px"><div class="t-meta">${esc(c.mission)}</div>
-        <div class="between" style="margin-top:10px"><span class="msub">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</span><span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></div>
-      </div></div>`).join('');
+        <div class="between" style="margin-top:10px"><span class="msub">${[c.city,c.country].filter(Boolean).map(esc).join(' \u00b7 ')||'\u2014'}</span>
+          <span style="display:flex;gap:10px;align-items:center">${delBtn}<span class="gold" style="font-size:13.5px">${tr('mc_open')}</span></span></div>
+      </div></div>`;
+  }).join('');
   app().innerHTML=`
     <div class="eyebrow">${tr('mc_eyebrow')}</div>
     <h1 class="page-title">${tr('mc_title')}</h1>
@@ -11201,7 +11210,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.04';
+const UBORA_BUILD='v10.05';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
