@@ -6144,6 +6144,7 @@ function imaniCharteHtml(){
   return '<ol style="margin:0;padding-left:18px;line-height:1.75">'
    +'<li>'+_FL('IMANI est une caisse d’entraide : l’argent appartient au groupe ; UBORA n’en détient aucun centime.','IMANI is a mutual-aid fund: the money belongs to the group; UBORA holds none of it.')+'</li>'
    +'<li>'+_FL('On emprunte sur la confiance, sans intérêt. Un emprunt à la fois, dans la limite fixée par le bureau.','You borrow on trust, interest-free. One loan at a time, within the limit set by the board.')+'</li>'
+   +'<li>'+_FL('Aucun prêt n’est accordé seul : il faut <b>deux clés du bureau</b> (sur trois — président, trésorier, commissaire), et nul ne valide son propre prêt. Un seul refus suffit à l’arrêter.','No loan is granted alone: it takes <b>two board keys</b> (out of three — president, treasurer, auditor), and no one approves their own loan. A single refusal stops it.')+'</li>'
    +'<li>'+_FL('Chaque mouvement est tracé ; les autres membres voient qu’un prêt existe, pas qui. Le bureau gère nominativement.','Every movement is logged; other members see that a loan exists, not who. The board manages it by name.')+'</li>'
    +'<li>'+_FL('Rembourser, c’est protéger le fonds de tous — et construire votre SIFA.','Repaying protects everyone’s fund — and builds your SIFA.')+'</li>'
    +'<li>'+_FL('Le solde du fonds est vérifié en continu ; tout écart alerte tout le monde.','The fund balance is checked continuously; any gap alerts everyone.')+'</li>'
@@ -6167,20 +6168,32 @@ function imaniSubmit(id){
     statut:'demande', date_demande:new Date().toISOString().slice(0,10), charte_ack:true, repayments:[], by:(state.user||'') });
   state.imaniNew=false; cPersist(id); render();
 }
+/* v1.1 — double validation « 3 clés » : deux membres du bureau DISTINCTS doivent valider,
+   chacun signé par son compte connecté ; on ne valide pas son propre prêt ; 1 refus suffit. */
+function imaniApprovals(l){ return (l&&l.approvals)||[]; }
+function imaniApprovedBy(l,name){ return imaniApprovals(l).some(function(a){return caseSameName(a.by,name);}); }
+function imaniNeedKeys(){ return 2; } /* 2 clés sur 3 (président · trésorier · commissaire) */
 function imaniApprove(id,lid){
   var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l||l.statut!=='demande')return;
-  var plaf=imaniPlafond(c);
-  if(l.montant>caisseSolde(c)){ alert(_FL('Le fonds ne couvre pas ce montant.','The fund does not cover this amount.')); return; }
-  if(l.montant>plaf && !confirm(_FL('Ce montant dépasse le plafond prudent ('+money(plaf,c.currency)+'). Le bureau peut l’accorder quand même. Continuer ?','This exceeds the prudent cap ('+money(plaf,c.currency)+'). The board may still grant it. Continue?'))) return;
-  l.statut='accorde'; l.approved_by=(state.user||''); l.approved_at=new Date().toISOString().slice(0,10);
-  c.mouvements=c.mouvements||[];
-  c.mouvements.unshift({id:newId('m'), date:l.approved_at, sens:'out', libelle:_FL('Prêt IMANI','IMANI loan'), who:'', montant:l.montant, by:(state.user||''), imani:l.id});
+  var me=(state.user||'').trim();
+  if(!me){ alert(_FL('Connectez-vous avec votre compte pour valider — chaque clé est nominative.','Sign in with your account to approve — each key is nominative.')); return; }
+  if(caseSameName(me,l.member)){ alert(_FL('On ne valide pas son propre prêt : c’est le principe des 3 clés.','You cannot approve your own loan: that’s the three-keys principle.')); return; }
+  if(imaniApprovedBy(l,me)){ alert(_FL('Vous avez déjà apporté votre clé — il faut une 2e personne du bureau.','You already gave your key — a second board member is required.')); return; }
+  l.approvals=l.approvals||[]; l.approvals.push({by:me, at:new Date().toISOString().slice(0,10)});
+  if(l.approvals.length>=imaniNeedKeys()){
+    var plaf=imaniPlafond(c);
+    if(l.montant>caisseSolde(c)){ alert(_FL('Le fonds ne couvre pas ce montant — prêt non accordé. La 2e clé est annulée.','The fund does not cover this amount — loan not granted. The 2nd key is cancelled.')); l.approvals.pop(); cPersist(id); render(); return; }
+    if(l.montant>plaf && !confirm(_FL('Ce montant dépasse le plafond prudent ('+money(plaf,c.currency)+'). Les deux clés l’accordent quand même ?','This exceeds the prudent cap ('+money(plaf,c.currency)+'). Both keys grant it anyway?'))){ l.approvals.pop(); cPersist(id); render(); return; }
+    l.statut='accorde'; l.approved_by=l.approvals.map(function(a){return a.by;}).join(' + '); l.approved_at=new Date().toISOString().slice(0,10);
+    c.mouvements=c.mouvements||[];
+    c.mouvements.unshift({id:newId('m'), date:l.approved_at, sens:'out', libelle:_FL('Prêt IMANI','IMANI loan'), who:'', montant:l.montant, by:me, imani:l.id});
+  }
   cPersist(id); render();
 }
 function imaniRefuse(id,lid){
   var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l)return;
-  if(!confirm(_FL('Refuser cette demande ?','Decline this request?')))return;
-  l.statut='refuse'; l.approved_by=(state.user||''); l.approved_at=new Date().toISOString().slice(0,10); cPersist(id); render();
+  if(!confirm(_FL('Refuser cette demande ? Un seul refus suffit à l’arrêter.','Decline this request? A single refusal stops it.')))return;
+  l.statut='refuse'; l.refused_by=(state.user||''); l.approved_at=new Date().toISOString().slice(0,10); cPersist(id); render();
 }
 function imaniRepay(id,lid){
   var c=getC(id); if(!c)return; var l=imaniLoans(c).find(function(x){return x.id===lid;}); if(!l)return;
@@ -6206,7 +6219,7 @@ function caisseImani(c){
     +'</div>';
   var charte='<details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#8a6a24">'+_FL('La charte IMANI','The IMANI charter')+'</summary><div style="margin-top:8px">'+imaniCharteHtml()+'</div></details>';
   var form = state.imaniNew ? ('<div class="panel"><div class="panel-h"><h3>'+_FL('Demander un prêt','Request a loan')+'</h3></div><div style="padding:16px 20px">'
-    +'<div class="field" style="margin-top:0"><label>'+_FL('Membre emprunteur','Borrowing member')+'</label><input id="im-name" value="'+esc(state.user||'')+'"></div>'
+    +'<div class="field" style="margin-top:0"><label>'+_FL('Membre emprunteur','Borrowing member')+'</label><input id="im-name" value="'+esc(state.user||'')+'"'+(bureau?'':' readonly')+'>'+(bureau?'':'<div class="msub" style="margin-top:3px">'+_FL('Vous demandez pour vous-même.','You are requesting for yourself.')+'</div>')+'</div>'
     +'<div class="row-gap"><div class="field" style="flex:1;min-width:140px"><label>'+_FL('Montant','Amount')+' ('+cur+')</label><input id="im-mont" inputmode="decimal" placeholder="0"></div>'
     +'<div class="field" style="flex:1;min-width:140px"><label>'+_FL('Remboursement en','Repay in')+'</label><select id="im-parts"><option value="1">1 '+_FL('fois','time')+'</option><option value="2">2 '+_FL('fois','times')+'</option><option value="3">3 '+_FL('fois','times')+'</option></select></div></div>'
     +'<div class="field"><label>'+_FL('Motif (facultatif)','Reason (optional)')+'</label><input id="im-raison" placeholder="'+_FL('Ex. frais de santé, rentrée scolaire…','e.g. medical costs, school start…')+'"></div>'
@@ -6216,19 +6229,33 @@ function caisseImani(c){
     +'</div></div>') : '';
   var cta='<div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-gold btn-sm" onclick="imaniStart(\''+c.id+'\')">'+(state.imaniNew?_FL('Fermer','Close'):_FL('+ Demander un prêt','+ Request a loan'))+'</button></div>';
   if(!bureau){
+    var pend=c.loans.filter(function(l){return l.statut==='demande';}).length;
+    var pendLine=pend?('<div class="asnote" style="margin:6px 0">'+(pend===1?_FL('1 demande en attente des 2 clés du bureau.','1 request awaiting the board’s 2 keys.'):_FL(pend+' demandes en attente des 2 clés du bureau.',pend+' requests awaiting the board’s 2 keys.'))+'</div>'):'';
     return imaniHeadHtml()+'<div class="asnote">'+_FL('L’entraide par le prêt : le groupe se prête à lui-même, sans intérêt. UBORA tient le registre — il ne détient aucun fonds.','Mutual aid through lending: the group lends to itself, interest-free. UBORA keeps the registry — it holds no funds.')+'</div>'
-      +health+charte+cta+form
-      +'<div class="panel"><div style="padding:14px 18px" class="msub">'+_FL('Par respect de chacun, le détail nominatif des prêts n’est visible que par le bureau. Vous voyez ici la santé d’ensemble.','Out of respect for everyone, itemised loans are visible only to the board. You see the overall health here.')+'</div></div>';
+      +health+pendLine+charte+cta+form
+      +'<div class="panel"><div style="padding:14px 18px" class="msub">'+_FL('Par respect de chacun, le détail nominatif des prêts n’est visible que par le bureau. Chaque prêt exige deux clés du bureau — vous voyez ici la santé d’ensemble.','Out of respect for everyone, itemised loans are visible only to the board. Each loan requires two board keys — you see the overall health here.')+'</div></div>';
   }
+  var meU=(state.user||'').trim();
   var rows=c.loans.length?c.loans.map(function(l){
-    var rp=imaniRepaid(l), reste=Math.max(0,l.montant-rp), act='';
-    if(l.statut==='demande') act='<button class="btn btn-gold btn-sm" onclick="imaniApprove(\''+c.id+'\',\''+l.id+'\')">'+_FL('Accorder','Grant')+'</button> <button class="btn btn-ghost btn-sm" onclick="imaniRefuse(\''+c.id+'\',\''+l.id+'\')">'+_FL('Refuser','Decline')+'</button>';
+    var rp=imaniRepaid(l), reste=Math.max(0,l.montant-rp), act='', keyline='';
+    if(l.statut==='demande'){
+      var nk=imaniApprovals(l).length, need=imaniNeedKeys();
+      var mine=caseSameName(meU,l.member), already=imaniApprovedBy(l,meU);
+      keyline='<div class="msub" style="margin-top:4px"><span class="pill p-due">'+nk+'/'+need+' '+_FL('clé(s) du bureau','board key(s)')+'</span>'
+        +(nk?(' · '+_FL('validé par','approved by')+' '+imaniApprovals(l).map(function(a){return esc(a.by);}).join(', ')):'')+'</div>';
+      var canApprove=meU && !mine && !already;
+      if(canApprove) act+='<button class="btn btn-gold btn-sm" onclick="imaniApprove(\''+c.id+'\',\''+l.id+'\')">'+(nk>=need-1?_FL('Apporter ma clé — accorder','Add my key — grant'):_FL('Apporter ma clé','Add my key'))+'</button>';
+      act+=' <button class="btn btn-ghost btn-sm" onclick="imaniRefuse(\''+c.id+'\',\''+l.id+'\')">'+_FL('Refuser','Decline')+'</button>';
+      if(mine) act+=' <span class="msub" style="align-self:center">'+_FL('votre demande — en attente de 2 clés','your request — awaiting 2 keys')+'</span>';
+      else if(already) act+=' <span class="msub" style="align-self:center">'+_FL('vous avez validé — une 2e clé est requise','you approved — a 2nd key is required')+'</span>';
+    }
     else if(l.statut==='accorde'||l.statut==='retard') act='<button class="btn btn-ghost btn-sm" onclick="imaniRepay(\''+c.id+'\',\''+l.id+'\')">'+_FL('Enregistrer un remboursement','Record a repayment')+'</button>';
     return '<div class="panel" style="margin-bottom:8px"><div style="padding:12px 16px">'
       +'<div class="between"><div class="mname">'+esc(l.member)+' '+imaniStatutBadge(l)+'</div><div class="right" style="font-weight:600">'+money(l.montant,cur)+'</div></div>'
       +'<div class="msub" style="margin-top:4px">'+_FL('demandé le','requested')+' '+esc(l.date_demande)+' · '+_FL('en','in')+' '+l.parts+'×'+(l.raison?(' · '+esc(l.raison)):'')+'</div>'
-      +((l.statut==='accorde'||l.statut==='retard'||l.statut==='rembourse')?('<div class="msub" style="margin-top:4px">'+_FL('remboursé','repaid')+' '+money(rp,cur)+' · '+_FL('reste','left')+' '+money(reste,cur)+'</div>'):'')
-      +(act?('<div class="row-gap" style="margin-top:8px">'+act+'</div>'):'')
+      +keyline
+      +((l.statut==='accorde'||l.statut==='retard'||l.statut==='rembourse')?('<div class="msub" style="margin-top:4px">'+_FL('remboursé','repaid')+' '+money(rp,cur)+' · '+_FL('reste','left')+' '+money(reste,cur)+(l.approved_by?(' · '+_FL('accordé par','granted by')+' '+esc(l.approved_by)):'')+'</div>'):'')
+      +(act?('<div class="row-gap" style="margin-top:8px;flex-wrap:wrap;gap:8px">'+act+'</div>'):'')
       +'</div></div>';
   }).join(''):'<div class="panel"><div class="empty">'+_FL('Aucun prêt pour l’instant.','No loan yet.')+'</div></div>';
   return imaniHeadHtml()+'<div class="asnote">'+_FL('Vous gérez les prêts du groupe : sans intérêt, un à la fois, dans la limite prudente. Accorder crée une sortie du fonds ; rembourser, une entrée — le solde reste juste.','You manage the group’s loans: interest-free, one at a time, within the prudent cap. Granting creates a fund outflow; repaying an inflow — the balance stays correct.')+'</div>'
@@ -11291,7 +11318,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.07';
+const UBORA_BUILD='v10.08';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
