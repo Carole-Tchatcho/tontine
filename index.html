@@ -4104,9 +4104,10 @@ function viewGroupLife(){
       const aid=(m.aides||[]).map(function(x){return `<div class="mrow"><div class="stack"><div class="mname">${esc(x.detail||'')}</div><div class="msub">${esc(x.sheet||'')}</div></div></div>`;});
       const any=cot.length||emp.length||ton.length||aid.length;
       const inner=any?(sub(_FL('Cotisations','Contributions'),cot)+sub(_FL('Emprunts','Loans'),emp)+sub(_FL('Tontines (historique)','Tontines (history)'),ton)+sub(_FL('Aides / ayants droit','Aid / beneficiaries'),aid)):`<div class="msub" style="padding:4px 0">${_FL('Aucun historique à son nom.','No history in their name.')}</div>`;
-      return `<details class="panel" style="margin-top:10px"><summary style="cursor:pointer;padding:13px 16px;list-style:none"><span class="mname">${esc(m.member)}</span> ${m.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''} ${m.joined?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}</summary><div style="padding:0 16px 14px">${inner}</div></details>`;
+      const openBtn=`<button class="btn btn-gold btn-sm" style="float:right;margin-top:-2px" onclick="event.stopPropagation();event.preventDefault();groupLifeOpenMember('${esc(String(m.member).replace(/'/g,"\\'"))}')">${_FL('Ouvrir sa fiche','Open record')} →</button>`;
+      return `<details class="panel" style="margin-top:10px"><summary style="cursor:pointer;padding:13px 16px;list-style:none"><span class="mname">${esc(m.member)}</span> ${m.bureau?`<span class="pill p-done">${_FL('bureau','board')}</span>`:''} ${m.joined?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${openBtn}</summary><div style="padding:0 16px 14px">${inner}</div></details>`;
     }).join('');
-    body=`<div class="hint" style="margin-bottom:10px">${_FL('Vous voyez le groupe entier — un tiroir par membre. Réservé au bureau en cours ; l’ancien bureau perd cet accès.','You see the whole group — one drawer per member. Reserved for the current board; the former board loses this access.')}</div>${drawers||`<div class="panel"><div class="empty">${_FL('Aucun membre.','No members.')}</div></div>`}`;
+    body=`<div class="hint" style="margin-bottom:10px">${_FL('Vous voyez le groupe entier — un tiroir par membre. Dépliez pour l’historique repris, ou <b>ouvrez sa fiche</b> pour sa vie complète (solde, prêts IMANI, lien SIFA). Réservé au bureau en cours ; l’ancien bureau perd cet accès.','You see the whole group — one drawer per member. Expand for imported history, or <b>open the record</b> for their full life (balance, IMANI loans, SIFA link). Reserved for the current board; the former board loses this access.')}</div>${drawers||`<div class="panel"><div class="empty">${_FL('Aucun membre.','No members.')}</div></div>`}`;
   }
   app().innerHTML=back+`
     <div class="eyebrow">${_FL('Vue groupe','Group view')}</div>
@@ -4121,6 +4122,16 @@ function viewGroupLife(){
    ============================================================================ */
 function openGroupHome(id){ state.activeCase=id; go('groupehome'); }
 function openMemberHome(id,mid){ state.activeCase=id; state.releveMid=mid; go('memberhome'); }
+function openCaisseImani(id){ state.activeCaisse=id; state.caisseNew=false; state.caisseTab='imani'; go('caisse'); }
+/* Tiroir → fiche : relie un membre vu côté serveur (par son nom) à sa fiche locale. */
+function groupLifeOpenMember(name){
+  var cid=(state.groupLife&&state.groupLife.caseId)||null; if(!cid){ return; }
+  var c=state_cases.find(function(x){return x.id===cid;}); if(!c){ return; }
+  caseEnsureMemberIds(c);
+  var m=(c.members||[]).find(function(x){return caseSameName(x.name,name);});
+  if(m){ openMemberHome(cid,m.id); }
+  else { try{ toast(_FL('Fiche à relier — ce membre n’est pas encore dans l’annuaire de la Case.','Record to link — this member isn’t in the Case directory yet.')); }catch(e){} }
+}
 function ghStyle(){ return `<style>
   .gh-table{position:relative;width:300px;max-width:100%;height:300px;margin:10px auto 2px}
   .gh-core{position:absolute;inset:78px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#2a2f52,#161B3D);border:1px solid rgba(201,168,76,.45);display:flex;align-items:center;justify-content:center;color:#C9A84C;box-shadow:0 10px 30px rgba(20,15,5,.25)}
@@ -4197,22 +4208,48 @@ function viewMemberHome(){
   const cur=(c.cotis&&c.cotis[0]&&c.cotis[0].cur)||(c.cagnotte&&c.cagnotte.cur)||'EUR';
   const co=caseCotiseOf(c,m), de=caseEngageOf(c,m), so=co-de; var neg=so<0;
   const cl=caseCotisList(c,m), el=caseEngageList(c,m);
+  const myRow=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
+  const mine=!!(myRow&&caseSameName(myRow.member,m.name));
+  const isBu=/bureau|pr[eé]sident|tr[eé]sori|secr[eé]tair|commissaire/i.test(String(m.role||''));
+  const esq=function(s){return esc(String(s||'').replace(/'/g,"\\'"));};
   var items=[];
   cl.forEach(function(x){ items.push({label:_FL('Cotisation','Due')+(x.note?(' — '+esc(x.note)):''), amt:Number(x.amount)||0, cur:x.cur, pos:true}); });
   el.forEach(function(x){ items.push({label:esc(x.label)+' ('+(x.kind==='projet'?_FL('projet','project'):_FL('événement','event'))+')', amt:Number(x.amount)||0, cur:x.cur, pos:false}); });
   var tl=items.length?items.map(function(it){return '<div class="gh-tl-item"><div class="gh-tl-dot" style="background:'+(it.pos?'#C9A84C':'#8A2E16')+';box-shadow:0 0 0 3px '+(it.pos?'rgba(201,168,76,.16)':'rgba(138,46,22,.14)')+'"></div><div class="gh-tl-body"><div class="gh-tl-label">'+it.label+'</div><div class="msub">'+(it.pos?'+ ':'− ')+money(it.amt,it.cur||cur)+'</div></div></div>';}).join(''):('<div class="msub">'+_FL('Son histoire commencera avec sa première cotisation.','Their story starts with their first due.')+'</div>');
+  /* IMANI — prêts solidaires du membre dans les caisses du groupe (données déjà réservées au bureau). */
+  var _caisses=(typeof state_caisses!=='undefined'?state_caisses:[]).filter(function(x){return x&&x.caseId===c.id;});
+  var _loans=[]; _caisses.forEach(function(ca){ (ca.loans||[]).forEach(function(l){ if(caseSameName(l.member,m.name)) _loans.push({l:l,ca:ca}); }); });
+  var imaniHtml='';
+  if(_loans.length){
+    var _rows=_loans.map(function(o){ var badge=(typeof imaniStatutBadge==='function')?imaniStatutBadge(o.l.statut):esc(o.l.statut||''); return '<div class="mrow"><div class="stack"><div class="mname">'+money(Number(o.l.montant)||0,o.l.cur||cur)+' <span class="faint">'+esc(o.ca.name||'')+'</span></div><div class="msub">'+(o.l.raison?esc(o.l.raison)+' · ':'')+badge+'</div></div><div><button class="btn btn-ghost btn-sm" onclick="openCaisseImani(\''+o.ca.id+'\')">'+_FL('Voir','Open')+'</button></div></div>'; }).join('');
+    imaniHtml='<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>'+((typeof imaniHeadHtml==='function')?imaniHeadHtml():'IMANI')+'</h3></div><div style="padding:8px 16px 12px">'+_rows+'</div></div>';
+  }
+  /* Au-delà du groupe — le pont vers tout le site (SIFA portable). */
+  var crossInner = mine
+    ? '<div class="msub">'+_FL('Votre participation ici nourrit votre réputation <b class="foilg">SIFA</b> — le même signal vous suit sur toute la plateforme : tontines, entraide, événements.','Your participation here feeds your <b class="foilg">SIFA</b> reputation — the same signal follows you across the whole platform: tontines, mutual aid, events.')+'</div>'
+      +'<div class="row-gap" style="margin-top:10px;flex-wrap:wrap;gap:8px">'
+      +'<button class="btn btn-gold btn-sm" onclick="go(\'pyramide\')">'+_FL('Mon parcours · SIFA','My path · SIFA')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" onclick="go(\'reputation\')">'+_FL('Mon attestation','My attestation')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" onclick="go(\'home\')">'+_FL('Mes tontines','My tontines')+'</button>'
+      +(myRow?'<button class="btn btn-ghost btn-sm" onclick="repOpenMyLife(\''+c.id+'\',\''+esq(c.name)+'\',\''+esq(m.name)+'\')">'+_FL('Ma vue reprise','My imported view')+'</button>':'')
+      +'</div>'
+    : '<div class="msub">'+_FL('La participation d’un membre relié à son compte nourrit sa réputation <b class="foilg">SIFA</b>, portable sur tout UBORA. Le détail de son parcours sur le reste du site lui appartient — il reste privé.','A member’s participation, once their account is linked, feeds their portable <b class="foilg">SIFA</b> reputation across UBORA. The detail of their journey elsewhere belongs to them — it stays private.')+'</div>'
+      + (isBu?'':'<div class="hint" style="margin-top:8px">'+_FL('Invitez ce membre à relier son compte (annuaire → fiche reliée) pour que sa présence ici compte dans sa réputation.','Invite this member to link their account (directory → linked record) so their presence here counts toward their reputation.')+'</div>');
+  var crossHtml='<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>'+_FL('Au-delà du groupe','Beyond the group')+'</h3></div><div style="padding:12px 16px">'+crossInner+'</div></div>';
   app().innerHTML=ghStyle()+`
     <button class="backlink" onclick="openGroupHome('${c.id}')">‹ ${_FL('Vie du groupe','Group life')}</button>
-    <div class="eyebrow">${_FL('mon histoire','my story')} · ${esc(c.name)}</div>
-    <h1 class="page-title">${esc(m.name)}</h1>
-    <p class="lead">${m.role?esc(m.role)+' · ':''}${_FL('Votre place et votre histoire dans le groupe.','Your place and your story in the group.')}</p>
+    <div class="eyebrow">${mine?_FL('mon histoire','my story'):_FL('sa fiche','their record')} · ${esc(c.name)}</div>
+    <h1 class="page-title">${esc(m.name)} ${isBu?`<span class="pill p-done" style="vertical-align:middle">${_FL('bureau','board')}</span>`:''}</h1>
+    <p class="lead">${m.role?esc(m.role)+' · ':''}${mine?_FL('Votre place et votre histoire dans le groupe.','Your place and your story in the group.'):_FL('Sa place et son histoire dans le groupe.','Their place and story in the group.')}</p>
     <div class="panel"><div style="padding:18px 22px"><div class="between" style="flex-wrap:wrap;gap:20px;align-items:flex-end">
       <div><div class="msub">${_FL('Cotisé','Contributed')}</div><div style="font-size:19px;font-weight:600">${money(co,cur)}</div></div>
       <div><div class="msub">${_FL('Engagé','Committed')}</div><div style="font-size:19px;font-weight:600">${money(de,cur)}</div></div>
       <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde','Balance')}</div><div style="font-size:28px;font-weight:600;color:${neg?'#8A2E16':'#8A6A24'}">${money(so,cur)}</div></div>
     </div>${neg?`<div class="asnote" style="margin-top:8px;color:#8A2E16">${_FL('Solde négatif — à régulariser.','Negative balance — to settle.')}</div>`:''}</div></div>
     <div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-ghost btn-sm" onclick="openCaseReleve('${c.id}','${m.id}')">${_FL('Relevé imprimable','Printable statement')}</button></div>
-    <div class="panel"><div class="panel-h"><h3>${_FL('Mon fil','My thread')}</h3></div><div style="padding:10px 18px 14px">${tl}</div></div>
+    <div class="panel"><div class="panel-h"><h3>${_FL('Son fil dans le groupe','Their thread in the group')}</h3></div><div style="padding:10px 18px 14px">${tl}</div></div>
+    ${imaniHtml}
+    ${crossHtml}
     ${footer()}`;
 }
 function openGroupHub(id,name){ state.activeCase=id; state.groupHubName=name||''; go('grouphub'); }
@@ -11210,7 +11247,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.05';
+const UBORA_BUILD='v10.06';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
