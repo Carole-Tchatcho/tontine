@@ -478,25 +478,24 @@ html,body{margin:0;background:#EBDCC4}
   .ls-summit{transition:filter .3s, opacity .3s, transform .2s}
   .level-strip:hover .ls-summit{filter:none!important;opacity:1!important;transform:scale(1.06)}
   .caisse-card{border-left:3px solid var(--core)}
-  /* ——— Vitrine : frontispice clair & aéré (luxe sobre : la lettre et l'espace, jamais un bloc) ——— */
-  .home-hero{position:relative;padding:36px 2px 8px;margin:2px 0 2px}
-  .hh-in{position:relative;max-width:42ch}
-  .hh-brand{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:16px}
+  /* ——— Vitrine : frontispice CENTRÉ (page de titre du registre : symétrique, plein cadre) ——— */
+  .home-hero{position:relative;text-align:center;padding:40px 20px 14px;margin:0 0 2px}
+  .hh-in{position:relative;max-width:760px;margin:0 auto}
+  .hh-crest{display:flex;justify-content:center;margin-bottom:14px;opacity:.92}
+  .hh-brand{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:16px}
   .hh-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
-    font-size:clamp(34px,5.4vw,54px);line-height:1.0;letter-spacing:.004em;color:var(--ink);margin:0}
-  .hh-rule{width:70px;height:2px;margin:22px 0 0;border-radius:2px;
-    background:linear-gradient(90deg,var(--gold-bright),rgba(201,168,76,0))}
-  .hh-sub{color:var(--mid);font-size:16px;line-height:1.68;margin:17px 0 0;max-width:50ch}
-  .hh-seal{display:inline-flex;align-items:center;gap:7px;margin-top:15px;font-size:12.5px;color:var(--gold);letter-spacing:.01em}
-  .hh-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
-  .hh-btn{border-radius:12px;padding:13px 22px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.18s}
+    font-size:clamp(34px,4.6vw,50px);line-height:1.06;letter-spacing:.004em;color:var(--ink);margin:0;max-width:18ch;margin-left:auto;margin-right:auto}
+  .hh-rule{width:66px;height:2px;margin:20px auto 0;border-radius:2px;
+    background:linear-gradient(90deg,rgba(201,168,76,0),var(--gold-bright),rgba(201,168,76,0))}
+  .hh-sub{color:var(--mid);font-size:16px;line-height:1.65;margin:16px auto 0;max-width:54ch}
+  .hh-seal{display:flex;justify-content:center;margin-top:16px}
+  .hh-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;justify-content:center}
+  .hh-btn{border-radius:12px;padding:13px 24px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.18s}
   .hh-btn-gold{background:linear-gradient(180deg,#E7CE88,#C9A84C);color:#2A2018;box-shadow:0 5px 16px rgba(201,168,76,.22)}
   .hh-btn-gold:hover{filter:brightness(1.04);transform:translateY(-1px)}
   .hh-btn-ghost{background:transparent;color:var(--gold);border-color:var(--line-strong)}
   .hh-btn-ghost:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
-  .hh-feu{position:absolute;right:8px;top:42px;opacity:.4}
-  @media(max-width:760px){ .hh-feu{display:none} .hh-in{max-width:none} }
-  .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;justify-content:center}
   /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
   .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
   @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
@@ -4857,8 +4856,8 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
   var _showLevel = !(state.uid && _homeEmpty);
   app().innerHTML=`
     <div class="home-hero">
-      <div class="hh-feu">${feuSVG(58)}</div>
       <div class="hh-in">
+        <div class="hh-crest">${feuSVG(46)}</div>
         <div class="hh-brand">${_FL('Le registre de confiance','The trust ledger')}</div>
         <h1 class="hh-title">${_FL('La mémoire fiable de vos tontines.','The reliable memory of your tontines.')}</h1>
         <div class="hh-rule"></div>
@@ -11570,7 +11569,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.14';
+const UBORA_BUILD='v10.16';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
