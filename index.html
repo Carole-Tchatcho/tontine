@@ -2374,14 +2374,16 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
     if(v==='fedadmin'){ await db.fedLoadOne(state.activeFedId); state_fed_stats=null;
       if((state_fed.bureau||[]).some(b=>b.fed_id===state.activeFedId)){ try{ state_fed_stats=await db.fedStats(state.activeFedId); }catch(e){ state_fed_stats=null; } } }
   }catch(e){console.warn(e);}}
-  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'||v==='accueil')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
+  if(BACKEND==='supabase'&&(v==='home'||v==='pyramide'||v==='accueil'||v==='reputation'||v==='cercle')){await db.loadList();try{await db.loadCaisses();await db.loadReunions();}catch(e){console.warn(e);}}
   if(BACKEND==='supabase'&&v==='recolte'&&isUboraAdmin()){
     try{const[a,b]=await Promise.all([sb.rpc('recolte_stats'),sb.rpc('recolte_export')]);
       window._rec={stats:(a&&a.data)||{},rows:(b&&b.data)||[],err:(a&&a.error&&a.error.message)||(b&&b.error&&b.error.message)||''};
     }catch(e){window._rec={stats:{},rows:[],err:String(e.message||e)};}}
   if(BACKEND==='supabase'&&v==='founder'&&isUboraAdmin()){
     try{const a=await sb.rpc('founder_stats'); window._founder={stats:(a&&a.data)||{},err:(a&&a.error&&a.error.message)||''};}
-    catch(e){window._founder={stats:{},err:String(e.message||e)};}}
+    catch(e){window._founder={stats:{},err:String(e.message||e)};}
+    try{const b=await sb.rpc('founder_integrity'); window._founderInt={stats:(b&&b.data)||{},err:(b&&b.error&&b.error.message)||''};}
+    catch(e){window._founderInt={stats:{},err:String(e.message||e)};}}
   if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}
     try{const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body','edition0_html']);
       const _g=k=>(((_s||[]).find(x=>x.key===k)||{}).value)||'';
@@ -4016,6 +4018,22 @@ async function repLoadMyCases(){
   try{const res=await sb.rpc('my_member_cases');state.myCases=(res&&!res.error&&Array.isArray(res.data))?res.data:[];}
   catch(e){state.myCases=[];}
   state.myCasesLoading=false;render();
+}
+/* CONNECTER TOUS LES OUTILS — après connexion, charge toutes les sources en parallèle
+   (tontines, caisses, cases, événements, réunions, mes fiches membres) pour que chaque
+   outil voie les autres : SIFA PARTOUT (régularité/litiges/prêts), fiches membres,
+   et le futur tableau de bord fondatrice. Non bloquant : ne ralentit pas le 1er affichage. */
+let _coreLoaded=false;
+async function loadAllCore(force){
+  if(BACKEND!=='supabase')return; if(_coreLoaded&&!force)return; _coreLoaded=true;
+  var J=[];
+  if(db.loadCaisses) J.push(Promise.resolve(db.loadCaisses()).catch(function(){}));
+  if(db.loadCases)   J.push(Promise.resolve(db.loadCases()).catch(function(){}));
+  if(db.loadEvents)  J.push(Promise.resolve(db.loadEvents()).catch(function(){}));
+  if(db.loadReunions)J.push(Promise.resolve(db.loadReunions()).catch(function(){}));
+  if(typeof repLoadMyCases==='function') J.push(Promise.resolve(repLoadMyCases()).catch(function(){}));
+  try{ await Promise.all(J); }catch(e){}
+  try{ render(); }catch(e){}
 }
 function repFixLink(caseId){
   var member=''; if(state.myCases){var r=state.myCases.find(function(x){return x&&x.case_id===caseId;}); member=(r&&r.member)||'';}
@@ -11073,6 +11091,7 @@ function founderSoon(label,hint){
 function viewFounder(){
   if(!isUboraAdmin()) return '<h1 class="page-title">Pilotage</h1><div class="asnote">Réservé à l’équipe UBORA.</div>'+footer();
   var f=(window._founder&&window._founder.stats)||{}; var err=(window._founder&&window._founder.err)||'';
+  var fi=(window._founderInt&&window._founderInt.stats)||{}; var fierr=(window._founderInt&&window._founderInt.err)||'';
   var num=function(x){return (x===0||x)?x:'—';};
   var cercles=(f.tontines||0)+(f.caisses||0)+(f.reunions||0)+(f.associations||0)+(f.federations||0);
   var types=[['Tontines',f.tontines],['Caisses',f.caisses],['Réunions',f.reunions],['Associations',f.associations],['Fédérations',f.federations],['Partages',f.partages],['Couples',f.couples]].filter(function(x){return x[1]===0||x[1];}).sort(function(a,b){return (b[1]||0)-(a[1]||0);});
@@ -11459,7 +11478,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.09';
+const UBORA_BUILD='v10.10';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -12313,6 +12332,7 @@ async function boot(){
     await cgvCheck();          /* la barrière ne s'ouvre qu'après cette réponse */
     sendWelcomeIfNew();
     state.view='accueil'; render(); showBackendBadge();
+    try{ loadAllCore(); }catch(e){}   /* connecte tous les outils en arrière-plan */
   }catch(e){
     /* repli démo si l'init échoue — mais on le DIT, au lieu de basculer en silence */
     BACKEND='memory';
