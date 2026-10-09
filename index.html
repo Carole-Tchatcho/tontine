@@ -521,6 +521,13 @@ html,body{margin:0;background:#EBDCC4}
   .deck-tab.on,.deck-tab:hover{color:var(--gold);border-color:var(--gold)}
   @media(prefers-reduced-motion:reduce){.deck-card{animation:none}.deck-card:nth-child(1){opacity:1;pointer-events:auto;transform:none}}
   @media(max-width:860px){ .home-hero{grid-template-columns:1fr;gap:24px} .hero-deck{height:200px;max-width:380px} }
+  /* ——— Page « Créer » : sélecteur compact (l'utilisateur a déjà choisi, il peut changer) ——— */
+  .create-switch{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 8px}
+  .cs-lbl{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-right:4px}
+  .cs-pill{cursor:pointer;font-size:13px;font-weight:600;color:var(--mid);padding:8px 15px;border:1px solid var(--line);border-radius:999px;background:transparent;transition:.15s}
+  .cs-pill:hover{border-color:var(--gold);color:var(--gold)}
+  .cs-pill.on{background:linear-gradient(180deg,#F5E6C0,#E7CE88);color:#2A2018;border-color:transparent;cursor:default}
+  .cs-hint{font-size:12.5px;color:var(--mid);margin:0 0 16px;font-style:italic}
   /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
   .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
   @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
@@ -4969,28 +4976,13 @@ function viewCreate(){
     <h1 class="page-title">${tr('cr_title')}</h1>
     <p class="lead">${tr('cr_lead')}</p>
 
-    <div class="panel" style="margin-bottom:16px;background:linear-gradient(180deg,#fbf7ec,#f7f0dd);border:1px solid #e6dcc0"><div style="padding:18px 22px">
-      <div style="font-family:Georgia,serif;font-size:16px;color:#1E2128;margin-bottom:3px">${_FL('Que voulez-vous créer ?','What do you want to create?')}</div>
-      <div style="color:#6b6960;font-size:13px;margin-bottom:14px">${_FL('Trois façons de vous organiser sur UBORA.','Three ways to organize on UBORA.')}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <div onclick="var e=document.getElementById('f-name');if(e){e.scrollIntoView({behavior:'smooth',block:'center'});e.focus();}" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #C9A84C;border-radius:12px;padding:12px 14px;background:#fffdf7">
-          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">◇ ${_FL('UNE TONTINE','A TONTINE')}</div>
-          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('L\u2019épargne qui tourne','Rotating savings')}</div>
-          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Chacun cotise, chacun reçoit à son tour. Jusqu\u2019à 30 membres. C\u2019est l\u2019outil pour faire circuler l\u2019argent d\u2019un groupe ou entre proches.','Everyone contributes, everyone receives in turn. Up to 30 members. The tool to move a group\u2019s money — or money between close ones.')}</div>
-        </div>
-        <div onclick="go('casecreate')" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
-          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">△ ${_FL('UNE RÉUNION / ASSOCIATION','A GROUP / ASSOCIATION')}</div>
-          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Votre groupe — appelez-le comme chez vous','Your group — name it your way')}</div>
-          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Réunion, association, amicale, groupe d\u2019entraide\u2026 Le foyer qui rassemble vos membres et peut porter plusieurs tontines, une caisse, des événements.','Meeting, association, mutual-aid circle\u2026 The home that gathers your members and can hold several tontines, a fund, events.')}</div>
-        </div>
-        <div onclick="go('fedhome')" style="cursor:pointer;flex:1;min-width:158px;border:1px solid #e6dcc0;border-radius:12px;padding:12px 14px;background:#fffdf7">
-          <div style="color:#C9A84C;font-size:12px;letter-spacing:.08em">⬡ ${_FL('UNE FÉDÉRATION','A FEDERATION')}</div>
-          <div style="font-family:Georgia,serif;font-size:14px;color:#1E2128;margin:4px 0">${_FL('Le réseau qui relie plusieurs groupes','The network linking several groups')}</div>
-          <div style="color:#6b6960;font-size:12px;line-height:1.5">${_FL('Pour coordonner plusieurs réunions ou associations : chiffres agrégés du réseau, attestation commune, annuaire.','To coordinate several groups: aggregated network figures, a shared attestation, a directory.')}</div>
-        </div>
-      </div>
-      <div style="margin-top:12px;color:#8a8779;font-size:12px;font-style:italic;border-top:1px dashed #e6dcc0;padding-top:10px">${_FL('Un doute ? La tontine fait circuler l\u2019argent. La réunion/association rassemble les gens. La fédération relie les groupes.','Not sure? The tontine moves money. The group gathers people. The federation links groups.')}</div>
-    </div></div>
+    <div class="create-switch">
+      <span class="cs-lbl">${_FL('Vous créez','You’re creating')}</span>
+      <span class="cs-pill on">◇ ${_FL('Tontine','Tontine')}</span>
+      <button class="cs-pill" onclick="go('casecreate')">△ ${_FL('Réunion · association','Group · association')}</button>
+      <button class="cs-pill" onclick="go('fedhome')">⬡ ${_FL('Fédération','Federation')}</button>
+    </div>
+    <div class="cs-hint">${_FL('Une <b>tontine</b> : chacun cotise, chacun reçoit à son tour. Pas la bonne forme ? Changez ci-dessus — la réunion/association rassemble les gens, la fédération relie les groupes.','A <b>tontine</b>: everyone contributes, each receives in turn. Not the right shape? Switch above — a group gathers people, a federation links groups.')}</div>
 
     <div class="panel" style="margin-bottom:16px;border:1px solid #C9A24B66;background:#FBF7EC"><div style="padding:16px 20px">
       <div class="mname" style="color:#7A5C12">📥 ${_FL('D\u00e9j\u00e0 la liste de vos membres\u00a0?','Already have your member list?')}</div>
@@ -11605,7 +11597,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.19';
+const UBORA_BUILD='v10.20';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
