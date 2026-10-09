@@ -478,24 +478,48 @@ html,body{margin:0;background:#EBDCC4}
   .ls-summit{transition:filter .3s, opacity .3s, transform .2s}
   .level-strip:hover .ls-summit{filter:none!important;opacity:1!important;transform:scale(1.06)}
   .caisse-card{border-left:3px solid var(--core)}
-  /* ——— Vitrine : frontispice CENTRÉ (page de titre du registre : symétrique, plein cadre) ——— */
-  .home-hero{position:relative;text-align:center;padding:40px 20px 14px;margin:0 0 2px}
-  .hh-in{position:relative;max-width:760px;margin:0 auto}
-  .hh-crest{display:flex;justify-content:center;margin-bottom:14px;opacity:.92}
-  .hh-brand{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:16px}
+  /* ——— Vitrine : hero deux colonnes — écrits à gauche, cartes vivantes à droite ——— */
+  .home-hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,430px);gap:40px;align-items:center;padding:30px 2px 12px;margin:0 0 4px}
+  .hh-in{position:relative;min-width:0}
+  .hh-brand{font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:14px}
   .hh-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
-    font-size:clamp(34px,4.6vw,50px);line-height:1.06;letter-spacing:.004em;color:var(--ink);margin:0;max-width:18ch;margin-left:auto;margin-right:auto}
-  .hh-rule{width:66px;height:2px;margin:20px auto 0;border-radius:2px;
-    background:linear-gradient(90deg,rgba(201,168,76,0),var(--gold-bright),rgba(201,168,76,0))}
-  .hh-sub{color:var(--mid);font-size:16px;line-height:1.65;margin:16px auto 0;max-width:54ch}
-  .hh-seal{display:flex;justify-content:center;margin-top:16px}
-  .hh-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;justify-content:center}
+    font-size:clamp(32px,4.1vw,46px);line-height:1.05;letter-spacing:.004em;color:var(--ink);margin:0}
+  .hh-rule{width:64px;height:2px;margin:18px 0 0;border-radius:2px;
+    background:linear-gradient(90deg,var(--gold-bright),rgba(201,168,76,0))}
+  .hh-sub{color:var(--mid);font-size:15.5px;line-height:1.66;margin:15px 0 0;max-width:46ch}
+  .hh-seal{display:flex;margin-top:15px}
+  .hh-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
   .hh-btn{border-radius:12px;padding:13px 24px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.18s}
   .hh-btn-gold{background:linear-gradient(180deg,#E7CE88,#C9A84C);color:#2A2018;box-shadow:0 5px 16px rgba(201,168,76,.22)}
   .hh-btn-gold:hover{filter:brightness(1.04);transform:translateY(-1px)}
   .hh-btn-ghost{background:transparent;color:var(--gold);border-color:var(--line-strong)}
   .hh-btn-ghost:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
-  .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;justify-content:center}
+  .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  /* la pile de cartes vivantes (colonne droite) */
+  .hero-deck{position:relative;height:296px}
+  .deck-card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    border:1px solid var(--line);border-left:3px solid var(--gold-bright);border-radius:18px;
+    background:linear-gradient(180deg,var(--card2),var(--card));padding:28px 30px;
+    box-shadow:0 16px 40px rgba(120,90,40,.12);
+    opacity:0;transform:translateY(10px) scale(.985);
+    animation:deckCycle 13.5s ease-in-out infinite}
+  .deck-card:nth-child(1){animation-delay:0s}
+  .deck-card:nth-child(2){animation-delay:4.5s}
+  .deck-card:nth-child(3){animation-delay:9s}
+  @keyframes deckCycle{0%{opacity:0;transform:translateY(10px) scale(.985)}3%{opacity:1;transform:translateY(0) scale(1)}29%{opacity:1;transform:translateY(0) scale(1)}33%{opacity:0;transform:translateY(-8px) scale(.99)}100%{opacity:0}}
+  .hero-deck.manual .deck-card{animation:none;opacity:0;transform:none}
+  .hero-deck.manual .deck-card.on{opacity:1}
+  .deck-ic{font-size:22px;color:var(--gold-bright);line-height:1}
+  .deck-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-top:9px}
+  .deck-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;line-height:1.08;color:var(--ink);margin:4px 0 8px}
+  .deck-d{font-size:14px;line-height:1.62;color:var(--mid)}
+  .deck-go{margin-top:15px;font-size:13px;font-weight:600;color:var(--gold)}
+  .deck-tabs{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .deck-tab{cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+    padding:6px 13px;border:1px solid var(--line);border-radius:999px;transition:.15s;background:transparent;font-weight:600}
+  .deck-tab.on,.deck-tab:hover{color:var(--gold);border-color:var(--gold)}
+  @media(prefers-reduced-motion:reduce){.deck-card{animation:none}.deck-card:nth-child(1){opacity:1;transform:none}}
+  @media(max-width:860px){ .home-hero{grid-template-columns:1fr;gap:24px} .hero-deck{height:238px;max-width:430px} }
   /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
   .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
   @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
@@ -4809,6 +4833,12 @@ function viewSeanceReleve(){
    ${footer()}`;
 }
 
+/* Pile de cartes du hero : clic sur un onglet → mode manuel (stoppe le défilement),
+   on affiche la carte choisie — sans re-render de toute la page. */
+function heroDeck(i){ try{ var d=document.getElementById('heroDeck'); if(!d)return; d.classList.add('manual');
+  var cs=d.querySelectorAll('.deck-card'); for(var n=0;n<cs.length;n++){ cs[n].classList.toggle('on',n===i); }
+  var ts=document.querySelectorAll('.deck-tab'); for(var m=0;m<ts.length;m++){ ts[m].classList.toggle('on',m===i); }
+  }catch(e){} }
 function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=window._uboraVerify;window._uboraVerify=null;state.att=state.att||{};state.att.verifyRef=_v;setTimeout(function(){go('attmembre');repVerify();},60);}if(typeof state!=='undefined'&&state.uid){try{var _pj=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_join');if(_pj){localStorage.removeItem('ubora_pending_join');state.repJoinCode=_pj;setTimeout(function(){go('casejoin');},60);}try{var _pjf=(typeof localStorage!=='undefined')&&localStorage.getItem('ubora_pending_joinfed');if(_pjf){localStorage.removeItem('ubora_pending_joinfed');state.activeFedId=_pjf;state.pendingFedId=_pjf;setTimeout(function(){go('fedask');},140);}}catch(_ef){}}catch(_e){}}if(typeof state!=='undefined'&&state.repStats===undefined&&!state.repStatsLoading){repLoadStats();}
   const cards=state_tontines.map(t=>{
     const r=t.rounds[t.currentRound];
@@ -4837,14 +4867,8 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
       </div>`:''}</div>`;
   }).join('');
   var _homeEmpty=!(state_tontines.length||state_reunions.length||state_caisses.length);
-  var _oc=function(k,t,d,go2,cta){ return '<div class="offer-card" onclick="'+go2+'"><div class="offer-k">'+k+'</div><div class="offer-t">'+t+'</div><div class="offer-d">'+d+'</div><div class="offer-go">'+cta+'</div></div>'; };
-  var _invite = '<div class="offer-lead">'+_FL('Commencez ici — trois façons d’entrer.','Start here — three ways in.')+'</div>'
-    +'<p class="lead" style="margin-top:2px">'+_FL('Ce qu’UBORA met à votre service, en clair.','What UBORA offers, in plain terms.')+'</p>'
-    +'<div class="offer-grid">'
-      +_oc(_FL('La tontine','The tontine'),_FL('L’épargne qui tourne','Rotating savings'),_FL('Chacun cotise, chacun reçoit à son tour. UBORA tient le cahier : qui a versé, qui a confirmé, qui reçoit, et quand.','Everyone contributes, everyone receives in turn. UBORA keeps the book.'),"startCreate()",_FL('Créer une tontine →','Create a tontine →'))
-      +_oc(_FL('L’entraide','Mutual aid'),_FL('La caisse du groupe','The group’s fund'),_FL('Pour les grands moments — deuil, naissance — et le prêt solidaire <b class="foilg">IMANI</b>, sans intérêt, accordé à deux clés du bureau.','For life’s big moments — and the interest-free IMANI solidarity loan, granted on two board keys.'),"go('entraide')",_FL('Ouvrir l’entraide →','Open mutual aid →'))
-      +_oc(_FL('La réputation','Reputation'),_FL('Votre signal <b class="foilg">SIFA</b>','Your <b class="foilg">SIFA</b> signal'),_FL('Chaque engagement tenu bâtit votre réputation — portable, jamais déclarée. Elle ouvre, à terme, la méthode d’investissement UBORA.','Every kept commitment builds your portable reputation — never self-declared.'),"go('pyramide')",_FL('Voir mon parcours →','See my path →'))
-    +'</div>';
+  var _dc=function(ic,k,t,d,onc,cta){ return '<div class="deck-card" onclick="'+onc+'" role="button"><div class="deck-ic">'+ic+'</div><div class="deck-k">'+k+'</div><div class="deck-t">'+t+'</div><div class="deck-d">'+d+'</div><div class="deck-go">'+cta+'</div></div>'; };
+  var _emptyNote = '<div class="asnote" style="margin:24px 0 10px">'+_FL('Vos cercles apparaîtront ici. Choisissez à droite ce que vous voulez créer, ou importez votre liste de membres.','Your circles will appear here. Pick what to create on the right, or import your member list.')+'</div>';
   var _sections = '<div class="asnote" style="margin:20px 0 14px">'+_FL('Deux façons de tenir un cercle. Une <b>tontine</b> : montant fixe, échéance régulière, chacun reçoit à son tour. Une <b>réunion</b> : montants variables, on se retrouve en séances, et le pot du jour va au bénéficiaire désigné.','Two ways to run a circle. A <b>tontine</b>: fixed amount, regular due date, each receives in turn. A <b>réunion</b>: variable amounts, you meet in sessions, and the day’s pot goes to the chosen beneficiary.')+'</div>'
     +'<div class="cards">'+(cards||('<div class="empty">'+tr('h_empty_t')+'</div>'))+'</div>'
     +'<h2 class="section-h">'+tr('h_reunions')+'</h2><p class="lead" style="margin-top:2px">'+tr('h_reunions_lead')+'</p>'
@@ -4852,12 +4876,11 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
     +'<h2 class="section-h">'+tr('h_caisses')+'</h2><p class="lead" style="margin-top:2px">'+tr('h_caisses_lead')+'</p>'
     +'<div style="margin:0 0 12px"><button class="btn btn-gold btn-sm" onclick="startCaisse()">'+tr('h_create_caisse')+'</button></div>'
     +'<div class="cards">'+(caisseCards||('<div class="empty">'+tr('h_empty_c')+'</div>'))+'</div>';
-  var _homeBody = _homeEmpty ? _invite : _sections;
+  var _homeBody = _homeEmpty ? _emptyNote : _sections;
   var _showLevel = !(state.uid && _homeEmpty);
   app().innerHTML=`
     <div class="home-hero">
       <div class="hh-in">
-        <div class="hh-crest">${feuSVG(46)}</div>
         <div class="hh-brand">${_FL('Le registre de confiance','The trust ledger')}</div>
         <h1 class="hh-title">${_FL('La mémoire fiable de vos tontines.','The reliable memory of your tontines.')}</h1>
         <div class="hh-rule"></div>
@@ -4866,6 +4889,18 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
         <div class="hh-cta">
           <button class="hh-btn hh-btn-gold" onclick="startCreate()">${tr('h_create')}</button>
           <button class="hh-btn hh-btn-ghost" onclick="go('join')">${_FL('Rejoindre une tontine','Join a tontine')}</button>
+        </div>
+      </div>
+      <div>
+        <div class="hero-deck" id="heroDeck">
+          ${_dc('◇',_FL('Une tontine','A tontine'),_FL('L’épargne qui tourne','Rotating savings'),_FL('Chacun cotise, chacun reçoit à son tour. Jusqu’à 30 membres — pour faire circuler l’argent d’un groupe ou entre proches.','Everyone contributes, each receives in turn. Up to 30 members.'),"startCreate()",_FL('Créer une tontine →','Create a tontine →'))}
+          ${_dc('△',_FL('Une réunion · association','A group · association'),_FL('Le foyer qui rassemble','The home that gathers'),_FL('Réunion, association, amicale, mutuelle… Le foyer de vos membres : plusieurs tontines, une caisse d’entraide, des événements.','Meeting, association, mutual-aid circle… The home for your members: several tontines, a fund, events.'),"go('casecreate')",_FL('Enregistrer une Case →','Register a Case →'))}
+          ${_dc('⬡',_FL('Une fédération','A federation'),_FL('Le réseau des groupes','The network of groups'),_FL('Pour relier plusieurs réunions ou associations : chiffres agrégés du réseau, attestation commune, annuaire partagé.','To link several groups: aggregated figures, a shared attestation, a directory.'),"go('fedhome')",_FL('Voir les réseaux →','See networks →'))}
+        </div>
+        <div class="deck-tabs">
+          <button class="deck-tab on" onclick="heroDeck(0)">${_FL('Tontine','Tontine')}</button>
+          <button class="deck-tab" onclick="heroDeck(1)">${_FL('Réunion','Group')}</button>
+          <button class="deck-tab" onclick="heroDeck(2)">${_FL('Fédération','Federation')}</button>
         </div>
       </div>
     </div>
@@ -11569,7 +11604,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.16';
+const UBORA_BUILD='v10.17';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
