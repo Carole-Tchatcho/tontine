@@ -479,7 +479,7 @@ html,body{margin:0;background:#EBDCC4}
   .level-strip:hover .ls-summit{filter:none!important;opacity:1!important;transform:scale(1.06)}
   .caisse-card{border-left:3px solid var(--core)}
   /* ——— Vitrine : hero deux colonnes — écrits à gauche, cartes vivantes à droite ——— */
-  .home-hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,430px);gap:40px;align-items:center;padding:30px 2px 12px;margin:0 0 4px}
+  .home-hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,350px);gap:40px;align-items:center;padding:30px 2px 12px;margin:0 0 4px}
   .hh-in{position:relative;min-width:0}
   .hh-brand{font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:14px}
   .hh-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
@@ -496,11 +496,11 @@ html,body{margin:0;background:#EBDCC4}
   .hh-btn-ghost:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
   .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
   /* la pile de cartes vivantes (colonne droite) */
-  .hero-deck{position:relative;height:296px}
+  .hero-deck{position:relative;height:220px}
   .deck-card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
-    border:1px solid var(--line);border-left:3px solid var(--gold-bright);border-radius:18px;
-    background:linear-gradient(180deg,var(--card2),var(--card));padding:28px 30px;
-    box-shadow:0 16px 40px rgba(120,90,40,.12);
+    border:1px solid var(--line);border-left:3px solid var(--gold-bright);border-radius:16px;
+    background:linear-gradient(180deg,var(--card2),var(--card));padding:20px 22px;
+    box-shadow:0 12px 32px rgba(120,90,40,.11);
     opacity:0;transform:translateY(10px) scale(.985);
     animation:deckCycle 13.5s ease-in-out infinite}
   .deck-card:nth-child(1){animation-delay:0s}
@@ -509,17 +509,17 @@ html,body{margin:0;background:#EBDCC4}
   @keyframes deckCycle{0%{opacity:0;transform:translateY(10px) scale(.985)}3%{opacity:1;transform:translateY(0) scale(1)}29%{opacity:1;transform:translateY(0) scale(1)}33%{opacity:0;transform:translateY(-8px) scale(.99)}100%{opacity:0}}
   .hero-deck.manual .deck-card{animation:none;opacity:0;transform:none}
   .hero-deck.manual .deck-card.on{opacity:1}
-  .deck-ic{font-size:22px;color:var(--gold-bright);line-height:1}
-  .deck-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-top:9px}
-  .deck-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;line-height:1.08;color:var(--ink);margin:4px 0 8px}
-  .deck-d{font-size:14px;line-height:1.62;color:var(--mid)}
-  .deck-go{margin-top:15px;font-size:13px;font-weight:600;color:var(--gold)}
+  .deck-ic{font-size:18px;color:var(--gold-bright);line-height:1}
+  .deck-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-top:6px}
+  .deck-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;line-height:1.08;color:var(--ink);margin:3px 0 6px}
+  .deck-d{font-size:13px;line-height:1.55;color:var(--mid)}
+  .deck-go{margin-top:11px;font-size:12.5px;font-weight:600;color:var(--gold)}
   .deck-tabs{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
   .deck-tab{cursor:pointer;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
     padding:6px 13px;border:1px solid var(--line);border-radius:999px;transition:.15s;background:transparent;font-weight:600}
   .deck-tab.on,.deck-tab:hover{color:var(--gold);border-color:var(--gold)}
   @media(prefers-reduced-motion:reduce){.deck-card{animation:none}.deck-card:nth-child(1){opacity:1;transform:none}}
-  @media(max-width:860px){ .home-hero{grid-template-columns:1fr;gap:24px} .hero-deck{height:238px;max-width:430px} }
+  @media(max-width:860px){ .home-hero{grid-template-columns:1fr;gap:24px} .hero-deck{height:200px;max-width:380px} }
   /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
   .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
   @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
@@ -11604,7 +11604,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.17';
+const UBORA_BUILD='v10.18';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
