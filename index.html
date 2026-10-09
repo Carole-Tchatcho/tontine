@@ -478,6 +478,41 @@ html,body{margin:0;background:#EBDCC4}
   .ls-summit{transition:filter .3s, opacity .3s, transform .2s}
   .level-strip:hover .ls-summit{filter:none!important;opacity:1!important;transform:scale(1.06)}
   .caisse-card{border-left:3px solid var(--core)}
+  /* ——— Vitrine : hero « frontispice » (une seule audace, le reste reste calme) ——— */
+  .home-hero{position:relative;overflow:hidden;border-radius:20px;margin:6px 0 4px;
+    background:linear-gradient(145deg,#1B2142 0%,#161B3D 52%,#0E1326 100%);
+    border:1px solid rgba(201,168,76,.42);padding:34px 34px 28px;
+    box-shadow:0 18px 50px rgba(14,19,38,.28)}
+  .home-hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(130% 80% at 88% -10%,rgba(201,168,76,.16),transparent 60%)}
+  .hh-in{position:relative;max-width:40ch}
+  .hh-brand{font-size:11.5px;letter-spacing:.16em;color:#C9A84C;font-weight:600;margin-bottom:12px}
+  .hh-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;
+    font-size:clamp(30px,5vw,46px);line-height:1.04;letter-spacing:.005em;color:#FBF4E3;margin:0}
+  .hh-sub{color:#CDBF9C;font-size:15px;line-height:1.6;margin:13px 0 0;max-width:46ch}
+  .hh-rule{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:7px 14px;
+    border:1px solid rgba(201,168,76,.4);border-radius:999px;font-size:12px;color:#E6D3A0;background:rgba(201,168,76,.06)}
+  .hh-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .hh-btn{border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.18s}
+  .hh-btn-gold{background:linear-gradient(180deg,#E7CE88,#C9A84C);color:#2A2018;box-shadow:0 6px 18px rgba(201,168,76,.28)}
+  .hh-btn-gold:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  .hh-btn-ghost{background:transparent;color:#EBDCB4;border-color:rgba(201,168,76,.45)}
+  .hh-btn-ghost:hover{background:rgba(201,168,76,.1)}
+  .hh-feu{position:absolute;right:26px;top:50%;transform:translateY(-50%);opacity:.9;filter:drop-shadow(0 0 22px rgba(201,168,76,.35))}
+  @media(max-width:720px){ .home-hero{padding:26px 22px 24px} .hh-feu{display:none} .hh-in{max-width:none} }
+  .home-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
+  .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
+  @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
+  .offer-card{position:relative;border:1px solid var(--line);border-top:2px solid var(--gold-bright);
+    border-radius:16px;background:linear-gradient(180deg,var(--card2),var(--card));padding:22px 22px 20px;
+    cursor:pointer;transition:.18s;display:flex;flex-direction:column}
+  .offer-card:hover{border-color:var(--gold);box-shadow:0 12px 30px rgba(120,90,40,.12);transform:translateY(-2px)}
+  .offer-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .offer-t{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;line-height:1.1;color:var(--ink);margin:7px 0 6px}
+  .offer-d{font-size:13.5px;line-height:1.6;color:var(--mid);flex:1}
+  .offer-go{margin-top:14px;font-size:13px;font-weight:600;color:var(--gold)}
+  .offer-lead{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;color:var(--ink);margin:26px 0 2px}
   .pill.p-appel{background:#F3E2D2;color:#9A5A33;border:1px solid rgba(154,90,51,.32)}
   .pill.p-late{background:#F6E0DC;color:#A2452F;border:1px solid rgba(162,69,47,.3)}
   .caisse-role{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12px;color:var(--mid);margin:16px 0 2px}
@@ -4806,13 +4841,40 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
         <div class="kv"><div class="k">${tr('cc_paid')}</div><div class="v">${conf}/${c.foyers.length}</div></div>
       </div>`:''}</div>`;
   }).join('');
+  var _homeEmpty=!(state_tontines.length||state_reunions.length||state_caisses.length);
+  var _oc=function(k,t,d,go2,cta){ return '<div class="offer-card" onclick="'+go2+'"><div class="offer-k">'+k+'</div><div class="offer-t">'+t+'</div><div class="offer-d">'+d+'</div><div class="offer-go">'+cta+'</div></div>'; };
+  var _invite = '<div class="offer-lead">'+_FL('Commencez ici — trois façons d’entrer.','Start here — three ways in.')+'</div>'
+    +'<p class="lead" style="margin-top:2px">'+_FL('Ce qu’UBORA met à votre service, en clair.','What UBORA offers, in plain terms.')+'</p>'
+    +'<div class="offer-grid">'
+      +_oc(_FL('La tontine','The tontine'),_FL('L’épargne qui tourne','Rotating savings'),_FL('Chacun cotise, chacun reçoit à son tour. UBORA tient le cahier : qui a versé, qui a confirmé, qui reçoit, et quand.','Everyone contributes, everyone receives in turn. UBORA keeps the book.'),"startCreate()",_FL('Créer une tontine →','Create a tontine →'))
+      +_oc(_FL('L’entraide','Mutual aid'),_FL('La caisse du groupe','The group’s fund'),_FL('Pour les grands moments — deuil, naissance — et le prêt solidaire <b class="foilg">IMANI</b>, sans intérêt, accordé à deux clés du bureau.','For life’s big moments — and the interest-free IMANI solidarity loan, granted on two board keys.'),"go('entraide')",_FL('Ouvrir l’entraide →','Open mutual aid →'))
+      +_oc(_FL('La réputation','Reputation'),_FL('Votre signal <b class="foilg">SIFA</b>','Your <b class="foilg">SIFA</b> signal'),_FL('Chaque engagement tenu bâtit votre réputation — portable, jamais déclarée. Elle ouvre, à terme, la méthode d’investissement UBORA.','Every kept commitment builds your portable reputation — never self-declared.'),"go('pyramide')",_FL('Voir mon parcours →','See my path →'))
+    +'</div>';
+  var _sections = '<div class="asnote" style="margin:20px 0 14px">'+_FL('Deux façons de tenir un cercle. Une <b>tontine</b> : montant fixe, échéance régulière, chacun reçoit à son tour. Une <b>réunion</b> : montants variables, on se retrouve en séances, et le pot du jour va au bénéficiaire désigné.','Two ways to run a circle. A <b>tontine</b>: fixed amount, regular due date, each receives in turn. A <b>réunion</b>: variable amounts, you meet in sessions, and the day’s pot goes to the chosen beneficiary.')+'</div>'
+    +'<div class="cards">'+(cards||('<div class="empty">'+tr('h_empty_t')+'</div>'))+'</div>'
+    +'<h2 class="section-h">'+tr('h_reunions')+'</h2><p class="lead" style="margin-top:2px">'+tr('h_reunions_lead')+'</p>'
+    +'<div class="cards">'+(reuCards||('<div class="empty">'+tr('h_empty_r')+'</div>'))+'</div>'
+    +'<h2 class="section-h">'+tr('h_caisses')+'</h2><p class="lead" style="margin-top:2px">'+tr('h_caisses_lead')+'</p>'
+    +'<div style="margin:0 0 12px"><button class="btn btn-gold btn-sm" onclick="startCaisse()">'+tr('h_create_caisse')+'</button></div>'
+    +'<div class="cards">'+(caisseCards||('<div class="empty">'+tr('h_empty_c')+'</div>'))+'</div>';
+  var _homeBody = _homeEmpty ? _invite : _sections;
+  var _showLevel = !(state.uid && _homeEmpty);
   app().innerHTML=`
-    <div class="eyebrow">${tr('h_eyebrow')}</div>
-    <h1 class="page-title">${tr('h_title')}</h1>
-    <p class="lead">${tr('h_lead')}</p>
-    <div class="reassure">● ${tr('h_reassure')}</div>
-    <div>${trustSeal()}</div>
-    ${(()=>{
+    <div class="home-hero">
+      <div class="hh-feu">${feuSVG(72)}</div>
+      <div class="hh-in">
+        <div class="hh-brand">${_FL('Le registre de confiance','The trust ledger')}</div>
+        <h1 class="hh-title">${_FL('La mémoire fiable de vos tontines.','The reliable memory of your tontines.')}</h1>
+        <p class="hh-sub">${_FL('Qui a versé, qui a confirmé, qui reçoit — et quand. UBORA tient le compte ; l’argent, lui, ne passe jamais par UBORA.','Who paid, who confirmed, who receives — and when. UBORA keeps the count; the money itself never passes through UBORA.')}</p>
+        <div class="hh-rule">◈ ${_FL('UBORA ne détient aucun fonds · registre sans dépôt','UBORA holds no funds · a deposit-free ledger')}</div>
+        <div class="hh-cta">
+          <button class="hh-btn hh-btn-gold" onclick="startCreate()">${tr('h_create')}</button>
+          <button class="hh-btn hh-btn-ghost" onclick="go('join')">${_FL('Rejoindre une tontine','Join a tontine')}</button>
+        </div>
+      </div>
+    </div>
+    ${_showLevel?'':'<div style="height:2px"></div>'}
+    ${_showLevel?(()=>{
       /* Un visiteur n'a pas de niveau, pas de cercle, et rien à calculer.
          Lui annoncer « VOTRE NIVEAU · Découverte · calculé sur l'ensemble de
          VOS cercles » énonce trois choses fausses d'un coup, et le place au
@@ -4846,22 +4908,13 @@ function viewHome(){if(typeof state!=='undefined'&&window._uboraVerify){var _v=w
           <div style="font-size:8.5px;letter-spacing:.12em;color:var(--gold);margin-top:2px;text-transform:uppercase">${auSommet?_FL('vous y êtes','you are there'):esc(T.name)}</div>
         </div>
         <span class="ls-cta">${tr('hm_level_cta')}</span>
-      </div></div>`;})()}
-    <div class="row" style="margin-top:20px">
-      <button class="btn btn-gold" onclick="startCreate()">${tr('h_create')}</button>
-      <button class="btn btn-ghost" onclick="go('join')">${icon('join')}${tr('h_join')}</button><button class="btn btn-ghost" onclick="repOpenAttestation()">${(state&&state.lang==='en')?'My attestation':'Mon attestation'}</button>
-      <button class="btn btn-ghost" onclick="openImport()">${tr('h_import')}</button>
-      <button class="btn btn-ghost" onclick="startReunion()">${tr('h_new_reunion')}</button>
+      </div></div>`;})():''}
+    <div class="home-actions">
+      <button class="btn btn-ghost btn-sm" onclick="repOpenAttestation()">${(state&&state.lang==='en')?'My attestation':'Mon attestation'}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openImport()">${tr('h_import')}</button>
+      <button class="btn btn-ghost btn-sm" onclick="startReunion()">${tr('h_new_reunion')}</button>
     </div>
-    <div class="asnote" style="margin:20px 0 14px">${_FL('Deux façons de tenir un cercle. Une <b>tontine</b> : montant fixe, échéance régulière, chacun reçoit à son tour. Une <b>réunion</b> : montants variables, on se retrouve en séances, et le pot du jour va au bénéficiaire désigné.','Two ways to run a circle. A <b>tontine</b>: fixed amount, regular due date, each receives in turn. A <b>réunion</b>: variable amounts, you meet in sessions, and the day\'s pot goes to the chosen beneficiary.')}</div>
-    <div class="cards">${cards||`<div class="empty">${tr('h_empty_t')}</div>`}</div>
-    <h2 class="section-h">${tr('h_reunions')}</h2>
-    <p class="lead" style="margin-top:2px">${tr('h_reunions_lead')}</p>
-    <div class="cards">${reuCards||`<div class="empty">${tr('h_empty_r')}</div>`}</div>
-    <h2 class="section-h">${tr('h_caisses')}</h2>
-    <p class="lead" style="margin-top:2px">${tr('h_caisses_lead')}</p>
-    <div style="margin:0 0 12px"><button class="btn btn-gold btn-sm" onclick="startCaisse()">${tr('h_create_caisse')}</button></div>
-    <div class="cards">${caisseCards||`<div class="empty">${tr('h_empty_c')}</div>`}</div>
+    ${_homeBody}
     <div class="apex-teaser" onclick="go('apex')">
       <div><div class="apex-tt">✦ ${tr('ap_teaser_t')}</div><div class="apex-td">${tr('ap_teaser_d')}</div></div>
       <span class="apex-arrow">›</span>
@@ -11520,7 +11573,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.12';
+const UBORA_BUILD='v10.13';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
