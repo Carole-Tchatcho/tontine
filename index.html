@@ -8117,7 +8117,10 @@ function viewCase(){if(typeof state!=='undefined'&&state.myCases===undefined&&!s
       <div class="ph-brand">${tr('mc_eyebrow')}</div>
       <h1 class="ph-title">${tr('mc_title')}</h1>
       <div class="ph-rule"></div>
-      <p class="ph-sub">${tr('mc_lead')}</p>
+      <div style="display:flex;gap:22px;align-items:center;margin-top:14px">
+        <span style="flex:0 0 auto;opacity:.95">${caseGlyph(78)}</span>
+        <p class="ph-sub" style="margin:0">${tr('mc_lead')}</p>
+      </div>
       <div class="ph-seal hh-seal">${trustSeal(tr('mc_seal'))}</div>
     </div>
     <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button><button class="btn btn-ghost btn-sm" onclick="go('casejoin')">${(state&&state.lang==='en')?'Join my Case':'Rejoindre ma Case'}</button></div>
@@ -9695,7 +9698,14 @@ function caseEvtConfirmedDons(e){ if(!e||!e.pubId)return 0; var pe=(typeof state
 function eventCommitteeNames(ev){ return (((ev&&ev.committee)||[]).map(function(x){return (x&&x.name)||'';})).filter(Boolean); }
 function isEventCommittee(ev){ if(!ev)return false; var me=null; if(state.myCases){var r=state.myCases.find(function(x){return x&&x.case_id===ev.caseId;}); me=r&&r.member;} if(!me&&state.user)me=state.user; if(!me)return false; return eventCommitteeNames(ev).some(function(n){return n&&String(n).trim().toLowerCase()===String(me).trim().toLowerCase();}); }
 function caseEvtReadCommittee(c){ var out=[]; (c&&c.members||[]).forEach(function(m){ var el=document.getElementById('cmte-'+m.id); if(el&&el.checked) out.push({id:m.id,name:m.name}); }); return out; }
-function isCaseBureau(caseId){ return !!(caseId&&state.myCases&&state.myCases.find&&state.myCases.find(function(x){return x&&x.case_id===caseId&&x.bureau;})); }
+function isCaseBureau(caseId){
+  /* 1) lien serveur (case_members.bureau via my_member_cases) */
+  if(caseId&&state.myCases&&state.myCases.find&&state.myCases.find(function(x){return x&&x.case_id===caseId&&x.bureau;})) return true;
+  /* 2) secours annuaire : le compte correspond, par son nom, à un membre au rôle de bureau */
+  var c=(typeof state_cases!=='undefined')?state_cases.find(function(x){return x.id===caseId;}):null;
+  if(c&&typeof caseSelfMember==='function'){ var sm=caseSelfMember(c); if(sm&&caseRoleIsBureau(sm.role)) return true; }
+  return false;
+}
 async function evDonSubmit(id){
   const ev=state_events.find(x=>x.id===id); if(!ev)return;
   const nmEl=$('#don-name'), amEl=$('#don-amt');
@@ -11638,7 +11648,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.23';
+const UBORA_BUILD='v10.24';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
