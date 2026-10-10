@@ -4015,7 +4015,7 @@ async function repSetBureau(memberId,caseId,flag){
   await repLoadAccess(caseId);
 }
 function repInviteHtml(c,member,code){
-  const nom=c?c.name:'';const link='https://tontine.caroletchatcho.com/#joincase='+encodeURIComponent(code);const linkTxt='https://tontine.caroletchatcho.com';
+  const nom=c?c.name:'';const link='https://tontine.caroletchatcho.com/?cj='+encodeURIComponent(code);const linkTxt='https://tontine.caroletchatcho.com';
   return '<p>'+_FL('Bonjour','Hello')+' '+esc(member)+',</p>'
     +'<p>'+_FL('Vous êtes invité·e à rejoindre','You are invited to join')+' <b>'+esc(nom)+'</b> '+_FL('sur UBORA, le registre de confiance.','on UBORA, the trust register.')+'</p>'
     +'<p>'+_FL('Cliquez pour rejoindre — votre code est déjà rempli :','Click to join — your code is pre-filled:')+' <a href="'+link+'">'+linkTxt+'</a></p>'
@@ -4060,6 +4060,13 @@ async function repJoinSubmit(){
   try{
     const res=await sb.rpc('join_case',{p_code:code});
     if(res.error)throw res.error;
+    state.repJoinedCase=(res.data&&res.data.case_id)||null;
+    /* Le lien vient d’être posé : on rafraîchit la matrice serveur (my_member_cases)
+       ET tous les outils, sinon l’app croit encore le membre NON relié jusqu’au
+       prochain rechargement — c’est exactement le trou qui bloquait Milly. */
+    state.myCases=undefined;
+    try{ await repLoadMyCases(); }catch(_e){}
+    try{ loadAllCore(true); }catch(_e){}
     state.repJoinMsg=_FL('C’est fait — vous êtes relié·e à votre fiche dans le groupe.','Done — you are linked to your record in the group.');
     state.repJoinOk=true;state.repJoinCode='';
   }catch(e){state.repJoinMsg=String((e&&e.message)||e);state.repJoinOk=false;}
@@ -4074,7 +4081,9 @@ function viewCaseJoin(){
     <div class="panel"><div style="padding:16px 18px">
       <input value="${esc(state.repJoinCode||'')}" oninput="repJoinSet(this.value)" placeholder="${_FL('Votre code','Your code')}" style="width:100%;padding:12px 13px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit;text-transform:uppercase;letter-spacing:.12em;font-size:16px">
       ${state.repJoinMsg?`<div style="margin-top:12px;color:${state.repJoinOk?'#2a7d4f':'#b23'}">${esc(state.repJoinMsg)}</div>`:''}
-      <div class="row" style="margin-top:14px"><button class="btn btn-gold" ${state.repJoinBusy?'disabled style="opacity:.5"':''} onclick="repJoinSubmit()">${state.repJoinBusy?'…':_FL('Rejoindre','Join')}</button></div>
+      ${(state.repJoinOk&&state.repJoinedCase)
+        ? `<div class="row-gap" style="margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn btn-gold" onclick="openMyMemberHome('${esc(state.repJoinedCase)}')">${_FL('Voir ma fiche','See my record')}</button><button class="btn btn-ghost" onclick="openCase('${esc(state.repJoinedCase)}')">${_FL('Ouvrir mon groupe','Open my group')}</button></div>`
+        : `<div class="row" style="margin-top:14px"><button class="btn btn-gold" ${state.repJoinBusy?'disabled style="opacity:.5"':''} onclick="repJoinSubmit()">${state.repJoinBusy?'…':_FL('Rejoindre','Join')}</button></div>`}
     </div></div>
     ${footer()}`;
 }
@@ -4262,8 +4271,12 @@ function memberPageCanView(c,m){ return memberIsMe(c,m) || caseIsOwnerOrBureau(c
 function openMyMemberHome(caseId){
   var c=state_cases.find(function(x){return x.id===caseId;}); if(!c)return;
   var m=caseSelfMember(c);
-  if(m){ openMemberHome(caseId,m.id); }
-  else { alert(_FL('Votre fiche sera disponible une fois votre compte relié à un membre de l’annuaire.','Your record will be available once your account is linked to a directory member.')); }
+  if(m){ openMemberHome(caseId,m.id); return; }
+  /* Pas encore relié : on ne laisse JAMAIS le membre dans une impasse —
+     on l'emmène relier son compte à sa fiche avec son code perso. */
+  if(confirm(_FL('Votre compte n’est pas encore relié à votre fiche dans ce groupe. On relie son compte avec le code perso reçu dans l’invitation (ou en cliquant le lien d’invitation). Ouvrir l’écran pour le faire ?','Your account isn’t linked to your record in this group yet. You link it with the personal code from your invitation (or by clicking the invite link). Open the screen to do it?'))){
+    state.activeCase=caseId; state.repJoinOk=false; state.repJoinedCase=null; go('casejoin');
+  }
 }
 function ghStyle(){ return `<style>
   .gh-table{position:relative;width:300px;max-width:100%;height:300px;margin:10px auto 2px}
@@ -11648,7 +11661,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.24';
+const UBORA_BUILD='v10.25';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -12424,7 +12437,7 @@ async function boot(){
     const _evm=((location.hash||'')+' '+(location.search||'')).match(/[?&#]ev=([A-Za-z0-9_-]{4,})/i);
     if(_evm){ _pendingEvent=_evm[1]; try{localStorage.setItem('ubora_ev',_pendingEvent);}catch(e){} }
     else { try{_pendingEvent=localStorage.getItem('ubora_ev');}catch(e){} }
-    const _cjm=((location.hash||'')+' '+(location.search||'')).match(/[?&#]cj=([A-Za-z0-9]{4,})/i);
+    const _cjm=((location.hash||'')+' '+(location.search||'')).match(/[?&#](?:cj|joincase)=([A-Za-z0-9]{4,})/i);
     if(_cjm){ _pendingCaseJoin=_cjm[1].toUpperCase(); try{localStorage.setItem('ubora_cj',_pendingCaseJoin);}catch(e){} }
     else { try{_pendingCaseJoin=localStorage.getItem('ubora_cj');}catch(e){} }
   }catch(e){}
@@ -12496,7 +12509,7 @@ async function boot(){
     }
     if(_pendingCaseJoin){
       try{localStorage.removeItem('ubora_cj');}catch(e){}
-      state.repJoinCode=_pendingCaseJoin; state.view='casejoin'; render(); showBackendBadge(); return;
+      state.repJoinCode=_pendingCaseJoin; state.repJoinOk=false; state.repJoinedCase=null; state.repJoinMsg=''; state.view='casejoin'; render(); showBackendBadge(); return;
     }
     try{await db.loadContacts();}catch(e){}
     await cgvCheck();          /* la barrière ne s'ouvre qu'après cette réponse */
