@@ -528,6 +528,13 @@ html,body{margin:0;background:#EBDCC4}
   .cs-pill:hover{border-color:var(--gold);color:var(--gold)}
   .cs-pill.on{background:linear-gradient(180deg,#F5E6C0,#E7CE88);color:#2A2018;border-color:transparent;cursor:default}
   .cs-hint{font-size:12.5px;color:var(--mid);margin:0 0 16px;font-style:italic}
+  /* ——— En-tête premium réutilisable (Ma Case, Entraide…) : même langage que l'accueil ——— */
+  .page-hero{padding:26px 0 4px;margin-bottom:4px}
+  .ph-brand{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:12px}
+  .ph-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:clamp(30px,3.6vw,42px);line-height:1.04;letter-spacing:.004em;color:var(--ink);margin:0}
+  .ph-rule{width:60px;height:2px;margin:16px 0 0;border-radius:2px;background:linear-gradient(90deg,var(--gold-bright),rgba(201,168,76,0))}
+  .ph-sub{color:var(--mid);font-size:15.5px;line-height:1.66;margin:14px 0 0;max-width:64ch}
+  .ph-seal{margin-top:15px}
   /* ——— État vide : l'invitation en trois portes (clarté de l'offre) ——— */
   .offer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 6px}
   @media(max-width:760px){ .offer-grid{grid-template-columns:1fr} }
@@ -6611,10 +6618,13 @@ function viewEntraide(){
   const events=openEvents();
   const cards=events.map(({c,a})=>entraideCard(c,a)).join('');
   app().innerHTML=`
-    <div class="eyebrow">${tr('et_eyebrow')}</div>
-    <h1 class="page-title">${tr('et_title')}</h1>
-    <p class="lead">${tr('et_lead')}</p>
-    <div>${trustSeal(tr('et_seal'))}</div>
+    <div class="page-hero">
+      <div class="ph-brand">${tr('et_eyebrow')}</div>
+      <h1 class="ph-title">${tr('et_title')}</h1>
+      <div class="ph-rule"></div>
+      <p class="ph-sub">${tr('et_lead')}</p>
+      <div class="ph-seal hh-seal">${trustSeal(tr('et_seal'))}</div>
+    </div>
 
     <div class="sect-head" style="margin-top:20px"><h2 class="section-h">${_FL('Mes caisses d’entraide','My mutual-aid funds')}</h2>
       <button class="btn btn-gold btn-sm" onclick="startCaisse()">+ ${_FL('Nouvelle caisse','New fund')}</button></div>
@@ -8081,10 +8091,13 @@ function viewCase(){if(typeof state!=='undefined'&&state.myCases===undefined&&!s
       </div></div>`;
   }).join('');
   app().innerHTML=`
-    <div class="eyebrow">${tr('mc_eyebrow')}</div>
-    <h1 class="page-title">${tr('mc_title')}</h1>
-    <div style="display:flex;gap:16px;align-items:center;margin:8px 0 6px">${caseGlyph(66)}<p class="lead" style="margin:0;text-align:justify">${tr('mc_lead')}</p></div>
-    <div>${trustSeal(tr('mc_seal'))}</div>
+    <div class="page-hero">
+      <div class="ph-brand">${tr('mc_eyebrow')}</div>
+      <h1 class="ph-title">${tr('mc_title')}</h1>
+      <div class="ph-rule"></div>
+      <p class="ph-sub">${tr('mc_lead')}</p>
+      <div class="ph-seal hh-seal">${trustSeal(tr('mc_seal'))}</div>
+    </div>
     <div class="releve-actions"><button class="btn btn-gold btn-sm" onclick="startCase();go('casecreate')">${tr('mc_register')}</button><button class="btn btn-ghost btn-sm" onclick="repStart();go('reprise')">${(state&&state.lang==='en')?'Bring in a history (Excel/Word)':'Reprendre un historique (Excel/Word)'}</button><button class="btn btn-ghost btn-sm" onclick="go('casejoin')">${(state&&state.lang==='en')?'Join my Case':'Rejoindre ma Case'}</button></div>
     ${cards||`<div class="panel"><div class="empty">${tr('mc_none')}</div></div>`}
     ${repMyCasesPanel()}
@@ -11597,7 +11610,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.20';
+const UBORA_BUILD='v10.21';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
