@@ -4356,6 +4356,65 @@ function viewGroupHome(){
     <div class="asnote" style="margin-top:12px">${_FL('UBORA ne détient aucun fonds — cette page rassemble ce que le groupe a lui-même consigné.','UBORA holds no funds — this page gathers what the group itself recorded.')}</div>
     ${footer()}`;
 }
+/* ============================================================================
+   RÉPUTATION UNIFIÉE D'UNE CASE (v10.29)
+   UNE seule réputation par membre, agrégée sur TOUS les outils de la Case :
+   caisses (régularité, prêts, litiges) + tontines hébergées + événements.
+   Identité unifiée : on reconnaît le membre par l'ENSEMBLE de ses noms
+   (annuaire + fiche reliée + compte) pour rapprocher ce qui est stocké au nom.
+   Limite honnête : si un nom d'annuaire a été renommé loin du nom relié ET que
+   le membre n'est pas l'utilisateur connecté, une partie peut rester non
+   rapprochée — la liaison du compte (« fiche reliée ») referme ce cas.
+   ============================================================================ */
+function caseIdentityNames(c,m){
+  var out=[]; function add(n){ n=String(n||'').trim(); if(!n)return; if(!out.some(function(x){return caseSameName(x,n);}))out.push(n); }
+  add(m&&m.name);
+  if(typeof memberIsMe==='function'&&memberIsMe(c,m)){ var r=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);}); if(r&&r.member)add(r.member); if(state.user)add(state.user); }
+  return out;
+}
+function caseMemberRep(c,m){
+  var names=caseIdentityNames(c,m); var match=function(n){ return names.some(function(x){return caseSameName(x,n);}); };
+  var caisses=(typeof state_caisses!=='undefined'?state_caisses:[]).filter(function(x){return x&&x.caseId===c.id;});
+  var expected=0,honored=0,loansN=0,loansRepaid=0,loansOut=0,litOpen=0,litRes=0;
+  caisses.forEach(function(ca){
+    var fi=-1; (ca.foyers||[]).forEach(function(f,i){ if(match(f.name))fi=i; });
+    if(fi>=0){ (ca.appels||[]).forEach(function(a){ var clos=(a.statut==='remis'||a.remis); if(!clos)return; expected++; if(a.versements&&a.versements[fi]==='confirmed')honored++; }); }
+    (ca.loans||[]).forEach(function(l){ if(!match(l.member))return; loansN++; var paid=((l.repayments||[]).reduce(function(s,r){return s+(Number(r.montant)||0);},0)); if((Number(l.montant)||0)>0&&paid>=(Number(l.montant)||0))loansRepaid++; else loansOut++; });
+    (ca.litiges||[]).forEach(function(x){ if(!match(x.member))return; if(x.statut==='ouvert'||x.statut==='propose')litOpen++; else litRes++; });
+  });
+  var shareIds=(c.shares||[]);
+  var tons=(typeof state_tontines!=='undefined'?state_tontines:[]).filter(function(t){return shareIds.indexOf(t.id)>=0;});
+  var tonN=0,tonConf=0,tonNames=[];
+  tons.forEach(function(t){ var slot=-1; (t.members||[]).forEach(function(mm,i){ if(mm&&match(mm.name))slot=i; }); if(slot<0)return; tonN++; tonNames.push(t.name||''); (t.rounds||[]).forEach(function(rd){ if(rd&&rd.contribs&&rd.contribs[slot]==='confirmed')tonConf++; }); });
+  var evN=0,evTot=0;
+  (c.evts||[]).forEach(function(e){ var got=false; (e.contribs||[]).forEach(function(k){ if(match(k.name||k.who)){got=true; evTot+=Number(k.amount)||0;} }); if(got)evN++; });
+  return {names:names, reg:(expected?Math.round(honored/expected*100):null), regExpected:expected, regHonored:honored,
+    loans:{n:loansN,repaid:loansRepaid,out:loansOut}, litiges:{open:litOpen,resolved:litRes},
+    tontines:{n:tonN,confirmed:tonConf,names:tonNames}, events:{n:evN,total:evTot}, frozen:litOpen>0};
+}
+function repUniHtml(c,m){
+  var R=caseMemberRep(c,m);
+  var stat=function(v,l){ return '<div style="min-width:86px"><div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:26px;line-height:1;color:#2A2018">'+v+'</div><div class="msub" style="margin-top:2px">'+l+'</div></div>'; };
+  var regTxt=(R.reg==null?'—':R.reg+'%');
+  var verdict;
+  if(R.litiges.open>0) verdict=_FL('Un litige ouvert gèle la progression — à régler pour rétablir la pleine confiance.','An open dispute freezes progression — settle it to restore full trust.');
+  else if(R.reg!=null&&R.reg>=90) verdict=_FL('Réputation solide : régularité élevée, aucun litige en cours.','Strong reputation: high regularity, no open dispute.');
+  else if(R.regExpected===0&&R.tontines.n===0&&R.events.n===0) verdict=_FL('Réputation naissante — l’histoire commence ici.','Reputation just beginning — the story starts here.');
+  else verdict=_FL('Réputation en construction.','Reputation in the making.');
+  var badge=R.frozen?'<span class="pill p-late">'+_FL('gelée','frozen')+'</span>':((R.reg!=null&&R.reg>=90)?'<span class="pill p-done">'+_FL('solide','strong')+'</span>':'');
+  return '<div class="panel" style="margin-top:12px"><div class="panel-h"><h3>'+_FL('Réputation — une seule, pour toute la Case','Reputation — one, across the whole Case')+'</h3>'+badge+'</div>'
+    +'<div style="padding:14px 18px">'
+    +'<div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end">'
+      +stat(regTxt,_FL('Régularité (caisses)','Regularity (funds)'))
+      +stat(R.tontines.n,_FL('Tontines','Tontines'))
+      +stat(R.events.n,_FL('Événements','Events'))
+      +stat(R.loans.repaid+'/'+R.loans.n,_FL('Prêts remboursés','Loans repaid'))
+      +stat((R.litiges.open?('<span style="color:#8A2E16">'+R.litiges.open+'</span>'):'0'),_FL('Litiges ouverts','Open disputes'))
+    +'</div>'
+    +'<div class="asnote" style="margin-top:12px">'+esc(verdict)+'</div>'
+    +'<div class="msub" style="margin-top:8px;opacity:.8">'+_FL('Agrège caisses + tontines + événements de cette Case en un seul signal. Les cotisations confirmées en tontine comptent ; la ponctualité fine (retards datés) viendra avec l’attestation serveur.','Aggregates this Case’s funds + tontines + events into one signal. Confirmed tontine dues count; fine punctuality will come with the server attestation.')+'</div>'
+    +'</div></div>';
+}
 function viewMemberHome(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   caseEnsureMemberIds(c);
@@ -4418,6 +4477,7 @@ function viewMemberHome(){
       <div style="margin-left:auto;text-align:right"><div class="msub">${_FL('Solde','Balance')}</div><div style="font-size:28px;font-weight:600;color:${neg?'#8A2E16':'#8A6A24'}">${money(so,cur)}</div></div>
     </div>${neg?`<div class="asnote" style="margin-top:8px;color:#8A2E16">${_FL('Solde négatif — à régulariser.','Negative balance — to settle.')}</div>`:''}</div></div>
     <div class="row-gap" style="margin:4px 0 10px"><button class="btn btn-ghost btn-sm" onclick="openCaseReleve('${c.id}','${m.id}')">${_FL('Relevé imprimable','Printable statement')}</button></div>
+    ${repUniHtml(c,m)}
     <div class="panel"><div class="panel-h"><h3>${_FL('Son fil dans le groupe','Their thread in the group')}</h3></div><div style="padding:10px 18px 14px">${tl}</div></div>
     ${imaniHtml}
     ${crossHtml}
@@ -11723,7 +11783,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.28';
+const UBORA_BUILD='v10.29';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
