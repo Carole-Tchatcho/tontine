@@ -4648,6 +4648,7 @@ function repExtraFacts(f){
   if(!f)return '';
   var out='';
   if(f.scope==='case'&&f.case_name) out+='<div class="mrow"><div class="stack"><div class="mname">'+_FL('Portée : la Case ','Scope: the Case ')+'« '+esc(f.case_name)+' »</div></div></div>';
+  if(f.tontine_ontime_pct!=null) out+='<div class="mrow"><div class="stack"><div class="mname">'+_FL('Ponctualité tontine : ','Tontine punctuality: ')+f.tontine_ontime_pct+'%'+((f.tontine_late!=null&&f.tontine_late>0)?(' ('+f.tontine_late+' '+_FL('retard(s)','late')+')'):'')+'</div></div></div>';
   if(f.regularite_pct!=null) out+='<div class="mrow"><div class="stack"><div class="mname">'+_FL('Régularité (caisses) : ','Regularity (funds): ')+f.regularite_pct+'%'+((f.regularite_expected!=null)?(' ('+(f.regularite_honored||0)+'/'+f.regularite_expected+')'):'')+'</div></div></div>';
   if(f.loans!=null&&f.loans>0) out+='<div class="mrow"><div class="stack"><div class="mname">'+(f.loans_repaid||0)+'/'+f.loans+' '+_FL('prêt(s) solidaire(s) remboursé(s)','mutual loan(s) repaid')+'</div></div></div>';
   if(f.litiges_open!=null&&(f.litiges_open>0||f.litiges_resolved>0)) out+='<div class="mrow"><div class="stack"><div class="mname">'+((f.litiges_open>0)?('<span style="color:#8A2E16">'+f.litiges_open+' '+_FL('litige(s) en cours','open dispute(s)')+'</span>'):_FL('Aucun litige en cours','No open dispute'))+((f.litiges_resolved>0)?(' · '+f.litiges_resolved+' '+_FL('réglé(s)','settled')):'')+'</div></div></div>';
@@ -4751,6 +4752,7 @@ h1{text-align:center;font-size:26px;margin:6px 0 2px;color:#5a4620}
     ${asdRaw?`<div class="fact"><span>${e(T.active)}</span><b>${e(asd)}</b></div>`:''}
     ${(lastRaw&&lastRaw!==asdRaw)?`<div class="fact"><span>${e(T.last)}</span><b>${e(last)}</b></div>`:''}
     ${(f.scope==='case'&&f.case_name)?`<div class="fact"><span>${L?'Scope':'Portée'}</span><b>${L?'Case':'Case'} « ${e(f.case_name)} »</b></div>`:''}
+    ${(f.tontine_ontime_pct!=null)?`<div class="fact"><span>${L?'Tontine punctuality':'Ponctualité tontine'}</span><b>${f.tontine_ontime_pct}%${(f.tontine_late!=null&&f.tontine_late>0)?' ('+f.tontine_late+(L?' late':' retard(s)')+')':''}</b></div>`:''}
     ${(f.regularite_pct!=null)?`<div class="fact"><span>${L?'Regularity (funds)':'Régularité (caisses)'}</span><b>${f.regularite_pct}%${(f.regularite_expected!=null)?' ('+(f.regularite_honored||0)+'/'+f.regularite_expected+')':''}</b></div>`:''}
     ${(f.loans!=null&&f.loans>0)?`<div class="fact"><span>${L?'Mutual loans repaid':'Prêts solidaires remboursés'}</span><b>${f.loans_repaid||0}/${f.loans}</b></div>`:''}
     ${(f.litiges_open!=null&&(f.litiges_open>0||f.litiges_resolved>0))?`<div class="fact"><span>${L?'Disputes':'Litiges'}</span><b>${f.litiges_open>0?(f.litiges_open+(L?' open':' en cours')):(L?'none open':'aucun en cours')}${f.litiges_resolved>0?' · '+f.litiges_resolved+(L?' settled':' réglé(s)'):''}</b></div>`:''}
