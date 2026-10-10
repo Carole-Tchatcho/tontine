@@ -4547,15 +4547,23 @@ function viewCaseBoard(){
     <div class="panel" style="margin-top:14px"><div class="panel-h"><h3>${caseBoardLabel(kind)} (${list.length})</h3></div><div style="padding:6px 16px 12px">${rows}</div></div>
     ${footer()}`;
 }
-function repOpenAttestation(){state.att=state.att||{};go('attmembre');if(state.uid)repLoadAttestations();}
+function repOpenAttestation(){state.att=state.att||{};go('attmembre');if(state.uid){repLoadAttestations();if(typeof repLoadMyCases==='function')repLoadMyCases();}}
 async function repLoadAttestations(){
   if(!state.uid||typeof sb==='undefined'||!sb)return;
-  try{const res=await sb.from('member_attestations').select('ref,created_at,facts').order('created_at',{ascending:false});if(!res.error)(state.att=state.att||{}).list=res.data||[];}catch(e){}
+  try{const res=await sb.from('member_attestations').select('ref,created_at,facts,scope,case_name').order('created_at',{ascending:false});if(!res.error)(state.att=state.att||{}).list=res.data||[];}catch(e){}
   render();
 }
 async function repIssueAttestation(){
   state.att=state.att||{};if(state.att.busy)return;state.att.busy=true;render();
   try{const res=await sb.rpc('issue_member_attestation');if(res.error)throw res.error;state.att.issued=res.data||null;await repLoadAttestations();}
+  catch(e){try{alert(String((e&&e.message)||e));}catch(_){}}
+  state.att.busy=false;render();
+}
+function repSetAttCase(v){state.att=state.att||{};state.att.caseSel=v;}
+async function repIssueCaseAttestation(caseId){
+  caseId=(caseId||'').trim(); if(!caseId){ try{alert(_FL('Choisissez d’abord une Case.','Choose a Case first.'));}catch(_e){} return; }
+  state.att=state.att||{};if(state.att.busy)return;state.att.busy=true;render();
+  try{const res=await sb.rpc('issue_case_attestation',{p_case:caseId});if(res.error)throw res.error;state.att.issued=res.data||null;await repLoadAttestations();}
   catch(e){try{alert(String((e&&e.message)||e));}catch(_){}}
   state.att.busy=false;render();
 }
@@ -4636,6 +4644,16 @@ function repFactLines(f){
     ${mo>0?`<div class="mrow"><div class="stack"><div class="mname">${_FL('A cotisé sur ','Contributed across ')}${mo} ${_FL('mois distinct(s)','distinct month(s)')}</div></div></div>`:''}
     ${asdRaw?`<div class="mrow"><div class="stack"><div class="mname">${_FL('Actif depuis le ','Active since ')}${esc(asd)}${(lastRaw&&lastRaw!==asdRaw)?` · ${_FL('dernière activité le ','last activity ')}${esc(last)}`:''}</div></div></div>`:''}`;
 }
+function repExtraFacts(f){
+  if(!f)return '';
+  var out='';
+  if(f.scope==='case'&&f.case_name) out+='<div class="mrow"><div class="stack"><div class="mname">'+_FL('Portée : la Case ','Scope: the Case ')+'« '+esc(f.case_name)+' »</div></div></div>';
+  if(f.regularite_pct!=null) out+='<div class="mrow"><div class="stack"><div class="mname">'+_FL('Régularité (caisses) : ','Regularity (funds): ')+f.regularite_pct+'%'+((f.regularite_expected!=null)?(' ('+(f.regularite_honored||0)+'/'+f.regularite_expected+')'):'')+'</div></div></div>';
+  if(f.loans!=null&&f.loans>0) out+='<div class="mrow"><div class="stack"><div class="mname">'+(f.loans_repaid||0)+'/'+f.loans+' '+_FL('prêt(s) solidaire(s) remboursé(s)','mutual loan(s) repaid')+'</div></div></div>';
+  if(f.litiges_open!=null&&(f.litiges_open>0||f.litiges_resolved>0)) out+='<div class="mrow"><div class="stack"><div class="mname">'+((f.litiges_open>0)?('<span style="color:#8A2E16">'+f.litiges_open+' '+_FL('litige(s) en cours','open dispute(s)')+'</span>'):_FL('Aucun litige en cours','No open dispute'))+((f.litiges_resolved>0)?(' · '+f.litiges_resolved+' '+_FL('réglé(s)','settled')):'')+'</div></div></div>';
+  if(f.events!=null&&f.events>0) out+='<div class="mrow"><div class="stack"><div class="mname">'+f.events+' '+_FL('événement(s) soutenu(s)','event(s) supported')+'</div></div></div>';
+  return out;
+}
 function repAttFacts(f,name,date,ref){
   if(!f)return '';
   const t=repAttTier(f);
@@ -4644,7 +4662,7 @@ function repAttFacts(f,name,date,ref){
     <div class="msub" style="margin:0 0 8px">${esc(repTierSub(t))}</div>
     <div style="font-weight:700;font-size:16px">${esc(repNiceName(name))}</div>
     <div class="msub" style="margin:2px 0 10px">${_FL('Réf.','Ref.')} <span class="code">${esc(ref||'')}</span> · ${_FL('émise le','issued')} ${esc(repNiceDate(date))}</div>
-    ${repFactLines(f)}
+    ${repFactLines(f)}${repExtraFacts(f)}
     ${repIssuerLine()}
     <div class="hint" style="margin-top:8px">${_FL('UBORA atteste uniquement ce que son registre a vérifié. Ceci reflète ses écritures, non un avis financier ni une garantie. UBORA ne détient aucun fonds — non enregistrée FINMA.','UBORA attests only what its register has verified. This reflects its records, not a financial opinion or guarantee. UBORA holds no funds — not FINMA-registered.')}</div>
   </div></div>`;
@@ -4666,7 +4684,7 @@ function repAttSealCard(d){
     <div style="padding:14px 18px">
       <div style="font-weight:700;font-size:16px">${esc(name)}</div>
       <div class="msub" style="margin:2px 0 10px">${_FL('Réf.','Ref.')} <span class="code">${esc(ref)}</span> · ${_FL('émise le','issued')} ${esc(date)}</div>
-      ${repFactLines(f)}
+      ${repFactLines(f)}${repExtraFacts(f)}
       <div class="row" style="margin-top:12px"><button class="btn btn-gold btn-sm" onclick="repAttPDF('${esc(ref)}')">${_FL('Télécharger le justificatif (PDF)','Download the certificate (PDF)')}</button></div>
       ${repIssuerLine()}
       <div class="hint" style="margin-top:8px">${_FL('UBORA atteste uniquement ce que son registre a vérifié. Ceci reflète ses écritures, non un avis financier ni une garantie. UBORA ne détient aucun fonds — non enregistrée FINMA.','UBORA attests only what its register has verified. This reflects its records, not a financial opinion or guarantee. UBORA holds no funds — not FINMA-registered.')}</div>
@@ -4732,6 +4750,11 @@ h1{text-align:center;font-size:26px;margin:6px 0 2px;color:#5a4620}
     ${mo>0?`<div class="fact"><span>${e(T.months)}</span><b>${mo}</b></div>`:''}
     ${asdRaw?`<div class="fact"><span>${e(T.active)}</span><b>${e(asd)}</b></div>`:''}
     ${(lastRaw&&lastRaw!==asdRaw)?`<div class="fact"><span>${e(T.last)}</span><b>${e(last)}</b></div>`:''}
+    ${(f.scope==='case'&&f.case_name)?`<div class="fact"><span>${L?'Scope':'Portée'}</span><b>${L?'Case':'Case'} « ${e(f.case_name)} »</b></div>`:''}
+    ${(f.regularite_pct!=null)?`<div class="fact"><span>${L?'Regularity (funds)':'Régularité (caisses)'}</span><b>${f.regularite_pct}%${(f.regularite_expected!=null)?' ('+(f.regularite_honored||0)+'/'+f.regularite_expected+')':''}</b></div>`:''}
+    ${(f.loans!=null&&f.loans>0)?`<div class="fact"><span>${L?'Mutual loans repaid':'Prêts solidaires remboursés'}</span><b>${f.loans_repaid||0}/${f.loans}</b></div>`:''}
+    ${(f.litiges_open!=null&&(f.litiges_open>0||f.litiges_resolved>0))?`<div class="fact"><span>${L?'Disputes':'Litiges'}</span><b>${f.litiges_open>0?(f.litiges_open+(L?' open':' en cours')):(L?'none open':'aucun en cours')}${f.litiges_resolved>0?' · '+f.litiges_resolved+(L?' settled':' réglé(s)'):''}</b></div>`:''}
+    ${(f.events!=null&&f.events>0)?`<div class="fact"><span>${L?'Events supported':'Événements soutenus'}</span><b>${f.events}</b></div>`:''}
   </div>
   <div class="verify"><div class="qr">${qr}</div><div class="vtxt"><span class="vl">${e(T.verify)}</span>${e(T.scan)} :<br>${e(url)}</div></div>
   <div class="issuer">${e(T.issuer)} : <b>${e(REP_ISSUER.legal)}</b> · ${e(T.iform)} · ${e(REP_ISSUER.city)}, ${e(T.icountry)} · ${e(REP_ISSUER.ide)} · ${e(REP_ISSUER.contact)}</div>
@@ -4769,16 +4792,21 @@ function viewMemberAttest(){
   const back='<div class="releve-actions"><button class="btn btn-ghost btn-sm" onclick="go(\'home\')">‹ '+_FL('Retour','Back')+'</button></div>';
   let mine='';
   if(state.uid){
-    const list=(a.list||[]).map(function(x){const tt=repAttTier(x.facts);return `<div class="mrow"><div class="stack"><div class="mname">${_FL('Réf.','Ref.')} <span class="code">${esc(x.ref)}</span></div><div class="msub">${esc(repNiceDate(x.created_at))} · ${esc(repTierLabel(tt))}</div></div><div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="repSetVerifyRef('${esc(x.ref)}');repVerify()">${_FL('Vérifier','Verify')}</button><button class="btn btn-ghost btn-sm" onclick="repAttPDF('${esc(x.ref)}')">PDF</button></div></div>`;}).join('');
+    const list=(a.list||[]).map(function(x){const tt=repAttTier(x.facts);return `<div class="mrow"><div class="stack"><div class="mname">${_FL('Réf.','Ref.')} <span class="code">${esc(x.ref)}</span></div><div class="msub">${esc(repNiceDate(x.created_at))} · ${esc(repTierLabel(tt))}${x.scope==='case'?(' · '+_FL('Case','Case')+' '+esc(x.case_name||'')):(' · '+_FL('Globale','Global'))}</div></div><div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="repSetVerifyRef('${esc(x.ref)}');repVerify()">${_FL('Vérifier','Verify')}</button><button class="btn btn-ghost btn-sm" onclick="repAttPDF('${esc(x.ref)}')">PDF</button></div></div>`;}).join('');
     const issued=a.issued?`${repAttFacts(a.issued.facts,a.issued.display_name,a.issued.created_at,a.issued.ref)}<div class="row" style="margin-top:10px"><button class="btn btn-gold btn-sm" onclick="repAttPDF('${esc(a.issued.ref||'')}')">${_FL('Télécharger le justificatif (PDF)','Download the certificate (PDF)')}</button></div>`:'';
     let prog='';
     if(a.issued){const f=a.issued.facts||{};const tt=repAttTier(f);const nx=repTierNext(f);prog=`<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#fffdf7,#f7efdc);border:1px solid rgba(201,168,76,.4)"><div style="font-weight:700">${_FL('Ton niveau','Your level')} : ${esc(repTierLabel(tt))}${repTierKind(tt)?' — '+esc(repTierKind(tt)):''}</div><div class="msub" style="margin-top:4px">${esc(nx||_FL('Niveau maximal atteint. Bravo pour ta régularité !','Top level reached. Well done on your consistency!'))}</div></div>`;}
+    var myc=(state.myCases||[]).filter(function(x){return x&&x.case_id;});
+    var caseBlock = myc.length
+      ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><div class="msub" style="margin-bottom:6px">${_FL('Attestation pour une Case précise','Attestation for a specific Case')}</div><div class="row-gap" style="gap:8px;flex-wrap:wrap;align-items:center"><select onchange="repSetAttCase(this.value)" style="padding:9px 10px;border:1px solid rgba(0,0,0,.2);border-radius:9px;font:inherit"><option value="">${_FL('Choisir une Case…','Choose a Case…')}</option>${myc.map(function(x){return '<option value="'+esc(x.case_id)+'"'+((a.caseSel===x.case_id)?' selected':'')+'>'+esc(x.name||x.case_id)+'</option>';}).join('')}</select><button class="btn btn-ghost btn-sm" ${a.busy?'disabled style="opacity:.5"':''} onclick="repIssueCaseAttestation(state.att&&state.att.caseSel)">${_FL('Générer pour cette Case','Generate for this Case')}</button></div></div>`
+      : `<div class="hint" style="margin-top:12px">${_FL('Pour une attestation par Case, reliez d’abord votre compte à une Case (annuaire → « fiche reliée »).','For a per-Case attestation, first link your account to a Case.')}</div>`;
     mine=`<h2 class="section-h">${_FL('Mon attestation','My attestation')}</h2><div class="hint" style="margin-bottom:8px">${_FL('Un relevé de ce qu’UBORA a vérifié à votre nom, avec une référence vérifiable par un tiers (banque, bailleur). Sa valeur monte avec votre régularité.','A statement of what UBORA has verified in your name, with a reference a third party (bank, landlord) can verify. Its value grows with your consistency.')}</div>
       <div class="panel"><div style="padding:14px 18px">
         ${issued}
         ${prog}
-        <div class="row" style="margin-top:12px"><button class="btn btn-gold" ${a.busy?'disabled style="opacity:.5"':''} onclick="repIssueAttestation()">${a.busy?'…':(a.issued?_FL('Régénérer mon attestation','Regenerate my attestation'):_FL('Générer mon attestation','Generate my attestation'))}</button></div>
-        ${list?`<div style="margin-top:14px"><div class="msub" style="margin-bottom:6px">${_FL('Mes attestations émises','My issued attestations')}</div>${list}</div>`:''}
+        <div class="row" style="margin-top:12px"><button class="btn btn-gold" ${a.busy?'disabled style="opacity:.5"':''} onclick="repIssueAttestation()">${a.busy?'…':(a.issued?_FL('Régénérer mon attestation globale','Regenerate my global attestation'):_FL('Générer mon attestation globale','Generate my global attestation'))}</button></div>
+        ${caseBlock}
+        ${list?`<div style="margin-top:14px"><div class="msub" style="margin-bottom:6px">${_FL('Ma bibliothèque — attestations émises','My library — issued attestations')}</div>${list}</div>`:''}
       </div></div>`;
   }
   const verify=`<h2 class="section-h" style="margin-top:22px">${_FL('Vérifier une attestation','Verify an attestation')}</h2><div class="hint" style="margin-bottom:8px">${_FL('Vous avez reçu une attestation UBORA ? Entrez sa référence pour la confirmer.','Received a UBORA attestation? Enter its reference to confirm it.')}</div>
@@ -11796,7 +11824,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.30';
+const UBORA_BUILD='v10.31';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
