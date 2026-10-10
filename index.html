@@ -4239,13 +4239,29 @@ function groupLifeOpenMember(name){
 /* Confidentialité des fiches individuelles :
    la fiche d'un membre n'appartient qu'à LUI — seul lui-même, ou le bureau (gouvernance), peut la consulter.
    La vie collective du groupe reste ouverte à tous. */
-function memberIsMe(c,m){ if(!c||!m)return false; var r=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);}); return !!(r&&caseSameName(r.member,m.name)); }
+function caseRoleIsBureau(role){ return /bureau|pr[eé]sident|tr[eé]sori|secr[eé]tair|commissaire/i.test(String(role||'')); }
+/* Nom du membre d'annuaire correspondant au compte connecté :
+   1) le lien serveur (my_member_cases), 2) à défaut, le nom affiché du compte. */
+function caseSelfMemberName(c){
+  if(!c) return '';
+  var r=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
+  if(r&&r.member) return r.member;
+  return (state.user||'');
+}
+function caseSelfMember(c){
+  if(!c) return null; caseEnsureMemberIds(c);
+  var nm=caseSelfMemberName(c); if(!nm) return null;
+  return (c.members||[]).find(function(x){return caseSameName(x.name,nm);})||null;
+}
+function memberIsMe(c,m){ if(!c||!m)return false;
+  var r=(state.myCases||[]).find(function(x){return String(x.case_id)===String(c.id);});
+  if(r&&caseSameName(r.member,m.name)) return true;
+  return caseSameName(state.user,m.name); /* secours : nom affiché = nom d'annuaire */
+}
 function memberPageCanView(c,m){ return memberIsMe(c,m) || caseIsOwnerOrBureau(c) || (typeof isUboraAdmin==='function'&&isUboraAdmin()); }
 function openMyMemberHome(caseId){
   var c=state_cases.find(function(x){return x.id===caseId;}); if(!c)return;
-  caseEnsureMemberIds(c);
-  var r=(state.myCases||[]).find(function(x){return String(x.case_id)===String(caseId);});
-  var m=(r&&r.member)?(c.members||[]).find(function(x){return caseSameName(x.name,r.member);}):null;
+  var m=caseSelfMember(c);
   if(m){ openMemberHome(caseId,m.id); }
   else { alert(_FL('Votre fiche sera disponible une fois votre compte relié à un membre de l’annuaire.','Your record will be available once your account is linked to a directory member.')); }
 }
@@ -8162,7 +8178,13 @@ function viewCaseDetail(){
    la rattache à la Case (case_share_grant). Chaque membre qui relie ensuite son compte
    (code perso / fiche reliée) voit sa progression Découverte→…→Cercle avancer.
    Réservé au bureau/créateur de la Case. */
-function caseIsOwnerOrBureau(c){ if(!c)return false; if(c._creator&&(c._creator===state.uid||c._creator===state.user))return true; return isCaseBureau(c.id); }
+function caseIsOwnerOrBureau(c){ if(!c)return false;
+  if(c._creator&&(c._creator===state.uid||c._creator===state.user))return true;
+  if(isCaseBureau(c.id))return true;
+  if(typeof isUboraAdmin==='function'&&isUboraAdmin())return true;
+  var sm=(typeof caseSelfMember==='function')?caseSelfMember(c):null; /* secours : membre d'annuaire au rôle de bureau */
+  if(sm&&caseRoleIsBureau(sm.role))return true;
+  return false; }
 function openCaseTontine(id){ const c=state_cases.find(x=>x.id===id); if(!caseIsOwnerOrBureau(c)){ alert(_FL('Seul le bureau de la Case peut lancer une tontine de groupe.','Only the Case bureau can launch a group tontine.')); return; } state.activeCase=id; go('casetontine'); }
 function caseTontineMembers(c){ return (c&&c.members||[]).filter(function(m){ return m && !m.excluded_at; }); }
 function caseTontineReadSel(c){ var out=[]; caseTontineMembers(c).forEach(function(m){ var el=document.getElementById('ttn-'+m.id); if(el&&el.checked) out.push({name:m.name,contact:m.contact||'—'}); }); return out; }
@@ -11616,7 +11638,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.22';
+const UBORA_BUILD='v10.23';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
