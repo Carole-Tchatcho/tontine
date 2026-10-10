@@ -2193,7 +2193,7 @@ async function sbGetTontine(id,uid){
   const ids=(rd||[]).map(r=>r.id); let co=[];
   if(ids.length){const{data}=await sb.from('contributions').select('*').in('round_id',ids);co=data||[];}
   const loc=assembleSB(t,mem||[],rd||[],co,uid);
-  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null; loc.palier=t.palier||null;
+  if(loc){ loc.jourEcheance=(t.jour_echeance!=null?t.jour_echeance:null); loc.premium_until=t.premium_until||null; loc.palier=t.palier||null; loc.oCountry=(t.pays||loc.oCountry||'');
     try{ const{data:_et}=await sb.rpc('cercle_etat',{p_tontine:id}); if(_et){ loc.premium_until=_et.premium_until||null; loc.palier=_et.abonne?'kwen':null; loc.premiumSource=_et.source||null; } }catch(_e){}
     try{ const[{data:_bu},{data:_au}]=await Promise.all([
       sb.from('tontine_bureau').select('*').eq('tontine_id',id).is('jusqua',null),
@@ -2333,7 +2333,7 @@ const db={
     if(!uid){ alert(_FL('Session non reconnue — reconnecte-toi puis réessaie.','Session not recognized — sign in again and retry.')); state.view='auth'; render(); throw new Error('no-session'); }
     await sb.from('profiles').update({nom:d.oName.trim(),contact:d.oContact.trim()||null}).eq('id',uid);
     const{data:t,error}=await sb.from('tontines').insert({nom:d.name.trim(),montant:Number(d.amount)||0,devise:d.currency,jour_echeance:d.jourEcheance||null,
-      frequence:d.frequency,places,code:genCode(),organisateur_id:uid,tour_courant:0}).select().single(); if(error)throw error;
+      frequence:d.frequency,places,code:genCode(),organisateur_id:uid,tour_courant:0,pays:(d.oCountry||null)}).select().single(); if(error)throw error;
     await sb.from('memberships').insert({tontine_id:t.id,user_id:uid,slot:0,role:'organisateur',
       consent_marketing:!!d.oMk,consent_marketing_at:d.oMk?new Date().toISOString():null});
     await sb.from('rounds').insert(genLabels(places,d.frequency).map((label,i)=>({tontine_id:t.id,idx:i,beneficiaire_slot:i,label,statut:i===0?'en_cours':'a_venir'})));
@@ -2454,7 +2454,9 @@ async function go(v){unsubscribeActive();state.view=v;if(v!=='dash')state.active
     try{const b=await sb.rpc('founder_integrity'); window._founderInt={stats:(b&&b.data)||{},err:(b&&b.error&&b.error.message)||''};}
     catch(e){window._founderInt={stats:{},err:String(e.message||e)};}
     try{const c=await sb.rpc('founder_funnel'); window._founderFunnel={stats:(c&&c.data)||{},err:(c&&c.error&&c.error.message)||''};}
-    catch(e){window._founderFunnel={stats:{},err:String(e.message||e)};}}
+    catch(e){window._founderFunnel={stats:{},err:String(e.message||e)};}
+    try{const d=await sb.rpc('founder_rails'); window._founderRails={rows:(d&&d.data)||[],err:(d&&d.error&&d.error.message)||''};}
+    catch(e){window._founderRails={rows:[],err:String(e.message||e)};}}
   if(BACKEND==='supabase'&&v==='diffusion'){try{await db.loadContacts();}catch(e){console.warn('carnet',e);}
     try{const{data:_s}=await sb.from('app_settings').select('key,value').in('key',['edition0_subject','edition0_body','edition0_html']);
       const _g=k=>(((_s||[]).find(x=>x.key===k)||{}).value)||'';
@@ -6962,7 +6964,7 @@ async function fapshiAbonner(palier, months){
   /* Géoloc : le Mobile Money (FCFA) est réservé aux GROUPES situés en Afrique —
      empêche une asso hors Afrique de profiter des tarifs Afrique. */
   const _pays=groupPays(_tgt.entity,_tgt.id);
-  if(_pays && typeof COUNTRY_CONT!=='undefined' && COUNTRY_CONT[_pays] && COUNTRY_CONT[_pays]!=='AF'){
+  if(_pays && typeof contOf==='function' && contOf(_pays)!=='AF'){
     alert(_FL('Le paiement Mobile Money (Orange / MTN) est réservé aux groupes situés en Afrique. Votre groupe est enregistré en « '+_pays+' » : l’abonnement se règle par carte (page Tarifs).','Mobile Money (Orange / MTN) is only for groups located in Africa. Your group is registered in “'+_pays+'”: subscribe by card (Pricing page).'));
     return;
   }
@@ -7002,7 +7004,7 @@ async function abonnerPalier(palier){
       if(idx==null) return;
       cid = miennes[idx].id;
     }
-    caseSubscribe(cid, price); return;
+    uboraSubscribe('case', cid, palier); return;
   }
   if(palier==='baobab'){
     if(!state.uid){ go('auth'); return; }
@@ -7025,7 +7027,7 @@ async function abonnerPalier(palier){
       if(idx==null) return;
       fid = miens[idx].id;
     }
-    groupeSubscribe(fid, price); return;
+    uboraSubscribe('federation', fid, palier); return;
   }
 
   // Les cercles dont je suis l'organisateur (seul l'organisateur peut abonner).
@@ -7048,9 +7050,50 @@ async function abonnerPalier(palier){
     if(idx==null) return;
     tid = miens[idx].id;
   }
-  premiumSubscribe(tid, price);
+  uboraSubscribe('tontine', tid, palier);
 }
 
+/* ============================================================================
+   ABONNEMENT — aiguillage par la GÉOLOCALISATION du groupe (v10.27)
+   Le site propose le Mobile Money seulement si le PAYS DU GROUPE est africain ;
+   le VERROU RÉEL (IP réelle du payeur en Afrique, CEO exemptée) est appliqué
+   CÔTÉ SERVEUR par fapshi-pay. Hors Afrique → carte. Afrique sans rail → le
+   serveur renvoie {fallback:'card'} : on rassure l'utilisateur et on bascule
+   en carte (l'alerte « rail à brancher » part côté serveur : Pilotage + e-mail).
+   ============================================================================ */
+function _ubCardSubscribe(entity,id,price){
+  if(!price){ alert(_FL('Ce palier n’est pas disponible dans votre devise pour le moment.','This tier isn’t available in your currency yet.')); return; }
+  if(entity==='case') return caseSubscribe(id,price);
+  if(entity==='federation') return groupeSubscribe(id,price);
+  return premiumSubscribe(id,price); /* tontine */
+}
+async function _ubFapshiTry(entity,id,palier,cardPrice){
+  try{
+    const{data:{session:_s}}=await sb.auth.getSession();
+    const _r=await fetch(SB_URL+'/functions/v1/fapshi-pay',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
+      body:JSON.stringify({palier, scope:entity, targetId:id, months:1, return_url:location.origin+location.pathname})});
+    const _j=await _r.json().catch(()=>({}));
+    if(_j && _j.ok && _j.link){ location.href=_j.link; return; }
+    /* Le serveur a refusé le Mobile Money (pas de rail, paiement hors Afrique,
+       ou Fapshi indisponible) : on rassure et on bascule en carte. */
+    var msg=(_j&&_j.message)|| _FL('Le paiement dans la devise de ton pays arrive bientôt. En attendant, tu peux régler par carte.','Payment in your country’s currency is coming soon. For now, you can pay by card.');
+    try{alert(msg);}catch(_e){}
+    return _ubCardSubscribe(entity,id,cardPrice);
+  }catch(e){
+    try{alert(_FL('Paiement Mobile Money indisponible : ','Mobile Money unavailable: ')+(e.message||e));}catch(_e){}
+    return _ubCardSubscribe(entity,id,cardPrice);
+  }
+}
+async function uboraSubscribe(entity,id,palier){
+  if(!state.uid){ go('auth'); return; }
+  var pays=(typeof groupPays==='function')?groupPays(entity,id):'';
+  var cont=(typeof contOf==='function')?contOf(pays):'OT';
+  var dev=abonnementDevise();
+  var cardPrice=(STRIPE_PRICES[palier]||{})[dev];
+  if(cont==='AF'){ return _ubFapshiTry(entity,id,palier,cardPrice); }
+  return _ubCardSubscribe(entity,id,cardPrice);
+}
 async function tarifNotify(k){
   const el=document.getElementById('tn-'+k);
   const mail=el?String(el.value).trim():(state.email||'');
@@ -11235,6 +11278,11 @@ function founderSoon(label,hint){
     +'<div style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:26px;color:#C7BBA0;margin-top:4px">en préparation</div>'
     +(hint?'<div class="msub" style="margin-top:3px">'+hint+'</div>':'')+'</div>';
 }
+async function railDone(id){
+  if(!confirm('Marquer cette demande comme réglée (rail branché) ?'))return;
+  try{ const{error}=await sb.rpc('rail_done',{p_id:id}); if(error)throw error; go('founder'); }
+  catch(e){ try{alert(e.message||e);}catch(_e){} }
+}
 function viewFounder(){
   if(!isUboraAdmin()) return '<h1 class="page-title">Pilotage</h1><div class="asnote">Réservé à l’équipe UBORA.</div>'+footer();
   var f=(window._founder&&window._founder.stats)||{}; var err=(window._founder&&window._founder.err)||'';
@@ -11318,6 +11366,14 @@ function viewFounder(){
         +'</div></div>'
         +'<div class="asnote" style="margin-bottom:18px"><b>'+num(fn.elite)+'</b> membre(s) ont atteint <b>Tontine Elite</b> — la porte vers la méthode UBORA d’investissement. C’est le vivier que le pont Trust → Invest → Ubora-Bank viendra accueillir.</div>';
     })()
+   +(function(){
+      var rr=(window._founderRails&&window._founderRails.rows)||[]; var rerr=(window._founderRails&&window._founderRails.err)||'';
+      var header='<div style="margin:22px 0 8px"><div class="kicker" style="color:#8A6A24">Expansion</div><h2 class="section-h" style="margin-top:2px">Rails à brancher</h2><p class="lead" style="margin:0 0 12px;font-size:15px">Des groupes africains veulent payer dans la devise de leur pays, mais le rail Mobile Money n’y est pas encore. Chaque ligne est un revenu qui attend — branche le rail, puis clôture ici.</p></div>';
+      if(rerr) return header+'<div class="asnote" style="margin-bottom:18px">La liste n’a pas pu charger : '+esc(rerr)+'. Exécutez <b>MIGRATION-geoloc-pricing.sql</b> dans Supabase, puis Actualisez.</div>';
+      if(!rr.length) return header+'<div class="asnote" style="margin-bottom:18px">Aucune demande en attente. Dès qu’un groupe d’un pays sans rail tente de s’abonner, il apparaît ici (et vous recevez un e-mail).</div>';
+      var rows=rr.map(function(x){ var when=x.created_at?new Date(x.created_at).toLocaleDateString('fr-CH'):''; return '<div class="mrow"><div class="stack"><div class="mname">'+esc(x.pays||'—')+' <span class="pill p-soon">'+esc(x.palier||'')+'</span></div><div class="msub">'+esc(x.scope||'')+(x.payer_email?(' · '+esc(x.payer_email)):'')+(x.payer_ip_country?(' · IP '+esc(x.payer_ip_country)):'')+(when?(' · '+when):'')+'</div></div><button class="btn btn-ghost btn-sm" onclick="railDone(\''+esc(String(x.id))+'\')">Marquer réglé</button></div>'; }).join('');
+      return header+'<div class="panel" style="margin:0 0 18px"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> '+rr.length+' demande(s) en attente</h3></div><div style="padding:8px 16px 12px">'+rows+'</div></div>';
+   })()
    +'<div class="panel" style="margin:0 0 14px"><div class="panel-h"><h3><span style="color:#C9A84C;font-size:11px;vertical-align:1px">◆</span> Bientôt dans le pilotage</h3></div><div style="display:flex;gap:12px;flex-wrap:wrap;padding:16px 20px 18px">'
      +founderSoon('Paiements Mobile Money',(f.fapshi_ok?(f.fapshi_ok+' réussis à ce jour'):'dès l’ouverture Fapshi'))
      +founderSoon('Carte géographique','où vit la confiance UBORA')
@@ -11524,7 +11580,7 @@ function dashPremium(t,isOrg){
       ${on?`<p class="msub">Merci\u00A0! Votre cercle est au palier <b>${esc(nom)}</b>\u00A0: attestations illimit\u00E9es, rappels pr\u00EAts \u00E0 envoyer et exports comptables sont actifs.</p>`
         :`<p class="msub">Ce cercle est au palier <b>Fekeng</b> (gratuit), et le registre l\u2019est enti\u00E8rement\u00A0: le journal d\u2019audit, la double signature du bureau et l\u2019attestation ne s\u2019ach\u00E8tent pas et ne s\u2019ach\u00E8teront jamais. Un palier payant ajoute la taille et le confort.</p>
           <div class="asnote" style="margin:10px 0">UBORA ne pr\u00E9l\u00E8ve <b>aucune commission sur vos cotisations</b> et ne d\u00E9tient aucun fonds. L\u2019abonnement r\u00E9mun\u00E8re le logiciel et son h\u00E9bergement \u2014 rien d\u2019autre.</div>
-          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="abonnerPalier('kwen')">\u2728 ${_FL('Passer en Kw\u00E8n','Upgrade to Kw\u00E8n')} \u2014 19 ${abonnementDevise()}/${_FL('mois','mo')}</button>
+          ${isOrg?`<button class="btn btn-gold btn-sm" onclick="uboraSubscribe('tontine','${t.id}','kwen')">\u2728 ${_FL('Passer en Kw\u00E8n','Upgrade to Kw\u00E8n')} \u2014 19 ${abonnementDevise()}/${_FL('mois','mo')}</button>
           <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="go('tarifs')">${_FL('Voir tous les paliers','See all tiers')}</button></div>`:`<p class="msub">Seul\u00B7e l\u2019organisateur\u00B7trice peut souscrire.</p>`}`}
     </div></div>`;
 }
@@ -11665,7 +11721,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.26';
+const UBORA_BUILD='v10.27';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
@@ -12114,7 +12170,7 @@ function fedAbonnementPanel(f){
     : `<div class="mrow"><span class="msub">${_FL('Ce groupe n\'est pas abonné. Ses cercles restent au palier gratuit.','This group is not subscribed. Its circles stay on the free tier.')}</span></div>`;
   const btnB = (actif && pal==='baobab')
     ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.45;cursor:default">Baobab · ${_FL('palier actuel','current tier')}</button>`+btnGerer('federation',f.id)
-    : `<button class="btn btn-gold btn-sm" onclick="groupeSubscribe('${f.id}','${STRIPE_PRICES.baobab[dev]}')">${_FL('S\'abonner · Baobab','Subscribe · Baobab')} (${dev})</button>`;
+    : `<button class="btn btn-gold btn-sm" onclick="uboraSubscribe('federation','${f.id}','baobab')">${_FL('S\'abonner · Baobab','Subscribe · Baobab')} (${dev})</button>`;
   const btns=`<div class="row-gap" style="margin-top:10px">${btnB}</div>
     <div class="msub" style="margin-top:8px">${_FL('Baobab : cercles illimités, chiffres agrégés du réseau, attestation de fédération, annuaire. Paiement sécurisé par Stripe, résiliable à tout moment.','Baobab: unlimited circles, aggregated network figures, federation attestation, directory. Secure payment by Stripe, cancel anytime.')}</div>
     <div class="asnote" style="margin-top:10px">${_FL('Une <b>fédération</b> relie des groupes. Pour une association qui rassemble des personnes et abrite ses tontines, c\'est une <b>Case</b> au palier Fagot qu\'il vous faut.','A <b>federation</b> links groups. For an association that gathers people and hosts its tontines, you want a <b>Case</b> on the Fagot tier.')}</div>`;
@@ -12137,25 +12193,8 @@ async function caseSubscribe(caseId, price_id){
 }
 /* Panneau d'abonnement d'une Case : état + bouton Fagot + tontines abritées. */
 async function subscribeCaseTier(caseId, palier){
-  if(!state.uid){ go('auth'); return; }
-  const c=(state_cases||[]).find(x=>x.id===caseId); if(!c)return;
-  const pays=groupPays('case',caseId)||c.country||'';
-  const cont=(pays&&typeof COUNTRY_CONT!=='undefined'&&COUNTRY_CONT[pays])?COUNTRY_CONT[pays]:null;
-  if(cont==='AF'){
-    try{
-      const{data:{session:_s}}=await sb.auth.getSession();
-      const _r=await fetch(SB_URL+'/functions/v1/fapshi-pay',{method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_s&&_s.access_token||''),'apikey':SB_ANON},
-        body:JSON.stringify({palier, scope:'case', targetId:caseId, months:1, return_url:location.origin+location.pathname})});
-      const _j=await _r.json().catch(()=>({}));
-      if(!_r.ok||!_j.ok||!_j.link) throw new Error(_j.error||('Erreur '+_r.status));
-      location.href=_j.link;
-    }catch(e){ alert(_FL('Paiement indisponible : ','Payment unavailable: ')+(e.message||e)); }
-    return;
-  }
-  const dev=abonnementDevise(); const price=(STRIPE_PRICES[palier]||{})[dev];
-  if(!price){ alert(_FL('Ce palier n\u2019est pas disponible dans votre devise.','This tier isn\u2019t available in your currency.')); return; }
-  return caseSubscribe(caseId, price);
+  /* Aiguillage unifi\u00e9 : pays du groupe \u2192 Mobile Money (verrou serveur) ou carte. */
+  return uboraSubscribe('case', caseId, palier);
 }
 function caseAbonnementPanel(c){
   if(!c) return '';
@@ -12166,7 +12205,7 @@ function caseAbonnementPanel(c){
   const _svgA=(c.palier==='kwen')?kwenSVG(22):(c.palier==='baobab'?baobabSVG(22):fagotSVG(22));
   const _isole=nb<=1;
   const _payC=(groupPays('case',c.id)||c.country||'');
-  const _contC=(_payC&&typeof COUNTRY_CONT!=='undefined'&&COUNTRY_CONT[_payC])?COUNTRY_CONT[_payC]:null;
+  const _contC=(_payC&&typeof contOf==='function')?contOf(_payC):null;
   const _rail=_contC==='AF'?'Mobile Money (Orange / MTN)':(_FL('carte','card')+' · '+dev);
   const etat=actif
     ? `<div class="mrow"><div class="stack"><div class="mname">${_svgA} ${_FL('Case abonnée','Case subscribed')} · <b>${_palA}</b></div><div class="msub">${_FL('actif jusqu\'au','active until')} ${new Date(c.premium_until).toLocaleDateString()} · ${_FL('ses tontines abritées bénéficient de Kwèn','its hosted tontines get Kwèn')}</div></div></div>`
