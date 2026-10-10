@@ -4235,7 +4235,7 @@ function viewGroupLife(){
    ATTESTATIONS — générer (relevé vérifié) + vérifier (public, opposable)
    ============================================================================ */
 function openGroupHome(id){ state.activeCase=id; go('groupehome'); }
-function openMemberHome(id,mid){ state.activeCase=id; state.releveMid=mid; go('memberhome'); }
+function openMemberHome(id,mid,name){ state.activeCase=id; state.releveMid=mid; state.releveName=name||''; go('memberhome'); }
 function openCaisseImani(id){ state.activeCaisse=id; state.caisseNew=false; state.caisseTab='imani'; go('caisse'); }
 /* Tiroir → fiche : relie un membre vu côté serveur (par son nom) à sa fiche locale. */
 function groupLifeOpenMember(name){
@@ -4243,7 +4243,7 @@ function groupLifeOpenMember(name){
   var c=state_cases.find(function(x){return x.id===cid;}); if(!c){ return; }
   caseEnsureMemberIds(c);
   var m=(c.members||[]).find(function(x){return caseSameName(x.name,name);});
-  if(m){ openMemberHome(cid,m.id); }
+  if(m){ openMemberHome(cid,m.id,m.name); }
 }
 /* Confidentialité des fiches individuelles :
    la fiche d'un membre n'appartient qu'à LUI — seul lui-même, ou le bureau (gouvernance), peut la consulter.
@@ -4271,7 +4271,7 @@ function memberPageCanView(c,m){ return memberIsMe(c,m) || caseIsOwnerOrBureau(c
 function openMyMemberHome(caseId){
   var c=state_cases.find(function(x){return x.id===caseId;}); if(!c)return;
   var m=caseSelfMember(c);
-  if(m){ openMemberHome(caseId,m.id); return; }
+  if(m){ openMemberHome(caseId,m.id,m.name); return; }
   /* Pas encore relié : on ne laisse JAMAIS le membre dans une impasse —
      on l'emmène relier son compte à sa fiche avec son code perso. */
   if(confirm(_FL('Votre compte n’est pas encore relié à votre fiche dans ce groupe. On relie son compte avec le code perso reçu dans l’invitation (ou en cliquant le lien d’invitation). Ouvrir l’écran pour le faire ?','Your account isn’t linked to your record in this group yet. You link it with the personal code from your invitation (or by clicking the invite link). Open the screen to do it?'))){
@@ -4318,7 +4318,7 @@ function viewGroupHome(){
   var N=ring.length;
   var ringHtml=ring.map(function(m,i){
     var ang=(360/N)*i, dl=(i*(7/Math.max(1,N))).toFixed(2);
-    return '<div class="gh-seat" style="transform:rotate('+ang+'deg) translate(120px) rotate('+(-ang)+'deg)"><div class="gh-seat-in" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\')"><div class="gh-name" style="animation-delay:'+dl+'s">'+esc(m.name)+'</div>'+(m.role?'<div class="gh-role">'+esc(m.role)+'</div>':'')+'</div></div>';
+    return '<div class="gh-seat" style="transform:rotate('+ang+'deg) translate(120px) rotate('+(-ang)+'deg)"><div class="gh-seat-in" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\',\''+esc(String(m.name||'').replace(/'/g,"\\'"))+'\')"><div class="gh-name" style="animation-delay:'+dl+'s">'+esc(m.name)+'</div>'+(m.role?'<div class="gh-role">'+esc(m.role)+'</div>':'')+'</div></div>';
   }).join('');
   const cag=c.cagnotte||{}; const cagRaised=((cag.contribs)||[]).reduce(function(s,x){return s+(Number(x.amount)||0);},0); const cagGoal=Number(cag.goal)||0; const cagPct=cagGoal>0?Math.min(100,Math.round(cagRaised/cagGoal*100)):0;
   const nextEv=(c.evts||[])[0];
@@ -4357,7 +4357,11 @@ function viewGroupHome(){
 function viewMemberHome(){
   const c=state_cases.find(x=>x.id===state.activeCase); if(!c)return go('case');
   caseEnsureMemberIds(c);
-  const m=(c.members||[]).find(function(x){return x.id===state.releveMid;}); if(!m)return go('groupehome');
+  var m=(c.members||[]).find(function(x){return x.id===state.releveMid;});
+  /* Secours : si l'id a été régénéré par un rechargement des Cases, on retrouve
+     le membre par son nom — la navigation ne doit JAMAIS retomber sur la vue groupe. */
+  if(!m && state.releveName){ m=(c.members||[]).find(function(x){return caseSameName(x.name,state.releveName);}); if(m) state.releveMid=m.id; }
+  if(!m)return go('groupehome');
   if(state.uid && typeof state.myCases==='undefined'){ try{ repLoadMyCases().then(function(){render();}); }catch(_e){} return app().innerHTML=ghStyle()+'<div class="msub" style="padding:24px">'+_FL('Chargement…','Loading…')+'</div>'; }
   if(!memberPageCanView(c,m)){
     return app().innerHTML=ghStyle()+`
@@ -7823,7 +7827,7 @@ function viewCaseComptes(){
     var pct=co>0?Math.min(100,Math.round(de/co*100)):(de>0?100:0);
     var bar='<div style="height:4px;background:#ece4d2;border-radius:3px;margin-top:7px;max-width:240px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(neg?'#8A2E16':'#C9A84C')+'"></div></div>';
     var tag=neg?' <span class="pill" style="background:#F4D9D0;color:#8A2E16;font-size:10px;letter-spacing:.04em">'+_FL('à régulariser','to settle')+'</span>':'';
-    return '<div class="mrow"><div class="stack" style="flex:1;min-width:0"><div class="mname" style="cursor:pointer" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\')">'+esc(m.name)+tag+'</div>'
+    return '<div class="mrow"><div class="stack" style="flex:1;min-width:0"><div class="mname" style="cursor:pointer" onclick="openMemberHome(\''+c.id+'\',\''+m.id+'\',\''+esc(String(m.name||'').replace(/'/g,"\\'"))+'\')">'+esc(m.name)+tag+'</div>'
       +'<div class="msub">'+_FL('cotisé','contributed')+' '+money(co,cur)+' · '+_FL('engagé','committed')+' '+money(de,cur)+'</div>'+bar+'</div>'
       +'<div class="right" style="display:flex;align-items:center;gap:14px"><div style="font-size:22px;font-weight:600;line-height:1;color:'+col+'">'+money(so,cur)+'</div>'
       +'<button class="btn btn-ghost btn-sm" onclick="openCaseReleve(\''+c.id+'\',\''+m.id+'\')">'+_FL('Relevé','Statement')+'</button></div></div>';
@@ -11661,7 +11665,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.25';
+const UBORA_BUILD='v10.26';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
