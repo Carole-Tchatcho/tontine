@@ -3133,7 +3133,7 @@ function impToCaisse(){if(!(state.imp.group||'').trim()){alert(tr('imp_need_grou
   if(!foyers.length){alert(tr('imp_need_name'));return;}
   const creator=state.user||tr('cc_you');const gname=(state.imp.group||'').trim();const cur=state.imp.cur||'XOF';
   state_caisses.unshift({
-    id:newId('c'), caseId:state.imp.caseId||null, group:gname, name:gname, type:'deces', currency:cur, federation:null,
+    id:newId('c'), caseId:state.imp.caseId||null, country:caseCountryOf(state.imp.caseId), group:gname, name:gname, type:'deces', currency:cur, federation:null,
     cotisation:{montant:0, frequence:'mensuelle'}, fonds:0,
     bureau:[{name:creator,role:'president'},{name:'\u2014',role:'tresorier'},{name:'\u2014',role:'commissaire'}],
     foyers:foyers, appels:[],
@@ -3668,7 +3668,7 @@ async function repCreateCaissesFromFunds(){
     if(!funds.length) funds.push({name:c.name,type:'deces'});
     const made=[];
     funds.forEach(function(f){
-      const caisse={id:newId('c'), caseId:c.id, group:c.name, name:f.name, type:f.type, currency:(ing.tontineCur||'EUR'), federation:null,
+      const caisse={id:newId('c'), caseId:c.id, country:(c.country||''), group:c.name, name:f.name, type:f.type, currency:(ing.tontineCur||'EUR'), federation:null,
         cotisation:{montant:0,frequence:'mensuelle'}, fonds:0,
         bureau:[{name:creator,role:'president'},{name:'\u2014',role:'tresorier'},{name:'\u2014',role:'commissaire'}],
         foyers:foyers.slice(), appels:[],
@@ -6919,6 +6919,8 @@ function groupPays(entity,id){
   }catch(_e){}
   return '';
 }
+/* Pays d'une Case par son id — les outils dérivés d'une Case en héritent. */
+function caseCountryOf(id){ var c=(state_cases||[]).find(function(x){return x.id===id;}); return (c&&c.country)||''; }
 async function fapshiAbonner(palier, months){
   if(!state.uid){ go('auth'); return; }
   const dev = abonnementDevise();          // réutilise exactement la sélection Stripe ci-dessous
@@ -11721,7 +11723,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.27';
+const UBORA_BUILD='v10.28';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
