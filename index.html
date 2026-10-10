@@ -3965,7 +3965,10 @@ function repAccessPanel(c){
       if(!ok){
         actions=`<button class="btn ${state.repShareFor===m.join_code?'btn-gold':'btn-ghost'} btn-sm" onclick="repShareInvite('${esc(m.join_code||'')}')">${state.repShareFor===m.join_code?_FL('Fermer','Close'):_FL('Inviter','Invite')}</button>`;
       }
-      return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`+((state.repShareFor&&state.repShareFor===m.join_code)?inviteShareBlock(location.origin+location.pathname+'?cj='+encodeURIComponent(m.join_code), c.name, {caption:_FL('Scanner pour rejoindre','Scan to join')}):'');
+      var _ann=(c.members||[]).map(function(z){return z.name;}).filter(Boolean);
+      var _aligned=_ann.some(function(n){return caseSameName(n,m.member_ref);});
+      var relBlock=(_aligned||!_ann.length)?'':('<div class="asnote" style="margin:6px 0 0;border-color:#C9A84C;background:rgba(201,168,76,.08)"><div class="msub" style="margin-bottom:6px">'+_FL('Cette fiche ne correspond à aucun nom de l’annuaire — rapprochez-la de la bonne personne (sa réputation ne doit ni se perdre, ni se mélanger à une autre).','This record matches no directory name — reconcile it to the right person (its reputation must not be lost or mixed with someone else’s).')+'</div><div class="row-gap" style="gap:6px;flex-wrap:wrap"><select id="rl-'+esc(m.id)+'" style="padding:6px 8px;border:1px solid rgba(0,0,0,.2);border-radius:8px;font:inherit">'+_ann.map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+'</select><button class="btn btn-gold btn-sm" onclick="repRelabel(\''+esc(m.id)+'\',\''+esc(c.id)+'\')">'+_FL('Rapprocher','Reconcile')+'</button></div></div>');
+      return `<div class="mrow" style="${m.excluded_at?'opacity:.55':''}"><div class="stack"><div class="mname">${esc(m.member_ref)} ${ok?`<span class="pill p-done">${_FL('relié·e','linked')}</span>`:`<span class="pill p-soon">${_FL('en attente','pending')}</span>`}${m.is_bureau?` <span class="pill p-done">${_FL('bureau','board')}</span>`:''}</div><div class="msub">${_FL('code','code')} <span class="code">${esc(m.join_code||'')}</span>${email?' · '+esc(email):''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${m.excluded_at?'':buBtn}${actions}${exBtns}</div></div>`+relBlock+((state.repShareFor&&state.repShareFor===m.join_code)?inviteShareBlock(location.origin+location.pathname+'?cj='+encodeURIComponent(m.join_code), c.name, {caption:_FL('Scanner pour rejoindre','Scan to join')}):'');
     }).join('');
     const bulk=emailable?`<div class="row" style="margin:2px 0 12px"><button class="btn btn-gold btn-sm" onclick="repEmailAll('${esc(c.id)}')">${_FL('Envoyer '+emailable+' invitation(s) par email','Send '+emailable+' email invitation(s)')}</button></div>`:'';
     inner=`<div class="hint" style="margin-bottom:8px">${joined}/${list.length} ${_FL('membres reliés. « Inviter » ouvre le lien, le QR et l’envoi par WhatsApp, SMS ou e-mail.','members linked. Name the board, and invite by email (or copy the code for SMS/WhatsApp).')}</div>${bulk}${rows}<div class="row" style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="repLoadAccess('${esc(c.id)}')">${_FL('Actualiser','Refresh')}</button></div>`;
@@ -4014,6 +4017,16 @@ async function repReadmit(memberId,caseId){
 async function repSetBureau(memberId,caseId,flag){
   try{const res=await sb.rpc('case_set_bureau',{p_member:memberId,p_flag:flag});if(res.error)throw res.error;}
   catch(e){try{alert(String((e&&e.message)||e));}catch(_){}}
+  await repLoadAccess(caseId);
+}
+/* Rapprocher une fiche divergente de la bonne personne de l'annuaire —
+   confirmé par le bureau, verrous anti-mélange côté serveur. */
+async function repRelabel(memberId,caseId){
+  var el=document.getElementById('rl-'+memberId); var nm=el?String(el.value||'').trim():'';
+  if(!nm)return;
+  if(!confirm(_FL('Rattacher cette fiche à « ','Attach this record to “')+nm+_FL(' » ? Sa réputation sera désormais celle de cette personne — vérifiez bien.','” ? Its reputation will now be that person’s — check carefully.')))return;
+  try{ const r=await sb.rpc('case_member_relabel',{p_member:memberId,p_name:nm}); if(r.error)throw r.error; }
+  catch(e){ try{alert(_FL('Rapprochement refusé : ','Reconcile refused: ')+((e&&e.message)||e));}catch(_e){} }
   await repLoadAccess(caseId);
 }
 function repInviteHtml(c,member,code){
@@ -11783,7 +11796,7 @@ async function sendReminderEmail(tid,idx){
 }
 
 /* ---------- badge de mode : sait-on où vont les données, et QUI est connecté ? ---------- */
-const UBORA_BUILD='v10.29';
+const UBORA_BUILD='v10.30';
 /* ---------- Le kwèn — double cloche des Grassfields (Nord-Ouest Cameroun) ----------
    Symbole de l'autorité du Fon, du messager des ancêtres et du rassemblement.
    Il n'apparaît que là où le Premium existe : jamais un badge de compte,
